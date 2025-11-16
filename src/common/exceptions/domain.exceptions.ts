@@ -1,0 +1,16 @@
+import { BaseException } from "./base-exception";
+import { HttpStatus } from "@nestjs/common";
+
+export class UserNotFoundException extends BaseException {
+    constructor(userId: string) {
+        super(`User with id ${userId} not found`, HttpStatus.NOT_FOUND);
+    }
+}
+
+export class ForbiddenActionException extends BaseException {
+    constructor(action: string) {
+        super(`Forbidden to perform this action: ${action}`, HttpStatus.FORBIDDEN);
+    }
+}
+
+// TO DO: Add more domain exceptions here
