@@ -3,10 +3,10 @@ name: CI Pipeline (Staging)
 on:
   push:
     branches:
-    - staging
+      - staging
   pull_request:
     branches:
-    - staging
+      - staging
 
 jobs:
   ci-run:
@@ -20,7 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: "npm"
+          cache: 'npm'
 
       - name: Install Dependencies
         run: npm install
