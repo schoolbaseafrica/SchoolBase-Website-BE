@@ -5,55 +5,56 @@
 //example: SYS_MSG.ACCOUNT_CREATED will return "ACCOUNT_CREATED"
 //example usage in your controller or service:
 // import { SYS_MSG } from 'src/constants/system.messages';
-// message:SYS_MSG.ACCOUNT_CREATED; when a new account is created successfully.
+// message:SYS_MSG. account_created; when a new account is created successfully.
 
 export const SYS_MSG = {
   // Authentication
-  LOGIN_SUCCESS: "LOGIN_SUCCESS",
-  LOGIN_FAILED: "LOGIN_FAILED",
-  INVALID_CREDENTIALS: "INVALID_CREDENTIALS",
-  TOKEN_EXPIRED: "TOKEN_EXPIRED",
-  TOKEN_INVALID: "TOKEN_INVALID",
+  login_success: "LOGIN_SUCCESS",
+  login_failed: "LOGIN_FAILED",
+  invalid_credentials: "INVALID_CREDENTIALS",
+  token_expired: "TOKEN_EXPIRED",
+  token_invalid: "TOKEN_INVALID",
 
   // User / Account
-  ACCOUNT_CREATED: "ACCOUNT_CREATED",
-  ACCOUNT_NOT_FOUND: "ACCOUNT_NOT_FOUND",
-  ACCOUNT_ALREADY_EXISTS: "ACCOUNT_ALREADY_EXISTS",
-  USER_NOT_FOUND: "USER_NOT_FOUND",
+  account_created: "ACCOUNT_CREATED",
+  account_not_found: "ACCOUNT_NOT_FOUND",
+  account_already_exists: "ACCOUNT_ALREADY_EXISTS",
+  user_not_found: "USER_NOT_FOUND",
 
   // Authorization
-  UNAUTHORIZED: "UNAUTHORIZED",
-  FORBIDDEN: "FORBIDDEN",
-  NOT_ALLOWED: "NOT_ALLOWED",
-  PERMISSION_DENIED: "PERMISSION_DENIED",
+  unauthorized: "UNAUTHORIZED",
+  forbidden: "FORBIDDEN",
+  not_allowed: "NOT_ALLOWED",
+  permission_denied: "PERMISSION_DENIED",
 
   // Validation
-  VALIDATION_ERROR: "VALIDATION_ERROR",
-  INVALID_PAYLOAD: "INVALID_PAYLOAD",
-  INVALID_PARAMETER: "INVALID_PARAMETER",
-  MISSING_FIELDS: "MISSING_FIELDS",
+  validation_error: "VALIDATION_ERROR",
+  invalid_payload: "INVALID_PAYLOAD",
+  invalid_parameter: "INVALID_PARAMETER",
+  missing_fields: "MISSING_FIELDS",
 
   // Resource / CRUD
-  RESOURCE_CREATED: "RESOURCE_CREATED",
-  RESOURCE_UPDATED: "RESOURCE_UPDATED",
-  RESOURCE_DELETED: "RESOURCE_DELETED",
-  RESOURCE_NOT_FOUND: "RESOURCE_NOT_FOUND",
-  RESOURCE_ALREADY_EXISTS: "RESOURCE_ALREADY_EXISTS",
+  resource_created: "RESOURCE_CREATED",
+  resource_updated: "RESOURCE_UPDATED",
+  resource_deleted: "RESOURCE_DELETED",
+  resource_not_found: "RESOURCE_NOT_FOUND",
+  resource_already_exists: "RESOURCE_ALREADY_EXISTS",
 
   // Internal errors
-  SERVER_ERROR: "SERVER_ERROR",
-  INTERNAL_SERVER_ERROR: "INTERNAL_SERVER_ERROR",
-  DATABASE_ERROR: "DATABASE_ERROR",
-  SERVICE_UNAVAILABLE: "SERVICE_UNAVAILABLE",
-  OPERATION_FAILED: "OPERATION_FAILED",
-  TIMEOUT_ERROR: "TIMEOUT_ERROR",
+  server_error: "SERVER_ERROR",
+  internal_server_error: "INTERNAL_SERVER_ERROR",
+  database_error: "DATABASE_ERROR",
+  service_unavailable: "SERVICE_UNAVAILABLE",
+  operation_failed: "OPERATION_FAILED",
+  timeout_error: "TIMEOUT_ERROR",
 
   // Network / System
-  NETWORK_ERROR: "NETWORK_ERROR",
-  REQUEST_FAILED: "REQUEST_FAILED",
-  RETRY_LATER: "RETRY_LATER",
+  network_error: "NETWORK_ERROR",
+  request_failed: "REQUEST_FAILED",
+  retry_later: "RETRY_LATER",
 
   // Rate limits
-  TOO_MANY_REQUESTS: "TOO_MANY_REQUESTS",
-  RATE_LIMIT_EXCEEDED: "RATE_LIMIT_EXCEEDED",
+  too_many_requests: "TOO_MANY_REQUESTS",
+  rate_limit_exceeded: "RATE_LIMIT_EXCEEDED",
 } as const;
+
