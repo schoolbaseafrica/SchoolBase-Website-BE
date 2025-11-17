@@ -4,14 +4,19 @@ import {
     ArgumentsHost,
     HttpException,
     HttpStatus,
-    Logger,
+    Inject,
+    type LoggerService,
 } from "@nestjs/common";
+import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { Request, Response } from "express";
 import { BaseException } from "../base-exception";
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-    private readonly logger = new Logger(GlobalExceptionFilter.name);
+    constructor(
+        @Inject(WINSTON_MODULE_NEST_PROVIDER)
+        private readonly logger: LoggerService,
+    ) {}
 
     catch(exception: unknown, host: ArgumentsHost): void {
         const ctx = host.switchToHttp();
@@ -41,28 +46,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
             // Log BaseException with additional context
             if (exception instanceof BaseException) {
+                const logMessage = `BaseException: ${Array.isArray(message) ? message.join(", ") : message} - Status: ${status} - Path: ${request.method} ${request.url} - UserId: ${(request as any).user?.id || "anonymous"}`;
                 const logLevel = status >= 500 ? "error" : "warn";
-                this.logger[logLevel](
-                    `BaseException: ${Array.isArray(message) ? message.join(", ") : message}`,
-                    {
-                        statusCode: status,
-                        path: request.url,
-                        method: request.method,
-                        userId: (request as any).user?.id || "anonymous",
-                        error: exception.error,
-                    }
-                );
+                if (logLevel === "error") {
+                    this.logger.error(logMessage, undefined, GlobalExceptionFilter.name);
+                } else {
+                    this.logger.warn(logMessage, GlobalExceptionFilter.name);
+                }
             } else {
                 // Log other HttpExceptions
+                const logMessage = `HttpException: ${Array.isArray(message) ? message.join(", ") : message} - Status: ${status} - Path: ${request.method} ${request.url}`;
                 const logLevel = status >= 500 ? "error" : "warn";
-                this.logger[logLevel](
-                    `HttpException: ${Array.isArray(message) ? message.join(", ") : message}`,
-                    {
-                        statusCode: status,
-                        path: request.url,
-                        method: request.method,
-                    }
-                );
+                if (logLevel === "error") {
+                    this.logger.error(logMessage, undefined, GlobalExceptionFilter.name);
+                } else {
+                    this.logger.warn(logMessage, GlobalExceptionFilter.name);
+                }
             }
         }
         // Handle validation errors (class-validator)
@@ -77,10 +76,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             message = validationError.response?.message || "Validation failed";
             error = validationError.response?.error || "Validation Error";
 
-            this.logger.warn(`Validation Error: ${Array.isArray(message) ? message.join(", ") : message}`, {
-                path: request.url,
-                method: request.method,
-            });
+            this.logger.warn(
+                `Validation Error: ${Array.isArray(message) ? message.join(", ") : message} - Path: ${request.method} ${request.url}`,
+                GlobalExceptionFilter.name
+            );
         }
         // Handle database errors (TypeORM, Prisma, etc.)
         else if (exception && typeof exception === "object" && "code" in exception) {
@@ -90,13 +89,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
             error = dbError.code || "DATABASE_ERROR";
 
             this.logger.error(
-                `Database Error: ${dbError.message || "Unknown database error"}`,
+                `Database Error: ${dbError.message || "Unknown database error"} - Code: ${dbError.code || "UNKNOWN"} - Path: ${request.method} ${request.url}`,
                 dbError.stack,
-                {
-                    code: dbError.code,
-                    path: request.url,
-                    method: request.method,
-                }
+                GlobalExceptionFilter.name
             );
 
             if (isDevelopment && dbError.stack) {
@@ -114,13 +109,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
             // Log full error details
             this.logger.error(
-                `Unhandled Exception: ${errorMessage}`,
+                `Unhandled Exception: ${errorMessage} - Path: ${request.method} ${request.url} - UserId: ${(request as any).user?.id || "anonymous"}`,
                 errorStack,
-                {
-                    path: request.url,
-                    method: request.method,
-                    userId: (request as any).user?.id || "anonymous",
-                }
+                GlobalExceptionFilter.name
             );
 
             if (isDevelopment && errorStack) {

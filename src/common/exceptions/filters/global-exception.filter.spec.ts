@@ -8,10 +8,12 @@ import {
     ForbiddenException,
     NotFoundException,
     InternalServerErrorException,
+    LoggerService,
 } from '@nestjs/common';
 import { ArgumentsHost } from '@nestjs/common';
 import { BaseException } from '../base-exception';
 import { UserNotFoundException } from '../domain.exceptions';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
 describe('GlobalExceptionFilter', () => {
     let filter: GlobalExceptionFilter;
@@ -19,10 +21,26 @@ describe('GlobalExceptionFilter', () => {
     let mockResponse: any;
     let mockRequest: any;
     let originalEnv: string | undefined;
+    let mockLogger: LoggerService;
 
     beforeEach(async () => {
+        // Create mock Winston logger
+        mockLogger = {
+            log: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            verbose: jest.fn(),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
-            providers: [GlobalExceptionFilter],
+            providers: [
+                GlobalExceptionFilter,
+                {
+                    provide: WINSTON_MODULE_NEST_PROVIDER,
+                    useValue: mockLogger,
+                },
+            ],
         }).compile();
 
         filter = module.get<GlobalExceptionFilter>(GlobalExceptionFilter);
