@@ -1,19 +1,16 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class UserService {
   // private readonly logger: Logger;
-  constructor(
-    @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
-  ) {
-    this.logger = logger.child({
-      context: UserService.name,
-    });
+  constructor() {
+    // @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
+    // this.logger = logger.child({
+    //   context: UserService.name,
+    // });
   }
   create() {
-    this.logger.info('Logging action');
+    // this.logger.info('Logging action');
     return 'This action adds a new user';
   }
 
