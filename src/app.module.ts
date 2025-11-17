@@ -18,6 +18,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -33,8 +34,8 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
         synchronize: false,
       }),
     }),
-    UserModule,
     WaitlistModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [

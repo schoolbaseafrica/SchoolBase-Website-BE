@@ -7,11 +7,12 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
-import { Waitlist } from './entities/waitlist.entity';
+
+import { SYS_MSG } from '../../constants/system-messages';
+
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
-import { SYS_MSG } from '../../constants/system-messages';
+import { Waitlist } from './entities/waitlist.entity';
 
 @Injectable()
 export class WaitlistService {
@@ -33,7 +34,9 @@ export class WaitlistService {
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
-    await this.sendWaitlistEmail(savedEntry);
+
+    // TODO: Add SMTP email notification in future
+    // this.sendWaitlistEmail(savedEntry);
 
     return savedEntry;
   }
@@ -81,38 +84,5 @@ export class WaitlistService {
   async remove(id: string): Promise<void> {
     const entry = await this.findOne(id);
     await this.waitlistRepository.remove(entry);
-  }
-
-  private async sendWaitlistEmail(entry: Waitlist): Promise<void> {
-    const emailContent = `
-╔════════════════════════════════════════════════════════════════╗
-║           WAITLIST CONFIRMATION EMAIL                          ║
-╚════════════════════════════════════════════════════════════════╝
-
-To: ${entry.email}
-Subject: Welcome to Open School Portal Waitlist! ���
-
-Dear ${entry.firstName} ${entry.lastName},
-
-Thank you for joining the Open School Portal waitlist!
-
-We're excited to have you as one of our early supporters. You'll be 
-among the first to know when we officially launch.
-
-What happens next?
-✓ You're now on our priority list
-✓ You'll receive exclusive updates about our progress
-✓ You'll get early access when we launch
-
-We'll keep you posted on our journey!
-
-Best regards,
-The Open School Portal Team
-
-════════════════════════════════════════════════════════════════
-
-[Note: This is a log. Real email will be sent in production]
-    `;
-    this.logger.log(emailContent, WaitlistService.name);
   }
 }

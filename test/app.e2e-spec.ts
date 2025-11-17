@@ -16,6 +16,7 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
+  // eslint-disable-next-line jest/expect-expect
   it('/ (GET)', () => {
     return request(app.getHttpServer())
       .get('/')
@@ -24,9 +25,5 @@ describe('AppController (e2e)', () => {
       .then((response) => {
         expect(response.text).toBe('Hello World!');
       });
-  });
-
-  afterAll(async () => {
-    await app.close();
   });
 });
