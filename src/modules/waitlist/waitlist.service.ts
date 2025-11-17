@@ -1,20 +1,22 @@
 import {
   Injectable,
   ConflictException,
-  NotFoundException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { EmailTemplateID } from 'src/constants/email-constants';
+
 import { SYS_MSG } from '../../constants/system-messages';
+import { EmailService } from '../email/email.service';
+import { EmailPayload } from '../email/email.types';
+
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
 import { Waitlist } from './entities/waitlist.entity';
-import { EmailService } from '../email/email.service';
-import { EmailTemplateID } from 'src/constants/email-constants';
-import { EmailPayload } from '../email/email.types';
 
 @Injectable()
 export class WaitlistService {

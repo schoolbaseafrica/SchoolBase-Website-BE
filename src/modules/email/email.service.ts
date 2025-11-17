@@ -1,9 +1,10 @@
+import * as fs from 'fs/promises';
+import * as path from 'path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import * as nunjucks from 'nunjucks';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+
 
 import { EmailPayload } from './email.types';
 
