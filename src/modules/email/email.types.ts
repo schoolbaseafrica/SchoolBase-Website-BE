@@ -9,6 +9,6 @@ export type EmailPayload = {
   to: { email: string; name?: string }[];
   subject: string;
   templateNameID: EmailTemplateID;
-  context: Record<string, unknown>; 
-  text?: string; 
+  context: Record<string, unknown>;
+  text?: string;
 };

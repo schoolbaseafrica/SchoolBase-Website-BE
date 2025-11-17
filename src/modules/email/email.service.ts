@@ -1,10 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import * as nunjucks from 'nunjucks';
-
 
 import { EmailPayload } from './email.types';
 
@@ -18,7 +18,7 @@ export class EmailService {
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('MAIL_HOST'),
       port: this.configService.get<number>('MAIL_PORT'),
-      secure: this.configService.get<number>('MAIL_PORT') === 465, 
+      secure: this.configService.get<number>('MAIL_PORT') === 465,
       auth: {
         user: this.configService.get<string>('MAIL_USER'),
         pass: this.configService.get<string>('MAIL_PASS'),
@@ -52,7 +52,10 @@ export class EmailService {
 
       return nunjucks.renderString(template, fullContext);
     } catch (error) {
-      this.logger.error(`Error reading or compiling template at: ${templatePath}`, error);
+      this.logger.error(
+        `Error reading or compiling template at: ${templatePath}`,
+        error,
+      );
       throw new Error('Could not load or compile email template.');
     }
   }
@@ -70,11 +73,15 @@ export class EmailService {
     const fromAddress =
       from?.email ?? this.configService.get<string>('MAIL_FROM_ADDRESS');
     const fromName =
-      from?.name ?? this.configService.get<string>('MAIL_FROM_NAME') ?? 'Open School Portal';
-    
+      from?.name ??
+      this.configService.get<string>('MAIL_FROM_NAME') ??
+      'Open School Portal';
+
     const mailOptions: nodemailer.SendMailOptions = {
       from: `"${fromName}" <${fromAddress}>`,
-      to: to.map((t) => (t.name ? `"${t.name}" <${t.email}>` : t.email)).join(', '),
+      to: to
+        .map((t) => (t.name ? `"${t.name}" <${t.email}>` : t.email))
+        .join(', '),
       subject: subject,
       html: html,
       text: text, // Optional plain-text version
@@ -83,7 +90,9 @@ export class EmailService {
     // Send the email
     try {
       const info = await this.transporter.sendMail(mailOptions);
-      this.logger.log(`Email sent successfully to ${mailOptions.to}: ${info.messageId}`);
+      this.logger.log(
+        `Email sent successfully to ${mailOptions.to}: ${info.messageId}`,
+      );
     } catch (error) {
       this.logger.error(`Failed to send email to ${mailOptions.to}`, error);
       throw error;

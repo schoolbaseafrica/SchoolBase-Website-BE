@@ -3,7 +3,8 @@
  * This ensures we use constants instead of magic strings.
  */
 export const EmailTemplateID = {
-    WAITLIST_WELCOME : "waitlist-welcome.njk"
-} as const; 
+  WaitlistWelcome: 'waitlist-welcome.njk',
+} as const;
 
-export type EmailTemplateID = (typeof EmailTemplateID)[keyof typeof EmailTemplateID];
+export type EmailTemplateID =
+  (typeof EmailTemplateID)[keyof typeof EmailTemplateID];

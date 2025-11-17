@@ -15,7 +15,6 @@ import { SYS_MSG } from '../../constants/system-messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 
-
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
 import { Waitlist } from './entities/waitlist.entity';
@@ -47,7 +46,7 @@ export class WaitlistService {
     const emailPayload: EmailPayload = {
       to: [{ email: savedEntry.email, name: savedEntry.firstName }],
       subject: "You're on the Waitlist! | Open School Portal",
-      templateNameID: EmailTemplateID.WAITLIST_WELCOME,
+      templateNameID: EmailTemplateID.WaitlistWelcome,
       context: {
         greeting: `Hi ${savedEntry.firstName},`,
       },

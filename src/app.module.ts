@@ -4,9 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { EmailModule } from './modules/email/email.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
-import { EmailModule } from './modules/email/email.module';
 
 @Module({
   imports: [
@@ -32,7 +32,7 @@ import { EmailModule } from './modules/email/email.module';
     }),
     WaitlistModule,
     UserModule,
-    EmailModule
+    EmailModule,
   ],
   controllers: [],
   providers: [LoggingInterceptor],
