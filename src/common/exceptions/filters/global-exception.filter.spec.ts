@@ -1,0 +1,425 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { GlobalExceptionFilter } from './global-exception.filter';
+import {
+    HttpException,
+    HttpStatus,
+    BadRequestException,
+    UnauthorizedException,
+    ForbiddenException,
+    NotFoundException,
+    InternalServerErrorException,
+} from '@nestjs/common';
+import { ArgumentsHost } from '@nestjs/common';
+import { BaseException } from '../base-exception';
+import { UserNotFoundException } from '../domain.exceptions';
+
+describe('GlobalExceptionFilter', () => {
+    let filter: GlobalExceptionFilter;
+    let mockArgumentsHost: ArgumentsHost;
+    let mockResponse: any;
+    let mockRequest: any;
+    let originalEnv: string | undefined;
+
+    beforeEach(async () => {
+        const module: TestingModule = await Test.createTestingModule({
+            providers: [GlobalExceptionFilter],
+        }).compile();
+
+        filter = module.get<GlobalExceptionFilter>(GlobalExceptionFilter);
+
+        mockRequest = {
+            url: '/api/test',
+            method: 'GET',
+            user: { id: 'user-123' },
+        };
+
+        mockResponse = {
+            status: jest.fn().mockReturnThis(),
+            json: jest.fn().mockReturnThis(),
+        };
+
+        mockArgumentsHost = {
+            switchToHttp: jest.fn().mockReturnValue({
+                getResponse: () => mockResponse,
+                getRequest: () => mockRequest,
+            }),
+        } as any;
+
+        // Store original NODE_ENV
+        originalEnv = process.env.NODE_ENV;
+    });
+
+    afterEach(() => {
+        // Restore original NODE_ENV
+        if (originalEnv) {
+            process.env.NODE_ENV = originalEnv;
+        } else {
+            delete process.env.NODE_ENV;
+        }
+    });
+
+    describe('HttpException handling', () => {
+        it('should handle HttpException with string message', () => {
+            const exception = new HttpException('Test error', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: ['Test error'],
+                    timestamp: expect.any(String),
+                    path: '/api/test',
+                    method: 'GET',
+                })
+            );
+        });
+
+        it('should handle HttpException with object response', () => {
+            const exception = new BadRequestException({
+                message: 'Validation failed',
+                error: 'Bad Request',
+            });
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: ['Validation failed'],
+                    error: 'Bad Request',
+                })
+            );
+        });
+
+        it('should handle HttpException with array message', () => {
+            const exception = new BadRequestException(['Error 1', 'Error 2']);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: expect.arrayContaining(['Error 1', 'Error 2']),
+                })
+            );
+        });
+
+        it('should handle different HTTP status codes', () => {
+            const statusCodes = [
+                { exception: new UnauthorizedException('Unauthorized'), status: 401 },
+                { exception: new ForbiddenException('Forbidden'), status: 403 },
+                { exception: new NotFoundException('Not Found'), status: 404 },
+                { exception: new InternalServerErrorException('Server Error'), status: 500 },
+            ];
+
+            statusCodes.forEach(({ exception, status }) => {
+                mockResponse.status.mockClear();
+                mockResponse.json.mockClear();
+
+                filter.catch(exception, mockArgumentsHost);
+
+                expect(mockResponse.status).toHaveBeenCalledWith(status);
+                expect(mockResponse.json).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        statusCode: status,
+                    })
+                );
+            });
+        });
+    });
+
+    describe('BaseException handling', () => {
+        it('should handle BaseException correctly', () => {
+            const exception = new BaseException('Custom error', HttpStatus.NOT_FOUND);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(404);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 404,
+                    message: ['Custom error'],
+                })
+            );
+        });
+
+        it('should handle domain exceptions extending BaseException', () => {
+            const exception = new UserNotFoundException('user-123');
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(404);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 404,
+                    message: expect.arrayContaining([expect.stringContaining('User with id user-123 not found')]),
+                })
+            );
+        });
+    });
+
+    describe('Validation error handling', () => {
+        it('should handle validation errors with response object', () => {
+            const validationError = {
+                response: {
+                    message: ['Field is required', 'Field must be a string'],
+                    error: 'Validation Error',
+                },
+                status: 400,
+            };
+
+            filter.catch(validationError, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: expect.arrayContaining(['Field is required', 'Field must be a string']),
+                    error: 'Validation Error',
+                })
+            );
+        });
+
+        it('should handle validation errors with default values', () => {
+            const validationError = {
+                response: {},
+                status: 400,
+            };
+
+            filter.catch(validationError, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(400);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: ['Validation failed'],
+                    error: 'Validation Error',
+                })
+            );
+        });
+    });
+
+    describe('Database error handling', () => {
+        it('should handle database errors with code', () => {
+            const dbError = {
+                code: 'ER_DUP_ENTRY',
+                message: 'Duplicate entry',
+                stack: 'Error stack trace',
+            };
+
+            filter.catch(dbError, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 500,
+                    message: ['Database operation failed'],
+                    error: 'ER_DUP_ENTRY',
+                })
+            );
+        });
+
+        it('should handle database errors without code', () => {
+            const dbError = {
+                message: 'Connection timeout',
+            };
+
+            filter.catch(dbError, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 500,
+                    message: ['Internal server error'],
+                    error: 'INTERNAL_SERVER_ERROR',
+                })
+            );
+        });
+    });
+
+    describe('Unknown error handling', () => {
+        it('should handle Error instances', () => {
+            const error = new Error('Unknown error occurred');
+            error.stack = 'Error stack trace';
+
+            filter.catch(error, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 500,
+                    message: ['Internal server error'],
+                    error: 'INTERNAL_SERVER_ERROR',
+                })
+            );
+        });
+
+        it('should handle non-Error objects', () => {
+            const unknownError = { someProperty: 'value' };
+
+            filter.catch(unknownError, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 500,
+                    message: ['Internal server error'],
+                    error: 'INTERNAL_SERVER_ERROR',
+                })
+            );
+        });
+
+        it('should handle null/undefined errors', () => {
+            filter.catch(null as any, mockArgumentsHost);
+
+            expect(mockResponse.status).toHaveBeenCalledWith(500);
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 500,
+                    message: ['Internal server error'],
+                    error: 'INTERNAL_SERVER_ERROR',
+                })
+            );
+        });
+    });
+
+    describe('Environment-specific behavior', () => {
+        it('should include stack trace in development mode', () => {
+            process.env.NODE_ENV = 'development';
+
+            const error = new Error('Test error');
+            error.stack = 'Error: Test error\n    at test.js:1:1';
+
+            filter.catch(error, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    stack: 'Error: Test error\n    at test.js:1:1',
+                })
+            );
+        });
+
+        it('should not include stack trace in production mode', () => {
+            process.env.NODE_ENV = 'production';
+
+            const error = new Error('Test error');
+            error.stack = 'Error: Test error\n    at test.js:1:1';
+
+            filter.catch(error, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.not.objectContaining({
+                    stack: expect.anything(),
+                })
+            );
+        });
+
+        it('should sanitize error messages in production for 500 errors', () => {
+            process.env.NODE_ENV = 'production';
+
+            const error = new Error('Sensitive internal error details');
+
+            filter.catch(error, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 500,
+                    message: ['An internal server error occurred'],
+                    error: 'Internal Server Error',
+                })
+            );
+        });
+
+        it('should not sanitize 4xx errors in production', () => {
+            process.env.NODE_ENV = 'production';
+
+            const exception = new BadRequestException('Client error message');
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    statusCode: 400,
+                    message: ['Client error message'],
+                })
+            );
+        });
+    });
+
+    describe('Response structure', () => {
+        it('should always include required fields', () => {
+            const exception = new HttpException('Test', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            const responseCall = mockResponse.json.mock.calls[0][0];
+            expect(responseCall).toHaveProperty('statusCode');
+            expect(responseCall).toHaveProperty('message');
+            expect(responseCall).toHaveProperty('error');
+            expect(responseCall).toHaveProperty('timestamp');
+            expect(responseCall).toHaveProperty('path');
+            expect(responseCall).toHaveProperty('method');
+        });
+
+        it('should format timestamp as ISO string', () => {
+            const exception = new HttpException('Test', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            const responseCall = mockResponse.json.mock.calls[0][0];
+            expect(responseCall.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
+        });
+
+        it('should always format message as array', () => {
+            const exception = new HttpException('Single message', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            const responseCall = mockResponse.json.mock.calls[0][0];
+            expect(Array.isArray(responseCall.message)).toBe(true);
+            expect(responseCall.message).toHaveLength(1);
+        });
+    });
+
+    describe('Request context', () => {
+        it('should include request URL in response', () => {
+            mockRequest.url = '/api/users/123';
+            const exception = new HttpException('Test', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    path: '/api/users/123',
+                })
+            );
+        });
+
+        it('should include request method in response', () => {
+            mockRequest.method = 'POST';
+            const exception = new HttpException('Test', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    method: 'POST',
+                })
+            );
+        });
+
+        it('should handle requests without user context', () => {
+            delete mockRequest.user;
+            const exception = new HttpException('Test', HttpStatus.BAD_REQUEST);
+
+            filter.catch(exception, mockArgumentsHost);
+
+            expect(mockResponse.json).toHaveBeenCalled();
+        });
+    });
+});
+

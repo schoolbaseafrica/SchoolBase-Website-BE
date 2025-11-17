@@ -9,8 +9,7 @@ import { FeeModule } from './fee-service/fee.module';
 import { NotificationModule } from './notification-service/notification.module';
 import { AnalyticsModule } from './analytics-service/analytics.module';
 import { APP_FILTER } from '@nestjs/core';
-import { HttpExceptionFilter } from './common/exceptions/filters/http-exception.filter';
-import { AllExceptionsFilter } from './common/exceptions/filters/all-exceptions.filter';
+import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
 
 @Module({
   imports: [
@@ -27,11 +26,7 @@ import { AllExceptionsFilter } from './common/exceptions/filters/all-exceptions.
     AppService,
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
-    },
-    {
-      provide: APP_FILTER,
-      useClass: AllExceptionsFilter,
+      useClass: GlobalExceptionFilter,
     },
   ],
 })
