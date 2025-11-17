@@ -148,10 +148,10 @@ type: message
 1. Make sure your branch is updated with the latest changes from upstream:
 
    ```sh
-   git checkout main
-   git pull origin main
+   git checkout dev
+   git pull origin dev
    git checkout <your-branch>
-   git rebase main
+   git rebase dev
    ```
 
 2. Run tests:
