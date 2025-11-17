@@ -30,9 +30,11 @@ export class EmailService {
     templateName: string,
     data: Record<string, any>,
   ): Promise<string> {
-    // This path resolves relative to the compiled JS file in the /dist folder
     const templatePath = path.join(
-      __dirname,
+      process.cwd(),
+      'dist', 
+      'modules',
+      'email',
       'templates',
       `${templateName}.html`,
     );
@@ -42,7 +44,7 @@ export class EmailService {
       const template = handlebars.compile(templateSource);
       return template(data);
     } catch (error) {
-      this.logger.error(`Error reading email template: ${templateName}`, error);
+      this.logger.error(`Error reading email template at path: ${templatePath}`, error);
       throw new Error('Could not load email template');
     }
   }
