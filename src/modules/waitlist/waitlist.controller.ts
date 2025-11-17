@@ -8,10 +8,12 @@ import {
   HttpStatus,
   HttpCode,
 } from '@nestjs/common';
-import { WaitlistService } from './waitlist.service';
-import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+
 import { SYS_MSG } from '../../constants/system-messages';
+
+import { CreateWaitlistDto } from './dto/create-waitlist.dto';
+import { WaitlistService } from './waitlist.service';
 
 @ApiTags('Waitlist')
 @Controller('waitlist')
@@ -30,12 +32,11 @@ export class WaitlistController {
     description: 'Email already exists',
   })
   async create(@Body() createWaitlistDto: CreateWaitlistDto) {
-    const waitlistEntry =
-      await this.waitlistService.create(createWaitlistDto);
+    const waitlistEntry = await this.waitlistService.create(createWaitlistDto);
 
     return {
       status_code: HttpStatus.CREATED,
-      message: SYS_MSG.WAITLIST_ADDED_SUCCESSFULLY,
+      message: SYS_MSG.waitlistAddedSuccessfully,
       data: {
         id: waitlistEntry.id,
         firstName: waitlistEntry.firstName,
@@ -58,7 +59,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.WAITLIST_RETRIEVED_SUCCESSFULLY,
+      message: SYS_MSG.waitlistRetrievedSuccessfully,
       data: entries.map((entry) => ({
         id: entry.id,
         firstName: entry.firstName,
@@ -77,7 +78,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.OPERATION_SUCCESSFUL,
+      message: SYS_MSG.operationSuccessful,
       data: {
         id: entry.id,
         firstName: entry.firstName,
@@ -96,7 +97,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.WAITLIST_REMOVED_SUCCESSFULLY,
+      message: SYS_MSG.waitlistRemovedSuccessfully,
       data: null,
     };
   }

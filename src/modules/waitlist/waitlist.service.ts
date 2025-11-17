@@ -23,18 +23,20 @@ export class WaitlistService {
     });
 
     if (existingEntry) {
-      throw new ConflictException(SYS_MSG.EMAIL_ALREADY_EXISTS);
+      throw new ConflictException(SYS_MSG.emailAlreadyExists);
     }
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
     const savedEntry = await this.waitlistRepository.save(waitlistEntry);
-    await this.sendWaitlistEmail(savedEntry);
+    
+    // TODO: Add SMTP email notification in future
+    // this.sendWaitlistEmail(savedEntry);
 
     return savedEntry;
   }
 
   async findAll(): Promise<Waitlist[]> {
-    return await this.waitlistRepository.find({
+    return this.waitlistRepository.find({
       order: {
         createdAt: 'DESC',
       },
@@ -65,48 +67,16 @@ export class WaitlistService {
       });
 
       if (existingEmail) {
-        throw new ConflictException(SYS_MSG.EMAIL_ALREADY_EXISTS);
+        throw new ConflictException(SYS_MSG.emailAlreadyExists);
       }
     }
 
     Object.assign(entry, updateWaitlistDto);
-    return await this.waitlistRepository.save(entry);
+    return this.waitlistRepository.save(entry);
   }
 
   async remove(id: string): Promise<void> {
     const entry = await this.findOne(id);
     await this.waitlistRepository.remove(entry);
-  }
-
-  private async sendWaitlistEmail(entry: Waitlist): Promise<void> {
-    console.log(`
-╔════════════════════════════════════════════════════════════════╗
-║           WAITLIST CONFIRMATION EMAIL                          ║
-╚════════════════════════════════════════════════════════════════╝
-
-To: ${entry.email}
-Subject: Welcome to Open School Portal Waitlist! ���
-
-Dear ${entry.firstName} ${entry.lastName},
-
-Thank you for joining the Open School Portal waitlist!
-
-We're excited to have you as one of our early supporters. You'll be 
-among the first to know when we officially launch.
-
-What happens next?
-✓ You're now on our priority list
-✓ You'll receive exclusive updates about our progress
-✓ You'll get early access when we launch
-
-We'll keep you posted on our journey!
-
-Best regards,
-The Open School Portal Team
-
-════════════════════════════════════════════════════════════════
-
-[Note: This is a console log. Real email will be sent in production]
-    `);
   }
 }
