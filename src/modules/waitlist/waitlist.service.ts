@@ -2,9 +2,12 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Inject,
+  type LoggerService,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 import { Waitlist } from './entities/waitlist.entity';
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
@@ -15,6 +18,8 @@ export class WaitlistService {
   constructor(
     @InjectRepository(Waitlist)
     private readonly waitlistRepository: Repository<Waitlist>,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: LoggerService,
   ) {}
 
   async create(createWaitlistDto: CreateWaitlistDto): Promise<Waitlist> {
@@ -23,7 +28,7 @@ export class WaitlistService {
     });
 
     if (existingEntry) {
-      throw new ConflictException(SYS_MSG.EMAIL_ALREADY_EXISTS);
+      throw new ConflictException(SYS_MSG.emailAlreadyExists);
     }
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
@@ -34,7 +39,7 @@ export class WaitlistService {
   }
 
   async findAll(): Promise<Waitlist[]> {
-    return await this.waitlistRepository.find({
+    return this.waitlistRepository.find({
       order: {
         createdAt: 'DESC',
       },
@@ -65,12 +70,12 @@ export class WaitlistService {
       });
 
       if (existingEmail) {
-        throw new ConflictException(SYS_MSG.EMAIL_ALREADY_EXISTS);
+        throw new ConflictException(SYS_MSG.emailAlreadyExists);
       }
     }
 
     Object.assign(entry, updateWaitlistDto);
-    return await this.waitlistRepository.save(entry);
+    return this.waitlistRepository.save(entry);
   }
 
   async remove(id: string): Promise<void> {
@@ -79,13 +84,13 @@ export class WaitlistService {
   }
 
   private async sendWaitlistEmail(entry: Waitlist): Promise<void> {
-    console.log(`
+    const emailContent = `
 ╔════════════════════════════════════════════════════════════════╗
 ║           WAITLIST CONFIRMATION EMAIL                          ║
 ╚════════════════════════════════════════════════════════════════╝
 
 To: ${entry.email}
-Subject: Welcome to Open School Portal Waitlist! ���
+Subject: Welcome to Open School Portal Waitlist! ���
 
 Dear ${entry.firstName} ${entry.lastName},
 
@@ -106,7 +111,8 @@ The Open School Portal Team
 
 ════════════════════════════════════════════════════════════════
 
-[Note: This is a console log. Real email will be sent in production]
-    `);
+[Note: This is a log. Real email will be sent in production]
+    `;
+    this.logger.log(emailContent, WaitlistService.name);
   }
 }

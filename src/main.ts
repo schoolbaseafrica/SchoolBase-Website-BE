@@ -14,6 +14,7 @@ async function bootstrap() {
   const loggingInterceptor = app.get(LoggingInterceptor);
   app.useGlobalInterceptors(loggingInterceptor);
   await app.listen(3000);
-  console.log(`Application is running on: http://localhost:3000`);
+  const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
+  logger.log(`Application is running on: http://localhost:3000`, 'Bootstrap');
 }
 bootstrap();

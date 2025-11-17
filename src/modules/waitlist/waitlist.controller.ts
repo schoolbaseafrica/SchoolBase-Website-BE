@@ -35,7 +35,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.CREATED,
-      message: SYS_MSG.WAITLIST_ADDED_SUCCESSFULLY,
+      message: SYS_MSG.waitlistAddedSuccessfully,
       data: {
         id: waitlistEntry.id,
         firstName: waitlistEntry.firstName,
@@ -58,7 +58,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.WAITLIST_RETRIEVED_SUCCESSFULLY,
+      message: SYS_MSG.waitlistRetrievedSuccessfully,
       data: entries.map((entry) => ({
         id: entry.id,
         firstName: entry.firstName,
@@ -77,7 +77,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.OPERATION_SUCCESSFUL,
+      message: SYS_MSG.operationSuccessful,
       data: {
         id: entry.id,
         firstName: entry.firstName,
@@ -96,7 +96,7 @@ export class WaitlistController {
 
     return {
       status_code: HttpStatus.OK,
-      message: SYS_MSG.WAITLIST_REMOVED_SUCCESSFULLY,
+      message: SYS_MSG.waitlistRemovedSuccessfully,
       data: null,
     };
   }
