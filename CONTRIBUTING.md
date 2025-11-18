@@ -94,8 +94,6 @@ Before writing any code:
 
 To maintain a clean, scalable, and predictable codebase across all developers, the following standards are mandatory for every contribution:
 
----
-
 #### 1. Use HttpStatus (NestJS) — No Hardcoded Status Codes
 
 ❌ Avoid:
@@ -170,7 +168,7 @@ Every PR must include at least one of the following:
 - Screenshot of Swagger UI showing the tested endpoint
 - OR Postman screenshot showing request + response
 
-   > PRs without test evidence **will not be reviewed or merged.**
+  > PRs without test evidence **will not be reviewed or merged.**
 
 ## Branch Naming Rules
 
@@ -230,10 +228,10 @@ type: message
 1. Make sure your branch is updated with the latest changes from upstream:
 
    ```sh
-   git checkout main
-   git pull origin main
+   git checkout dev
+   git pull origin dev
    git checkout <your-branch>
-   git rebase main
+   git rebase dev
    ```
 
 2. Run tests:
@@ -244,12 +242,26 @@ type: message
 
    > Always ensure tests pass before submitting a PR.
 
-3. Submit a pull request from your branch to the upstream main branch.
+3. Submit a pull request from your branch to the upstream dev branch.
 
 4. In the PR description:
    - Explain what you changed.
    - **Provide context**: link the issue or ticket.
    - Include any additional notes for the reviewers.
+
+## Pull Request Title Rules
+
+- PR titles should be short, clear, and descriptive of the changes.
+- Preferably, match the branch name (without the type prefix) or use the commit message style.
+- Include the ticket or issue number if applicable.
+
+### Examples:
+
+- `feat(HNG-1234): create login page`
+- `fix(HNG-5678): correct pagination logic`
+- `docs: update README with setup instructions`
+
+> Following this format makes it easier for reviewers to quickly understand the purpose of the PR.
 
 ## Code of Conduct
 
