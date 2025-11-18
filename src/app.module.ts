@@ -36,6 +36,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
         synchronize: false,
       }),
     }),
+    AuthModule,
     WaitlistModule,
     UserModule,
     EmailModule,
