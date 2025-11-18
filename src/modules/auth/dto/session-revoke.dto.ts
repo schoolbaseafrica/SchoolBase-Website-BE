@@ -5,3 +5,9 @@ export class RevokeSessionDto {
   @IsNotEmpty()
   sessionId!: string;
 }
+
+export class RevokeAllSessionsDto {
+  @IsString()
+  @IsNotEmpty()
+  userId!: string;
+}
