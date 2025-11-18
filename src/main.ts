@@ -14,7 +14,9 @@ async function bootstrap() {
   // Enable API versioning
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
-  app.setGlobalPrefix(`${apiPrefix}/${apiVersion}`);
+  app.setGlobalPrefix(`${apiPrefix}/${apiVersion}`, {
+    exclude: ['docs'],
+  });
 
   // Enable validation
   app.useGlobalPipes(
