@@ -26,15 +26,18 @@
     "migration:show": "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts"
   },
   "dependencies": {
+    "@hng-sdk/orm": "^0.0.0",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.2.2",
     "@nestjs/typeorm": "^11.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/speakeasy": "^2.0.10",
+    "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^17.2.3",

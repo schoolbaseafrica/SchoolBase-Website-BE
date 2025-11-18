@@ -1,44 +1,52 @@
-import { Entity, Column } from 'typeorm';
+import { Entity, Column, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { UserRole } from '../../shared/enums';
 
-@Entity('users')
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  TEACHER = 'TEACHER',
+  STUDENT = 'STUDENT',
+  PARENT = 'PARENT',
+}
+
+@Entity({ name: 'users' })
+@Unique(['email'])
 export class User extends BaseEntity {
-  @Column({ name: 'first_name' })
-  firstName: string;
+  @Column()
+  first_name: string;
 
-  @Column({ name: 'middle_name', nullable: true })
-  middleName?: string;
-
-  @Column({ name: 'last_name' })
-  lastName: string;
+  @Column()
+  last_name: string;
 
   @Column({ nullable: true })
-  gender?: string;
+  middle_name: string;
 
-  @Column({ nullable: true })
-  dob?: string;
+  @Column()
+  gender: string;
 
-  @Column({ unique: true })
+  @Column({ type: 'date' })
+  dob: Date;
+
+  @Column()
   email: string;
 
-  @Column({ nullable: true })
-  phone?: string;
+  @Column()
+  phone: string;
 
   @Column({
-    type: 'varchar',
+    type: 'enum',
     enum: UserRole,
-    default: UserRole.STUDENT,
+    array: true,
+    default: [UserRole.STUDENT],
   })
-  role: UserRole;
+  role: UserRole[];
 
-  @Column({ name: 'password_hash' })
-  passwordHash: string;
+  @Column()
+  password: string;
 
-  @Column({ name: 'is_active', default: true })
-  isActive: boolean;
+  @Column({ default: true })
+  is_active: boolean;
 
-  @Column({ name: 'last_login_at', type: 'timestamp', nullable: true })
-  lastLoginAt?: Date;
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  last_login_at: Date | null;
 }

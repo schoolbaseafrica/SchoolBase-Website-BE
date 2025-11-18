@@ -12,17 +12,14 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   // Enable API versioning
-  const apiPrefix = configService.get<string>('API_PREFIX', 'api');
-  const apiVersion = configService.get<string>('API_VERSION', 'v1');
-  const globalPrefix = `${apiPrefix}/${apiVersion}`;
-  const swaggerServerPath = configService.get<string>(
-    'SWAGGER_SERVER_PATH',
-    globalPrefix,
-  );
+  // const apiPrefix = configService.get<string>('API_PREFIX', 'api');
+  // const apiVersion = configService.get<string>('API_VERSION', 'v1');
+  // const globalPrefix = `${apiPrefix}/${apiVersion}`;
+  configService.get<string>('SWAGGER_SERVER_PATH', 'docs');
 
-  app.setGlobalPrefix(globalPrefix, {
-    exclude: ['docs'],
-  });
+  // app.setGlobalPrefix(globalPrefix, {
+  //   exclude: ['docs'],
+  // });
 
   // Enable validation
   app.useGlobalPipes(
@@ -39,14 +36,13 @@ async function bootstrap() {
     .setDescription('API documentation for Open School Portal')
     .setVersion('1.0')
     .addTag('Waitlist')
-    .addServer(`/${swaggerServerPath}`, 'API Gateway')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  const swaggerPath = configService.get<string>('SWAGGER_PATH', 'docs');
-  const fullSwaggerPath = `${apiPrefix}/${apiVersion}/${swaggerPath}`;
+  // const swaggerPath = configService.get<string>('SWAGGER_PATH', 'docs');
+  // const fullSwaggerPath = `${apiPrefix}/${apiVersion}/${swaggerPath}`;
 
-  SwaggerModule.setup(fullSwaggerPath, app, document);
+  SwaggerModule.setup('docs', app, document);
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 

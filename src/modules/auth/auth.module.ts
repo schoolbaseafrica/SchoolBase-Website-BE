@@ -1,19 +1,27 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JwtModule } from '@nestjs/jwt';
 
-import { User } from '../user/entities/user.entity';
+import { UserModule } from '../user/user.module';
+import { UserService } from '../user/user.service';
 
-import { User2fa } from './entities/user-2fa.entity';
-import { TwoFactorAuthController } from './two-factor-auth.controller';
-import { TwoFactorAuthService } from './two-factor-auth.service';
-import { Invite } from './entities/invites.entity';
-import { PendingInvitesController } from './invites/pending-invites.controller';
-import { PendingInvitesService } from './invites/pending-invites.service';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, User2fa, Invite])],
-  controllers: [TwoFactorAuthController, PendingInvitesController],
-  providers: [TwoFactorAuthService, PendingInvitesService],
-  exports: [TwoFactorAuthService],
+  imports: [
+    UserModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '15m' },
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [AuthService, UserService],
+  exports: [AuthService],
 })
 export class AuthModule {}

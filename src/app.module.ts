@@ -10,6 +10,7 @@ import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
+import { SchoolModule } from './modules/school/school.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -39,6 +40,8 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     WaitlistModule,
     UserModule,
     EmailModule,
+    SchoolModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
