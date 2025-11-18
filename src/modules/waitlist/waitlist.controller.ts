@@ -11,10 +11,11 @@ import {
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import {
-   WAITLIST_ADDED_SUCCESSFULLY,
-   WAITLIST_RETRIEVED_SUCCESSFULLY,
-   OPERATION_SUCCESSFUL,
-    WAITLIST_REMOVED_SUCCESSFULLY } from  '../../constants/system.messages';
+  WAITLIST_ADDED_SUCCESSFULLY,
+  WAITLIST_RETRIEVED_SUCCESSFULLY,
+  OPERATION_SUCCESSFUL,
+  WAITLIST_REMOVED_SUCCESSFULLY,
+} from '../../constants/system.messages';
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { WaitlistService } from './waitlist.service';

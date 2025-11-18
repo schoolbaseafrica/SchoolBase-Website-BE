@@ -37,7 +37,8 @@ export const PASSWORD_RESET_SUCCESS = 'password reset success';
 export const PASSWORD_RESET_FAILED = 'password reset failed';
 export const PASSWORD_RESET_TOKEN_INVALID = 'password reset token invalid';
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'password reset token expired';
-export const PASSWORD_SAME_AS_OLD ='new password cannot be same as old password';
+export const PASSWORD_SAME_AS_OLD =
+  'new password cannot be same as old password';
 
 // Multi-Factor Authentication (MFA)
 export const MFA_REQUIRED = 'mfa required';
@@ -84,13 +85,13 @@ export const NETWORK_ERROR = 'network error';
 export const REQUEST_FAILED = 'request failed';
 export const RETRY_LATER = 'retry later';
 
-
 // Waitlist messages
 export const WAITLIST_ADDED_SUCCESSFULLY = 'Successfully added to waitlist';
-export const WAITLIST_RETRIEVED_SUCCESSFULLY = 'Waitlist entries retrieved successfully';
+export const WAITLIST_RETRIEVED_SUCCESSFULLY =
+  'Waitlist entries retrieved successfully';
 export const EMAIL_ALREADY_EXISTS = 'Email already exists in waitlist';
-export const WAITLIST_REMOVED_SUCCESSFULLY = 'Entry removed from waitlist successfully';
-
+export const WAITLIST_REMOVED_SUCCESSFULLY =
+  'Entry removed from waitlist successfully';
 
 // Rate limits
 export const TOO_MANY_REQUESTS = 'too many requests';

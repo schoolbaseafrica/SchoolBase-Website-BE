@@ -6,10 +6,10 @@ import {
   type LoggerService,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
+import { Repository } from 'typeorm';
 
-import { SYS_MSG } from '../../constants/system-messages';
+import { EMAIL_ALREADY_EXISTS } from '../../constants/system.messages';
 
 import { CreateWaitlistDto } from './dto/create-waitlist.dto';
 import { UpdateWaitlistDto } from './dto/update-waitlist.dto';
@@ -30,7 +30,7 @@ export class WaitlistService {
     });
 
     if (existingEntry) {
-      throw new ConflictException(SYS_MSG.emailAlreadyExists);
+      throw new ConflictException(EMAIL_ALREADY_EXISTS);
     }
 
     const waitlistEntry = this.waitlistRepository.create(createWaitlistDto);
@@ -74,7 +74,7 @@ export class WaitlistService {
       });
 
       if (existingEmail) {
-        throw new ConflictException(SYS_MSG.emailAlreadyExists);
+        throw new ConflictException(EMAIL_ALREADY_EXISTS);
       }
     }
 
