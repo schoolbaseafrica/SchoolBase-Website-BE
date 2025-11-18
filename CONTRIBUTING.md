@@ -73,7 +73,7 @@ Before writing any code:
 1. **Create a new branch for your work:**
 
    ```sh
-   git checkout -b feat/HNG-2145-your-feature-name
+   git checkout -b feat/OPS-2145-your-feature-name
    ```
 
 2. Make your changes.
@@ -180,7 +180,7 @@ Branches should follow this structure:
 
 ### Valid types:
 
-- `feat/` — new features
+- `feature/` — new features
 - `fix/` — bug fixes
 - `refactor/` — code restructuring without changing behavior
 - `chore/` — maintenance tasks (dependencies, configs, CI, etc.)
@@ -188,13 +188,13 @@ Branches should follow this structure:
 
 ### Rules:
 
-- Include the ticket or issue number when one exists (e.g., HNG-2145).
+- Include the ticket or issue number when one exists (e.g., OPS-2145).
 - Use a short, clear lowercase description.
 
   #### Example with ticket:
 
   ```bash
-  feat/HNG-1234-create-login-page
+  feature/OPS-1234-create-login-page
   ```
 
   #### Example without ticket (rare):
@@ -215,7 +215,7 @@ type: message
 
 - `feat: create login form`
 - `fix: correct pagination logic`
-- `refactor(HNG-1234): simplify user input validation`
+- `refactor(OPS-1234): simplify user input validation`
 
 #### Rules to follow:
 
@@ -257,8 +257,8 @@ type: message
 
 ### Examples:
 
-- `feat(HNG-1234): create login page`
-- `fix(HNG-5678): correct pagination logic`
+- `feat(OPS-1234): create login page`
+- `fix(OPS-5678): correct pagination logic`
 - `docs: update README with setup instructions`
 
 > Following this format makes it easier for reviewers to quickly understand the purpose of the PR.
