@@ -113,5 +113,3 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
-
-

@@ -31,7 +31,7 @@ jobs:
       - name: Deploy to Staging
         run: |
           sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
-            cd ~/open-school-portal-BE/staging
+            cd staging-main/open-school-portal-BE
             git reset --hard
             pm2 stop open-school-be-staging
             git pull origin staging
@@ -39,3 +39,4 @@ jobs:
             npm run build
             pm2 restart open-school-be-staging --update-env
           EOF
+

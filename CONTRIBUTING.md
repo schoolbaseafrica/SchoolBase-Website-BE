@@ -73,7 +73,7 @@ Before writing any code:
 1. **Create a new branch for your work:**
 
    ```sh
-   git checkout -b feat/HNG-2145-your-feature-name
+   git checkout -b feat/OSP-2145-your-feature-name
    ```
 
 2. Make your changes.
@@ -93,8 +93,6 @@ Before writing any code:
 ## Coding Standards & PR Requirements
 
 To maintain a clean, scalable, and predictable codebase across all developers, the following standards are mandatory for every contribution:
-
----
 
 #### 1. Use HttpStatus (NestJS) — No Hardcoded Status Codes
 
@@ -170,7 +168,7 @@ Every PR must include at least one of the following:
 - Screenshot of Swagger UI showing the tested endpoint
 - OR Postman screenshot showing request + response
 
-   > PRs without test evidence **will not be reviewed or merged.**
+  > PRs without test evidence **will not be reviewed or merged.**
 
 ## Branch Naming Rules
 
@@ -182,7 +180,7 @@ Branches should follow this structure:
 
 ### Valid types:
 
-- `feat/` — new features
+- `feature/` — new features
 - `fix/` — bug fixes
 - `refactor/` — code restructuring without changing behavior
 - `chore/` — maintenance tasks (dependencies, configs, CI, etc.)
@@ -190,13 +188,13 @@ Branches should follow this structure:
 
 ### Rules:
 
-- Include the ticket or issue number when one exists (e.g., HNG-2145).
+- Include the ticket or issue number when one exists (e.g., OSP-2145).
 - Use a short, clear lowercase description.
 
   #### Example with ticket:
 
   ```bash
-  feat/HNG-1234-create-login-page
+  feature/OSP-1234-create-login-page
   ```
 
   #### Example without ticket (rare):
@@ -217,7 +215,7 @@ type: message
 
 - `feat: create login form`
 - `fix: correct pagination logic`
-- `refactor(HNG-1234): simplify user input validation`
+- `refactor(OSP-1234): simplify user input validation`
 
 #### Rules to follow:
 
@@ -230,10 +228,10 @@ type: message
 1. Make sure your branch is updated with the latest changes from upstream:
 
    ```sh
-   git checkout main
-   git pull origin main
+   git checkout dev
+   git pull origin dev
    git checkout <your-branch>
-   git rebase main
+   git rebase dev
    ```
 
 2. Run tests:
@@ -244,12 +242,26 @@ type: message
 
    > Always ensure tests pass before submitting a PR.
 
-3. Submit a pull request from your branch to the upstream main branch.
+3. Submit a pull request from your branch to the upstream dev branch.
 
 4. In the PR description:
    - Explain what you changed.
    - **Provide context**: link the issue or ticket.
    - Include any additional notes for the reviewers.
+
+## Pull Request Title Rules
+
+- PR titles should be short, clear, and descriptive of the changes.
+- Preferably, match the branch name (without the type prefix) or use the commit message style.
+- Include the ticket or issue number if applicable.
+
+### Examples:
+
+- `feat(OSP-1234): create login page`
+- `fix(OSP-5678): correct pagination logic`
+- `docs: update README with setup instructions`
+
+> Following this format makes it easier for reviewers to quickly understand the purpose of the PR.
 
 ## Code of Conduct
 

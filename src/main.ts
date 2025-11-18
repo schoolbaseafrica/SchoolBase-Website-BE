@@ -1,4 +1,5 @@
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
@@ -8,14 +9,19 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  // Use Winston logger
+  const configService = app.get(ConfigService);
 
   // Enable API versioning
-  app.setGlobalPrefix('api');
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
+  const apiPrefix = configService.get<string>('API_PREFIX', 'api');
+  const apiVersion = configService.get<string>('API_VERSION', 'v1');
+  const globalPrefix = `${apiPrefix}/${apiVersion}`;
+  const swaggerServerPath = configService.get<string>(
+    'SWAGGER_SERVER_PATH',
+    globalPrefix,
+  );
+
+  app.setGlobalPrefix(globalPrefix, {
+    exclude: ['docs'],
   });
 
   // Enable validation
@@ -33,10 +39,14 @@ async function bootstrap() {
     .setDescription('API documentation for Open School Portal')
     .setVersion('1.0')
     .addTag('Waitlist')
+    .addServer(`/${swaggerServerPath}`, 'API Gateway')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  const swaggerPath = configService.get<string>('SWAGGER_PATH', 'docs');
+  const fullSwaggerPath = `${apiPrefix}/${apiVersion}/${swaggerPath}`;
+
+  SwaggerModule.setup(fullSwaggerPath, app, document);
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
 
