@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { EmailModule } from './modules/email/email.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -35,6 +36,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     }),
     WaitlistModule,
     UserModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
