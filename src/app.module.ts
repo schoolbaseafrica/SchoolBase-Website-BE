@@ -11,15 +11,14 @@ import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { ClassesModule } from './modules/classes/classes.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
 import { SessionModule } from './modules/session/session.module';
+import { TeachersModule } from './modules/teacher/teacher.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
-import { TeachersModule } from './modules/teacher/teacher.module';
-import { ClassesModule } from './modules/classes/classes.module';
-
 @Module({
   imports: [
     LoggerModule,
