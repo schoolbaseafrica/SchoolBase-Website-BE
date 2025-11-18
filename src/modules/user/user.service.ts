@@ -26,7 +26,7 @@ export class UserService {
           ...createPayload,
           is_active: true,
         },
-        transactionOptions: { useTransaction: false },
+        transactionOptions: { useTransaction: true, transaction: manager },
       });
       return newUser;
     });
