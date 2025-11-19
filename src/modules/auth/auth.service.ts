@@ -271,6 +271,30 @@ export class AuthService {
     return sysMsg.USER_ACTIVATED;
   }
 
+  async getProfile(accessToken: string) {
+    if (!accessToken) {
+      throw new UnauthorizedException('Authorization header is missing');
+    }
+
+    // Extract token from "Bearer <token>"
+    const token = accessToken.replace('Bearer ', '');
+
+    try {
+      const decryptedToken = await this.jwtService.verifyAsync(token, {
+        secret: process.env.JWT_SECRET,
+      });
+
+      const user = await this.userService.findByEmail(decryptedToken.email);
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+      return user;
+    } catch (error) {
+      this.logger.error('Invalid refresh token: ', error?.message);
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
+
   private async generateTokens(userId: string, email: string, role: string[]) {
     const payload = { sub: userId, email, role };
 

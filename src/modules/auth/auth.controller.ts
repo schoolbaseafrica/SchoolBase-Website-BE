@@ -6,8 +6,17 @@ import {
   Param,
   Patch,
   Post,
+  Get,
+  Headers,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiBearerAuth,
+  ApiHeader,
+} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -146,5 +155,34 @@ export class AuthController {
       status: HttpStatus.OK,
       message,
     };
+  }
+  @Get('me')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user profile' })
+  @ApiHeader({
+    name: 'authorization',
+    description: 'Bearer token',
+    required: true,
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'User profile retrieved successfully',
+    schema: {
+      example: {
+        id: 1,
+        email: 'john.doe@example.com',
+        first_name: 'John',
+        last_name: 'Doe',
+        role: ['STUDENT'],
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: 'Unauthorized',
+  })
+  async getProfile(@Headers('authorization') authorization: string) {
+    return this.authService.getProfile(authorization);
   }
 }

@@ -19,6 +19,7 @@ import { SessionModule } from './modules/session/session.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+
 @Module({
   imports: [
     LoggerModule,
