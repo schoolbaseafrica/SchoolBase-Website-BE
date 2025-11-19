@@ -9,7 +9,9 @@ import { Stream } from '../entities/stream.entity';
 
 import { StreamService } from './stream.service';
 
-type MockRepository<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+type MockRepository<T = unknown> = Partial<
+  Record<keyof Repository<T>, jest.Mock>
+>;
 
 describe('StreamService', () => {
   let service: StreamService;
