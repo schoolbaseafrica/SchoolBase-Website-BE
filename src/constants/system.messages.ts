@@ -113,3 +113,7 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+// Streams
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';

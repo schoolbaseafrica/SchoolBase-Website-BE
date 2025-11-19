@@ -1,6 +1,8 @@
-import { Entity, Column, Unique } from 'typeorm';
+import { Entity, Column, JoinColumn, ManyToOne, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+
+import { Stream } from '../../academic/entities/stream.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -58,4 +60,10 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expiry?: Date;
+
+  // Added for Stream Management
+  // Many students belong to one stream (e.g. 40 students in JSS1 A)
+  @ManyToOne(() => Stream, (stream) => stream.students)
+  @JoinColumn({ name: 'stream_id' })
+  stream: Stream;
 }
