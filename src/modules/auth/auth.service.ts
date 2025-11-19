@@ -14,11 +14,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
 import { EmailTemplateID } from '../../constants/email-constants';
-import {
-  USER_ACTIVATED,
-  USER_IS_ACTIVATED,
-  USER_NOT_FOUND,
-} from '../../constants/system.messages';
+import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 import { UserService } from '../user/user.service';
@@ -222,10 +218,10 @@ export class AuthService {
   async activateUserAccount(id: string) {
     const user = await this.userService.findOne(id);
 
-    if (!user) throw new NotFoundException(USER_NOT_FOUND);
+    if (!user) throw new NotFoundException(sysMsg.USER_NOT_FOUND);
 
     if (user.is_active) {
-      return USER_IS_ACTIVATED;
+      return sysMsg.USER_IS_ACTIVATED;
     }
 
     await this.userService.updateUser(
@@ -236,7 +232,7 @@ export class AuthService {
       { useTransaction: false },
     );
 
-    return USER_ACTIVATED;
+    return sysMsg.USER_ACTIVATED;
   }
 
   private async generateTokens(userId: string, email: string, role: string[]) {

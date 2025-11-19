@@ -15,6 +15,8 @@ export const LOGIN_FAILED = 'login failed';
 export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
+
+export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
 export const USER_ACTIVATED = 'user activated';
 

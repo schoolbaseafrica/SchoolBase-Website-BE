@@ -1,11 +1,7 @@
 import { HttpStatus, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import {
-  USER_ACTIVATED,
-  USER_IS_ACTIVATED,
-  USER_NOT_FOUND,
-} from '../../constants/system.messages';
+import * as sysMsg from '../../constants/system.messages';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -40,7 +36,7 @@ describe('AuthController', () => {
   describe('activateAccount', () => {
     it('should activate a user account and return a success message', async () => {
       const userId = 'some-uuid';
-      const successMessage = USER_ACTIVATED;
+      const successMessage = sysMsg.USER_ACTIVATED;
 
       mockAuthService.activateUserAccount.mockResolvedValue(successMessage);
 
@@ -55,7 +51,7 @@ describe('AuthController', () => {
 
     it('should return a message indicating the user is already active', async () => {
       const userId = 'some-uuid';
-      const successMessage = USER_IS_ACTIVATED;
+      const successMessage = sysMsg.USER_IS_ACTIVATED;
 
       mockAuthService.activateUserAccount.mockResolvedValue(successMessage);
 
@@ -72,14 +68,14 @@ describe('AuthController', () => {
       const userId = 'non-existent-uuid';
 
       mockAuthService.activateUserAccount.mockRejectedValue(
-        new NotFoundException(USER_NOT_FOUND),
+        new NotFoundException(sysMsg.USER_NOT_FOUND),
       );
 
       await expect(controller.activateAccount(userId)).rejects.toThrow(
         NotFoundException,
       );
       await expect(controller.activateAccount(userId)).rejects.toThrow(
-        USER_NOT_FOUND,
+        sysMsg.USER_NOT_FOUND,
       );
     });
   });

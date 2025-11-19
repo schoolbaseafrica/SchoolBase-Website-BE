@@ -9,6 +9,8 @@ import {
 } from '@nestjs/common';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import * as sysMsg from '../../constants/system.messages';
+
 import { AuthService } from './auth.service';
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
@@ -121,23 +123,22 @@ export class AuthController {
 
   @Patch('users/:user_id/activate')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Activate a user account by ID' })
+  @ApiOperation({ summary: sysMsg.ACTIVATE_ACCOUNT })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: 'The user was successfully activated.',
+    description: sysMsg.USER_ACTIVATED,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'No user found with the provided ID.',
+    description: sysMsg.USER_NOT_FOUND,
   })
   @ApiResponse({
     status: HttpStatus.UNAUTHORIZED,
-    description: 'Request is missing a valid JWT or token is invalid.',
+    description: sysMsg.TOKEN_INVALID,
   })
   @ApiResponse({
     status: HttpStatus.FORBIDDEN,
-    description:
-      'The authenticated user does not have permission to activate this user.',
+    description: sysMsg.PERMISSION_DENIED,
   })
   async activateAccount(@Param('user_id') userId: string) {
     const message = await this.authService.activateUserAccount(userId);
