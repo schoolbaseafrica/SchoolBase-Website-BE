@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   HttpStatus,
+  InternalServerErrorException,
 } from '@nestjs/common'; // Added HttpStatus
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -10,7 +11,7 @@ import * as sysMsg from '../../constants/system.messages';
 import {
   AcademicSessionService,
   ICreateSessionResponse,
-} from './academic-session.service'; // Imported IcreateSessionResponse
+} from './academic-session.service';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import {
   AcademicSession,
@@ -170,6 +171,86 @@ describe('AcademicSessionService', () => {
     it('should return remove message', () => {
       const result = service.remove(1);
       expect(result).toBe('This action removes a #1 academicSession');
+    });
+  });
+
+  describe('AcademicSessionService.activeSessions', () => {
+    let service: AcademicSessionService;
+    let modelAction: jest.Mocked<AcademicSessionModelAction>;
+
+    const mockMeta = { total: 1 };
+
+    const makeSession = (
+      overrides: Partial<AcademicSession>,
+    ): AcademicSession => {
+      return {
+        id: overrides.id ?? '1',
+        name: overrides.name ?? '2024 Session',
+        startDate: overrides.startDate ?? new Date('2024-01-01'),
+        endDate: overrides.endDate ?? new Date('2024-12-31'),
+        status: overrides.status ?? SessionStatus.ACTIVE,
+        createdAt: overrides.createdAt ?? new Date(),
+        updatedAt: overrides.updatedAt ?? new Date(),
+      };
+    };
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          AcademicSessionService,
+          {
+            provide: AcademicSessionModelAction,
+            useValue: {
+              list: jest.fn(),
+            },
+          },
+        ],
+      }).compile();
+
+      service = module.get(AcademicSessionService);
+      modelAction = module.get(
+        AcademicSessionModelAction,
+      ) as jest.Mocked<AcademicSessionModelAction>;
+    });
+
+    test('returns null when no active sessions exist', async () => {
+      modelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: mockMeta,
+      });
+
+      const result = await service.activeSessions();
+      expect(result).toBeNull();
+    });
+
+    test('returns the single active session when exactly one exists', async () => {
+      const session = makeSession({ id: '1' });
+
+      modelAction.list.mockResolvedValue({
+        payload: [session],
+        paginationMeta: mockMeta,
+      });
+
+      const result = await service.activeSessions();
+      expect(result).toEqual(session);
+    });
+
+    test('throws InternalServerErrorException when multiple active sessions exist', async () => {
+      const s1 = makeSession({ id: '1' });
+      const s2 = makeSession({ id: '2' });
+
+      modelAction.list.mockResolvedValue({
+        payload: [s1, s2],
+        paginationMeta: mockMeta,
+      });
+
+      await expect(service.activeSessions()).rejects.toThrow(
+        InternalServerErrorException,
+      );
+
+      await expect(service.activeSessions()).rejects.toThrow(
+        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+      );
     });
   });
 });

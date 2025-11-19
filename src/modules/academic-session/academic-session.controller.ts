@@ -1,13 +1,16 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+import * as sysMsg from '../../constants/system.messages';
 
 import { AcademicSessionService } from './academic-session.service';
 import { AcademicSessionSwagger } from './docs/academic-session.swagger';
@@ -26,6 +29,38 @@ export class AcademicSessionController {
   @ApiResponse(AcademicSessionSwagger.decorators.create.response)
   create(@Body() createAcademicSessionDto: CreateAcademicSessionDto) {
     return this.academicSessionService.create(createAcademicSessionDto);
+  }
+
+  @Get('active')
+  @ApiOperation({ summary: sysMsg.ACADEMIC_SESSION })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+  })
+  @ApiResponse({
+    status: HttpStatus.INTERNAL_SERVER_ERROR,
+    description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: sysMsg.USER_NOT_FOUND,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.TOKEN_INVALID,
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: sysMsg.PERMISSION_DENIED,
+  })
+  async activeSession() {
+    const session = await this.academicSessionService.activeSessions();
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+      data: session,
+    };
   }
 
   @Get()
