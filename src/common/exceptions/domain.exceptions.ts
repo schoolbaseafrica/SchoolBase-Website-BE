@@ -1,4 +1,4 @@
-import { HttpStatus } from '@nestjs/common';
+import { HttpStatus, ForbiddenException } from '@nestjs/common';
 
 import { BaseException } from './base-exception';
 
@@ -11,6 +11,12 @@ export class UserNotFoundException extends BaseException {
 export class ForbiddenActionException extends BaseException {
   constructor(action: string) {
     super(`Forbidden to perform this action: ${action}`, HttpStatus.FORBIDDEN);
+  }
+}
+
+export class CannotRevokeOtherSessionsException extends ForbiddenException {
+  constructor(message?: string) {
+    super(message);
   }
 }
 

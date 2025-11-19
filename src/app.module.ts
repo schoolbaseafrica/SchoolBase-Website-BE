@@ -1,18 +1,24 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
+import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
+import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
+import { SessionModule } from './modules/session/session.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { TeachersModule } from './modules/teacher/teacher.module';
+import { ClassesModule } from './modules/classes/classes.module';
 
 @Module({
   imports: [
@@ -33,7 +39,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
         migrationsRun: false,
-        synchronize: false,
+        synchronize: true,
       }),
     }),
     AuthModule,
@@ -41,12 +47,21 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     UserModule,
     EmailModule,
     SchoolModule,
+    SessionModule,
     AuthModule,
+    TeachersModule,
+    ClassesModule,
+    InviteModule,
+    AcademicSessionModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     LoggingInterceptor,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,

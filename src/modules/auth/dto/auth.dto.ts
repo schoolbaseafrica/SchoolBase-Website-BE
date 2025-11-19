@@ -7,6 +7,7 @@ import {
   IsArray,
   IsEnum,
   MinLength,
+  Matches,
 } from 'class-validator';
 
 export enum UserRole {
@@ -103,4 +104,37 @@ export class AuthDto {
   })
   @IsBoolean()
   is_active?: boolean = true;
+}
+
+export class ForgotPasswordDto {
+  @ApiProperty({
+    example: 'user@example.com',
+    description: 'User email address',
+  })
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    description: 'Password reset token',
+  })
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @ApiProperty({
+    example: 'NewPassword123!',
+    description: 'New password',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @Matches(/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
+    message:
+      'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+  })
+  newPassword: string;
 }

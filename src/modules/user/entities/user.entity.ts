@@ -1,6 +1,7 @@
-import { Entity, Column, Unique } from 'typeorm';
+import { Entity, Column, Unique, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Session } from '../../sessions/entities/session.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -47,6 +48,24 @@ export class User extends BaseEntity {
   @Column({ default: true })
   is_active: boolean;
 
+  @Column({ default: true, nullable: true })
+  is_verified?: boolean;
+
+  @OneToMany(() => Session, (session) => session.user)
+  sessions: Session[];
+
   @Column({ type: 'timestamp', nullable: true, default: null })
   last_login_at: Date | null;
+
+  @Column({ nullable: true })
+  reset_token?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reset_token_expiry?: Date;
+
+  @OneToMany(() => Session, (session) => session.user)
+  sessions!: Session[];
+
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  deleted_at: Date | null;
 }

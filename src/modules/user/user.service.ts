@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 
+import { ApiSuccessResponseDto } from '../../common/dto/response.dto';
+import { UserNotFoundException } from '../../common/exceptions/domain.exceptions';
+import * as sysMsg from '../../constants/system.messages';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
 import { UserModelAction } from './model-actions/user-actions';
@@ -32,6 +36,28 @@ export class UserService {
     });
   }
 
+  async updateUser(
+    payload: Parameters<typeof this.userModelAction.update>[0]['updatePayload'],
+    identifierOptions: Parameters<
+      typeof this.userModelAction.update
+    >[0]['identifierOptions'],
+    options?: Parameters<
+      typeof this.userModelAction.update
+    >[0]['transactionOptions'],
+  ) {
+    return this.userModelAction.update({
+      updatePayload: payload,
+      identifierOptions,
+      transactionOptions: options,
+    });
+  }
+
+  async findByResetToken(resetToken: string) {
+    return this.userModelAction.get({
+      identifierOptions: { reset_token: resetToken },
+    });
+  }
+
   async findByEmail(email: string) {
     return this.userModelAction.get({
       identifierOptions: { email },
@@ -52,7 +78,18 @@ export class UserService {
     return `This action updates a #${id} user`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    const user = await this.userModelAction.get({
+      identifierOptions: { id },
+    });
+    if (!user || user.deleted_at) {
+      throw new UserNotFoundException(id);
+    }
+    await this.userModelAction.update({
+      identifierOptions: { id },
+      updatePayload: { deleted_at: new Date() },
+      transactionOptions: { useTransaction: false },
+    });
+    return new ApiSuccessResponseDto(sysMsg.ACCOUNT_DELETED);
   }
 }
