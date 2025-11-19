@@ -20,6 +20,7 @@ import { UserService } from '../user/user.service';
 
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
+import { SessionService } from '../session/session.service';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +30,7 @@ export class AuthService {
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly sessionService: SessionService,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -62,6 +64,12 @@ export class AuthService {
       newUser.role,
     );
 
+    // Create session in DB
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.create_session(newUser.id, tokens.refresh_token);
+    }
+
     return {
       user: {
         id: newUser.id,
@@ -71,6 +79,8 @@ export class AuthService {
         role: newUser.role,
       },
       ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 
@@ -98,6 +108,11 @@ export class AuthService {
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.create_session(user.id, tokens.refresh_token);
+    }
+
     return {
       user: {
         id: user.id,
@@ -107,6 +122,8 @@ export class AuthService {
         role: user.role,
       },
       ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 
@@ -122,7 +139,17 @@ export class AuthService {
         payload.role,
       );
 
-      return tokens;
+      // Create session in DB
+      let sessionInfo = null;
+      if (this.sessionService && tokens.refresh_token) {
+        sessionInfo = await this.sessionService.create_session(payload.sub, tokens.refresh_token);
+      }
+
+      return {
+        ...tokens,
+        session_id: sessionInfo?.session_id,
+        session_expires_at: sessionInfo?.expires_at,
+      };
     } catch (error) {
       this.logger.error('Invalid refresh token: ', error?.message);
       throw new UnauthorizedException('Invalid refresh token');
