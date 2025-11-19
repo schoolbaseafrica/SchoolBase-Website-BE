@@ -1,9 +1,16 @@
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpStatus,
+} from '@nestjs/common'; // Added HttpStatus
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../constants/system.messages';
 
-import { AcademicSessionService } from './academic-session.service';
+import {
+  AcademicSessionService,
+  ICreateSessionResponse,
+} from './academic-session.service'; // Imported IcreateSessionResponse
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import {
   AcademicSession,
@@ -17,11 +24,9 @@ describe('AcademicSessionService', () => {
 
   beforeEach(async () => {
     // FIX: Use Partial<T> to define the required methods and the two-step assertion
-    // to safely mock the complex inherited TypeORM Model Action class without 'as any'.
     const mockModelActionProvider: Partial<AcademicSessionModelAction> = {
       get: jest.fn(),
       create: jest.fn(),
-      // Only mock 'get' and 'create' as they are the only methods used in the service's 'create' function.
     };
 
     mockSessionModelAction =
@@ -41,29 +46,37 @@ describe('AcademicSessionService', () => {
   });
 
   describe('create', () => {
+    // Define a standard DTO and the corresponding full response object for reuse
+    const createDto: CreateAcademicSessionDto = {
+      name: '2024/2025',
+      startDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
+      endDate: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
+    };
+
+    const mockSession: AcademicSession = {
+      id: '1',
+      name: createDto.name,
+      startDate: new Date(createDto.startDate),
+      endDate: new Date(createDto.endDate),
+      status: SessionStatus.INACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const expectedSuccessResponse: ICreateSessionResponse = {
+      status_code: HttpStatus.OK, // Match service return
+      message: sysMsg.ACADEMIC_SESSION_CREATED, // Match service return
+      data: mockSession,
+    };
+
     it('should create a new academic session successfully', async () => {
-      const createDto: CreateAcademicSessionDto = {
-        name: '2024/2025',
-        startDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-        endDate: new Date(Date.now() + 172800000).toISOString(), // Day after tomorrow
-      };
-
-      const mockSession: AcademicSession = {
-        id: '1',
-        name: createDto.name,
-        startDate: new Date(createDto.startDate),
-        endDate: new Date(createDto.endDate),
-        status: SessionStatus.INACTIVE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
       mockSessionModelAction.get.mockResolvedValue(null);
       mockSessionModelAction.create.mockResolvedValue(mockSession);
 
       const result = await service.create(createDto);
 
-      expect(result).toEqual(mockSession);
+      // ASSERTION CHANGE: Expect the full IcreateSessionResponse object
+      expect(result).toEqual(expectedSuccessResponse);
       expect(mockSessionModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { name: createDto.name },
       });
@@ -78,12 +91,6 @@ describe('AcademicSessionService', () => {
     });
 
     it('should throw ConflictException if session name already exists', async () => {
-      const createDto: CreateAcademicSessionDto = {
-        name: '2024/2025',
-        startDate: new Date(Date.now() + 86400000).toISOString(),
-        endDate: new Date(Date.now() + 172800000).toISOString(),
-      };
-
       // Cast needed to satisfy TS type check for existing record
       mockSessionModelAction.get.mockResolvedValue({} as AcademicSession);
 
@@ -94,49 +101,50 @@ describe('AcademicSessionService', () => {
     });
 
     it('should throw BadRequestException if start date is in the past', async () => {
-      const createDto: CreateAcademicSessionDto = {
-        name: '2024/2025',
-        startDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+      const invalidDto: CreateAcademicSessionDto = {
+        name: 'Past Start',
+        startDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday (Invalid)
         endDate: new Date(Date.now() + 172800000).toISOString(),
       };
 
       mockSessionModelAction.get.mockResolvedValue(null);
 
-      await expect(service.create(createDto)).rejects.toThrow(
+      await expect(service.create(invalidDto)).rejects.toThrow(
         new BadRequestException(sysMsg.START_DATE_IN_PAST),
       );
     });
 
     it('should throw BadRequestException if end date is in the past', async () => {
-      const createDto: CreateAcademicSessionDto = {
-        name: '2024/2025',
+      const invalidDto: CreateAcademicSessionDto = {
+        name: 'Past End',
         startDate: new Date(Date.now() + 86400000).toISOString(),
-        endDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+        endDate: new Date(Date.now() - 86400000).toISOString(), // Yesterday (Invalid)
       };
 
       mockSessionModelAction.get.mockResolvedValue(null);
 
-      await expect(service.create(createDto)).rejects.toThrow(
+      await expect(service.create(invalidDto)).rejects.toThrow(
         new BadRequestException(sysMsg.END_DATE_IN_PAST),
       );
     });
 
     it('should throw BadRequestException if end date is before or equal to start date', async () => {
       const startDate = new Date(Date.now() + 86400000);
-      const createDto: CreateAcademicSessionDto = {
-        name: '2024/2025',
+      const invalidDto: CreateAcademicSessionDto = {
+        name: 'Invalid Range',
         startDate: startDate.toISOString(),
-        endDate: startDate.toISOString(), // Same as start date
+        endDate: startDate.toISOString(), // Same as start date (Invalid)
       };
 
       mockSessionModelAction.get.mockResolvedValue(null);
 
-      await expect(service.create(createDto)).rejects.toThrow(
+      await expect(service.create(invalidDto)).rejects.toThrow(
         new BadRequestException(sysMsg.INVALID_DATE_RANGE),
       );
     });
   });
 
+  // --- Placeholder Tests (Unchanged) ---
   describe('findAll', () => {
     it('should return all academic sessions message', () => {
       const result = service.findAll();

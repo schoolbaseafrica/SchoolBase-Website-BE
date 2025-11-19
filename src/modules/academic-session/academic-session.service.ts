@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpStatus,
   Injectable,
 } from '@nestjs/common';
 
@@ -10,6 +11,11 @@ import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { AcademicSession } from './entities/academic-session.entity';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
 
+export interface ICreateSessionResponse {
+  status_code: HttpStatus;
+  message: string;
+  data: AcademicSession;
+}
 @Injectable()
 export class AcademicSessionService {
   constructor(
@@ -17,7 +23,7 @@ export class AcademicSessionService {
   ) {}
   async create(
     createSessionDto: CreateAcademicSessionDto,
-  ): Promise<AcademicSession> {
+  ): Promise<ICreateSessionResponse> {
     const existingSession = await this.sessionModelAction.get({
       identifierOptions: { name: createSessionDto.name },
     });
@@ -49,7 +55,11 @@ export class AcademicSessionService {
         useTransaction: false,
       },
     });
-    return newSession;
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_CREATED,
+      data: newSession,
+    };
   }
 
   findAll() {
