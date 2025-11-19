@@ -1,7 +1,9 @@
-import { Entity, Column, JoinColumn, ManyToOne, Unique } from 'typeorm';
+import { Entity, Column, JoinColumn, OneToMany, ManyToOne, Unique } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { Stream } from '../../academic/entities/stream.entity';
+import { Session } from '../../sessions/entities/session.entity';
+
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -51,6 +53,9 @@ export class User extends BaseEntity {
   @Column({ default: true, nullable: true })
   is_verified?: boolean;
 
+  @OneToMany(() => Session, (session) => session.user)
+  sessions: Session[];
+
   @Column({ type: 'timestamp', nullable: true, default: null })
   last_login_at: Date | null;
 
@@ -65,4 +70,6 @@ export class User extends BaseEntity {
   @ManyToOne(() => Stream, (stream) => stream.students)
   @JoinColumn({ name: 'stream_id' })
   stream: Stream;
+  @OneToMany(() => Session, (session) => session.user)
+  sessions!: Session[];
 }

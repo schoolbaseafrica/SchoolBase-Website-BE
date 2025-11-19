@@ -1,21 +1,23 @@
 import * as crypto from 'crypto';
 
 import {
-  Injectable,
-  UnauthorizedException,
   BadRequestException,
   ConflictException,
   Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-import { EmailTemplateID } from 'src/constants/email-constants';
-
+import { EmailTemplateID } from '../../constants/email-constants';
+import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
+import { SessionService } from '../session/session.service';
 import { UserService } from '../user/user.service';
 
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
@@ -29,6 +31,7 @@ export class AuthService {
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly sessionService: SessionService,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -62,6 +65,15 @@ export class AuthService {
       newUser.role,
     );
 
+    // Create session in DB
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.createSession(
+        newUser.id,
+        tokens.refresh_token,
+      );
+    }
+
     return {
       user: {
         id: newUser.id,
@@ -71,6 +83,8 @@ export class AuthService {
         role: newUser.role,
       },
       ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 
@@ -98,6 +112,14 @@ export class AuthService {
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.createSession(
+        user.id,
+        tokens.refresh_token,
+      );
+    }
+
     return {
       user: {
         id: user.id,
@@ -107,6 +129,8 @@ export class AuthService {
         role: user.role,
       },
       ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 
@@ -122,7 +146,20 @@ export class AuthService {
         payload.role,
       );
 
-      return tokens;
+      // Create session in DB
+      let sessionInfo = null;
+      if (this.sessionService && tokens.refresh_token) {
+        sessionInfo = await this.sessionService.createSession(
+          payload.sub,
+          tokens.refresh_token,
+        );
+      }
+
+      return {
+        ...tokens,
+        session_id: sessionInfo?.session_id,
+        session_expires_at: sessionInfo?.expires_at,
+      };
     } catch (error) {
       this.logger.error('Invalid refresh token: ', error?.message);
       throw new UnauthorizedException('Invalid refresh token');
@@ -212,6 +249,26 @@ export class AuthService {
     this.logger.info(`Password successfully reset for user: ${user.email}`);
 
     return { message: 'Password has been successfully reset' };
+  }
+
+  async activateUserAccount(id: string) {
+    const user = await this.userService.findOne(id);
+
+    if (!user) throw new NotFoundException(sysMsg.USER_NOT_FOUND);
+
+    if (user.is_active) {
+      return sysMsg.USER_IS_ACTIVATED;
+    }
+
+    await this.userService.updateUser(
+      {
+        is_active: true,
+      },
+      { id },
+      { useTransaction: false },
+    );
+
+    return sysMsg.USER_ACTIVATED;
   }
 
   private async generateTokens(userId: string, email: string, role: string[]) {

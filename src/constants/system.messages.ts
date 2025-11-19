@@ -16,6 +16,10 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 
+export const ACTIVATE_ACCOUNT = 'Activate a user account';
+export const USER_IS_ACTIVATED = 'user already activated';
+export const USER_ACTIVATED = 'user activated';
+
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
 export const ACCOUNT_NOT_FOUND = 'account not found';
@@ -117,3 +121,23 @@ export const NOTIFICATION_FAILED = 'notification failed';
 // Streams
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
+// Invites
+export const INVITE_SENT = 'INVITE_SENT';
+export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
+export const NO_PENDING_INVITES = 'No pending invites found';
+export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+
+//Academic Session
+export const ACADEMIC_SESSION_CREATED =
+  'Academic session created successfully.';
+export const DUPLICATE_SESSION_NAME =
+  'An academic session with this name already exists.';
+export const INVALID_DATE_RANGE = 'End date must be after start date.';
+export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
+export const END_DATE_IN_PAST = 'End date cannot be in the past.';
+
+// Session management messages
+export const SESSION_REVOKED = 'session revoked successfully';
+export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
+export const SESSION_NOT_FOUND = 'session not found';
+export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
