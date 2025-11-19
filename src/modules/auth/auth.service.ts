@@ -166,9 +166,9 @@ export class AuthService {
       { useTransaction: false },
     );
 
-    const emailpayload: EmailPayload = {
+const emailpayload: EmailPayload = {
       to: [{ name: user.first_name, email: user.email }],
-      subject: 'Password Reset Request',
+          subject: 'Password Reset Request',
       templateNameID: EmailTemplateID.FORGOT_PASSWORD,
       templateData: {
         name: user.first_name,
