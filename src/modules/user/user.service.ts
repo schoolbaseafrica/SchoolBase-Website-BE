@@ -1,25 +1,73 @@
 import { Injectable } from '@nestjs/common';
+import { DataSource } from 'typeorm';
+
+import { CreateUserDto } from './dto/create-user.dto';
+import { User } from './entities/user.entity';
+import { UserModelAction } from './model-actions/user-actions';
 
 @Injectable()
 export class UserService {
   // private readonly logger: Logger;
-  constructor() {
+
+  constructor(
+    private readonly userModelAction: UserModelAction,
+    private readonly dataSource: DataSource,
+  ) {
     // @Inject(WINSTON_MODULE_PROVIDER) private readonly logger: Logger,
     // this.logger = logger.child({
     //   context: UserService.name,
     // });
   }
-  create() {
-    // this.logger.info('Logging action');
-    return 'This action adds a new user';
+
+  async create(createPayload: CreateUserDto): Promise<User> {
+    return this.dataSource.transaction(async (manager) => {
+      const newUser = await this.userModelAction.create({
+        createPayload: {
+          ...createPayload,
+          is_active: true,
+        },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+      return newUser;
+    });
+  }
+
+  async updateUser(
+    payload: Parameters<typeof this.userModelAction.update>[0]['updatePayload'],
+    identifierOptions: Parameters<
+      typeof this.userModelAction.update
+    >[0]['identifierOptions'],
+    options?: Parameters<
+      typeof this.userModelAction.update
+    >[0]['transactionOptions'],
+  ) {
+    return this.userModelAction.update({
+      updatePayload: payload,
+      identifierOptions,
+      transactionOptions: options,
+    });
+  }
+
+  async findByResetToken(resetToken: string) {
+    return this.userModelAction.get({
+      identifierOptions: { reset_token: resetToken },
+    });
+  }
+
+  async findByEmail(email: string) {
+    return this.userModelAction.get({
+      identifierOptions: { email },
+    });
+  }
+
+  async findOne(id: string) {
+    return this.userModelAction.get({
+      identifierOptions: { id },
+    });
   }
 
   findAll() {
     return `This action returns all user`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
   }
 
   update(id: number) {

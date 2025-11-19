@@ -8,6 +8,9 @@ import { AppService } from './app.service';
 import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { AuthModule } from './modules/auth/auth.module';
+import { EmailModule } from './modules/email/email.module';
+import { SchoolModule } from './modules/school/school.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -30,11 +33,15 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
         database: config.get<string>('DB_NAME'),
         autoLoadEntities: true,
         migrationsRun: false,
-        synchronize: false,
+        synchronize: true,
       }),
     }),
+    AuthModule,
     WaitlistModule,
     UserModule,
+    EmailModule,
+    SchoolModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

@@ -21,7 +21,8 @@ export class CreateWaitlistTable1731808800000 implements MigrationInterface {
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(`DROP INDEX "IDX_waitlist_email"`);
-    await queryRunner.query(`DROP TABLE "waitlist"`);
+    // Use IF EXISTS to prevent errors if the index doesn't exist
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_waitlist_email"`);
+    await queryRunner.query(`DROP TABLE IF EXISTS "waitlist"`);
   }
 }
