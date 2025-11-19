@@ -62,4 +62,7 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expiry?: Date;
+
+  @OneToMany(() => Session, (session) => session.user)
+  sessions!: Session[];
 }
