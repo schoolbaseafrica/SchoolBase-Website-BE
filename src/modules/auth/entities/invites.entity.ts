@@ -4,7 +4,7 @@ import {
   Column,
   CreateDateColumn,
 } from 'typeorm';
-import { BaseEntity } from 'src/entities/base-entity';
+import { BaseEntity } from '../../../entities/base-entity';
 
 @Entity({ name: 'invites' })
 export class Invite extends BaseEntity {
