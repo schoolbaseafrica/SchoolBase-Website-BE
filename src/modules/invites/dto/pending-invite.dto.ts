@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { HttpStatus } from '@nestjs/common';
 
 export class PendingInviteDto {
   @ApiProperty({ example: 'uuid-1' })

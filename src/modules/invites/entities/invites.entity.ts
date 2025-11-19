@@ -1,9 +1,5 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-} from 'typeorm';
+import { Entity, Column, CreateDateColumn } from 'typeorm';
+
 import { BaseEntity } from '../../../entities/base-entity';
 
 @Entity({ name: 'invites' })
@@ -16,4 +12,10 @@ export class Invite extends BaseEntity {
 
   @CreateDateColumn()
   invitedAt: Date;
+
+  @Column()
+  role: string;
+
+  @Column({ nullable: true })
+  full_name: string;
 }
