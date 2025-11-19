@@ -32,27 +32,8 @@ export class AcademicSessionController {
   }
 
   @Get('active')
-  @ApiOperation({ summary: sysMsg.ACADEMIC_SESSION })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: sysMsg.USER_NOT_FOUND,
-  })
-  @ApiResponse({
-    status: HttpStatus.UNAUTHORIZED,
-    description: sysMsg.TOKEN_INVALID,
-  })
-  @ApiResponse({
-    status: HttpStatus.FORBIDDEN,
-    description: sysMsg.PERMISSION_DENIED,
-  })
+  @ApiOperation(AcademicSessionSwagger.decorators.activeSession.operation)
+  @ApiResponse(AcademicSessionSwagger.decorators.activeSession.response)
   async activeSession() {
     const session = await this.academicSessionService.activeSessions();
 
