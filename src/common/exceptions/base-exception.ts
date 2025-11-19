@@ -8,9 +8,10 @@ export class BaseException extends HttpException {
   ) {
     super(
       {
-        statusCode,
+        status_code: statusCode,
         message,
         error: (error instanceof Error ? error.message : null) || null,
+        data: null,
       },
       statusCode,
       { cause: error },
