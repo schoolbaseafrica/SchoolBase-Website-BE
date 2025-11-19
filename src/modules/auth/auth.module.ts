@@ -2,12 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
+import { EmailModule } from '../email/email.module';
 import { UserModule } from '../user/user.module';
 import { UserService } from '../user/user.service';
 
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
@@ -26,4 +26,4 @@ import { EmailModule } from '../email/email.module';
   providers: [AuthService, UserService],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}

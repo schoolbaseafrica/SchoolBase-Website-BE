@@ -1,3 +1,5 @@
+import * as crypto from 'crypto';
+
 import {
   Injectable,
   UnauthorizedException,
@@ -7,19 +9,17 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import * as crypto from 'crypto';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-import { UserService } from '../user/user.service';
+import { EmailTemplateID } from 'src/constants/email-constants';
+
 import { EmailService } from '../email/email.service';
-import { WaitlistService } from '../waitlist/waitlist.service';
+import { EmailPayload } from '../email/email.types';
+import { UserService } from '../user/user.service';
 
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
-
-import { EmailPayload } from '../email/email.types';
-import { EmailTemplateID } from 'src/constants/email-constants';
 
 @Injectable()
 export class AuthService {
@@ -166,9 +166,9 @@ export class AuthService {
       { useTransaction: false },
     );
 
-const emailpayload: EmailPayload = {
+    const emailpayload: EmailPayload = {
       to: [{ name: user.first_name, email: user.email }],
-          subject: 'Password Reset Request',
+      subject: 'Password Reset Request',
       templateNameID: EmailTemplateID.FORGOT_PASSWORD,
       templateData: {
         name: user.first_name,
