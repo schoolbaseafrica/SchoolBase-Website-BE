@@ -87,11 +87,9 @@ export const RETRY_LATER = 'retry later';
 
 // Waitlist messages
 export const WAITLIST_ADDED_SUCCESSFULLY = 'Successfully added to waitlist';
-export const WAITLIST_RETRIEVED_SUCCESSFULLY =
-  'Waitlist entries retrieved successfully';
+export const WAITLIST_RETRIEVED_SUCCESSFULLY ='Waitlist entries retrieved successfully';
 export const EMAIL_ALREADY_EXISTS = 'Email already exists in waitlist';
-export const WAITLIST_REMOVED_SUCCESSFULLY =
-  'Entry removed from waitlist successfully';
+export const WAITLIST_REMOVED_SUCCESSFULLY ='Entry removed from waitlist successfully';
 
 // Rate limits
 export const TOO_MANY_REQUESTS = 'too many requests';

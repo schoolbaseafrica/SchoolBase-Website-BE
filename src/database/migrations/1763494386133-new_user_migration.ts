@@ -5,7 +5,9 @@ export class NewUserMigration1763494386133 implements MigrationInterface {
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Drop the waitlist index if it exists
-    await queryRunner.query(`DROP INDEX IF EXISTS "public"."IDX_waitlist_email"`);
+    await queryRunner.query(
+      `DROP INDEX IF EXISTS "public"."IDX_waitlist_email"`,
+    );
 
     // Create enum type if it does not exist
     await queryRunner.query(`
