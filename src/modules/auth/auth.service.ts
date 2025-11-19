@@ -1,19 +1,20 @@
 import * as crypto from 'crypto';
 
 import {
-  Injectable,
-  UnauthorizedException,
   BadRequestException,
   ConflictException,
   Inject,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
-import { EmailTemplateID } from 'src/constants/email-constants';
-
+import { EmailTemplateID } from '../../constants/email-constants';
+import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
 import { UserService } from '../user/user.service';
@@ -212,6 +213,26 @@ export class AuthService {
     this.logger.info(`Password successfully reset for user: ${user.email}`);
 
     return { message: 'Password has been successfully reset' };
+  }
+
+  async activateUserAccount(id: string) {
+    const user = await this.userService.findOne(id);
+
+    if (!user) throw new NotFoundException(sysMsg.USER_NOT_FOUND);
+
+    if (user.is_active) {
+      return sysMsg.USER_IS_ACTIVATED;
+    }
+
+    await this.userService.updateUser(
+      {
+        is_active: true,
+      },
+      { id },
+      { useTransaction: false },
+    );
+
+    return sysMsg.USER_ACTIVATED;
   }
 
   private async generateTokens(userId: string, email: string, role: string[]) {

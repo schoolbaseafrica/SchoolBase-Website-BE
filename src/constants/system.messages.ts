@@ -16,6 +16,10 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 
+export const ACTIVATE_ACCOUNT = 'Activate a user account';
+export const USER_IS_ACTIVATED = 'user already activated';
+export const USER_ACTIVATED = 'user activated';
+
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
 export const ACCOUNT_NOT_FOUND = 'account not found';
@@ -87,11 +91,9 @@ export const RETRY_LATER = 'retry later';
 
 // Waitlist messages
 export const WAITLIST_ADDED_SUCCESSFULLY = 'Successfully added to waitlist';
-export const WAITLIST_RETRIEVED_SUCCESSFULLY =
-  'Waitlist entries retrieved successfully';
+export const WAITLIST_RETRIEVED_SUCCESSFULLY ='Waitlist entries retrieved successfully';
 export const EMAIL_ALREADY_EXISTS = 'Email already exists in waitlist';
-export const WAITLIST_REMOVED_SUCCESSFULLY =
-  'Entry removed from waitlist successfully';
+export const WAITLIST_REMOVED_SUCCESSFULLY ='Entry removed from waitlist successfully';
 
 // Rate limits
 export const TOO_MANY_REQUESTS = 'too many requests';

@@ -10,7 +10,7 @@ export class CreateWaitlistDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
-  first_name: string;
+  firstName: string;
 
   @ApiProperty({
     example: 'Doe',
@@ -20,7 +20,7 @@ export class CreateWaitlistDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
-  last_name: string;
+  lastName: string;
 
   @ApiProperty({
     example: 'john.doe@example.com',
