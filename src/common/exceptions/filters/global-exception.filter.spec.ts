@@ -100,8 +100,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 400,
-          message: ['Test error'],
+          status_code: 400,
+          message: 'Test error',
+          data: null,
           timestamp: expect.any(String),
           path: '/api/test',
           method: 'GET',
@@ -120,8 +121,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 400,
-          message: ['Validation failed'],
+          status_code: 400,
+          message: 'Validation failed',
+          data: null,
           error: 'Bad Request',
         }),
       );
@@ -135,8 +137,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 400,
+          status_code: 400,
           message: expect.arrayContaining(['Error 1', 'Error 2']),
+          data: null,
         }),
       );
     });
@@ -161,7 +164,8 @@ describe('GlobalExceptionFilter', () => {
         expect(mockResponse.status).toHaveBeenCalledWith(status);
         expect(mockResponse.json).toHaveBeenCalledWith(
           expect.objectContaining({
-            statusCode: status,
+            status_code: status,
+            data: null,
           }),
         );
       });
@@ -177,8 +181,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 404,
-          message: ['Custom error'],
+          status_code: 404,
+          message: 'Custom error',
+          data: null,
         }),
       );
     });
@@ -191,10 +196,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(404);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 404,
-          message: expect.arrayContaining([
-            expect.stringContaining('User with id user-123 not found'),
-          ]),
+          status_code: 404,
+          message: expect.stringContaining('User with id user-123 not found'),
+          data: null,
         }),
       );
     });
@@ -215,11 +219,12 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 400,
+          status_code: 400,
           message: expect.arrayContaining([
             'Field is required',
             'Field must be a string',
           ]),
+          data: null,
           error: 'Validation Error',
         }),
       );
@@ -236,8 +241,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(400);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 400,
-          message: ['Validation failed'],
+          status_code: 400,
+          message: 'Validation failed',
+          data: null,
           error: 'Validation Error',
         }),
       );
@@ -257,8 +263,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 500,
-          message: ['Database operation failed'],
+          status_code: 500,
+          message: 'Database operation failed',
+          data: null,
           error: 'ER_DUP_ENTRY',
         }),
       );
@@ -274,8 +281,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 500,
-          message: ['Internal server error'],
+          status_code: 500,
+          message: 'Internal server error',
+          data: null,
           error: 'INTERNAL_SERVER_ERROR',
         }),
       );
@@ -292,8 +300,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 500,
-          message: ['Internal server error'],
+          status_code: 500,
+          message: 'Internal server error',
+          data: null,
           error: 'INTERNAL_SERVER_ERROR',
         }),
       );
@@ -307,8 +316,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 500,
-          message: ['Internal server error'],
+          status_code: 500,
+          message: 'Internal server error',
+          data: null,
           error: 'INTERNAL_SERVER_ERROR',
         }),
       );
@@ -320,8 +330,9 @@ describe('GlobalExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(500);
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 500,
-          message: ['Internal server error'],
+          status_code: 500,
+          message: 'Internal server error',
+          data: null,
           error: 'INTERNAL_SERVER_ERROR',
         }),
       );
@@ -368,8 +379,9 @@ describe('GlobalExceptionFilter', () => {
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 500,
-          message: ['An internal server error occurred'],
+          status_code: 500,
+          message: 'An internal server error occurred',
+          data: null,
           error: 'Internal Server Error',
         }),
       );
@@ -384,8 +396,9 @@ describe('GlobalExceptionFilter', () => {
 
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          statusCode: 400,
-          message: ['Client error message'],
+          status_code: 400,
+          message: 'Client error message',
+          data: null,
         }),
       );
     });
@@ -398,9 +411,10 @@ describe('GlobalExceptionFilter', () => {
       filter.catch(exception, mockArgumentsHost);
 
       const responseCall = mockResponse.json.mock.calls[0][0];
-      expect(responseCall).toHaveProperty('statusCode');
+      expect(responseCall).toHaveProperty('status_code');
       expect(responseCall).toHaveProperty('message');
       expect(responseCall).toHaveProperty('error');
+      expect(responseCall).toHaveProperty('data');
       expect(responseCall).toHaveProperty('timestamp');
       expect(responseCall).toHaveProperty('path');
       expect(responseCall).toHaveProperty('method');
@@ -417,7 +431,7 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    it('should always format message as array', () => {
+    it('should format message as string or array', () => {
       const exception = new HttpException(
         'Single message',
         HttpStatus.BAD_REQUEST,
@@ -426,8 +440,10 @@ describe('GlobalExceptionFilter', () => {
       filter.catch(exception, mockArgumentsHost);
 
       const responseCall = mockResponse.json.mock.calls[0][0];
-      expect(Array.isArray(responseCall.message)).toBe(true);
-      expect(responseCall.message).toHaveLength(1);
+      expect(
+        typeof responseCall.message === 'string' ||
+          Array.isArray(responseCall.message),
+      ).toBe(true);
     });
   });
 
