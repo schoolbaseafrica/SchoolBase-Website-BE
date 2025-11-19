@@ -7,8 +7,17 @@ import {
   HttpCode,
   HttpStatus,
   Body,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBadRequestResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
+
+import { ApiSuccessResponseDto } from 'src/common/dto/response.dto';
 
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserService } from './user.service';
@@ -38,8 +47,19 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
+  @HttpCode(HttpStatus.OK)
+  @ApiBadRequestResponse({
+    description: 'Validation failed (uuid is expected)',
+  })
+  @ApiNotFoundResponse({
+    description: 'User not found',
+  })
+  @ApiOkResponse({
+    description: 'Account deleted successfully',
+    type: ApiSuccessResponseDto,
+  })
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.userService.remove(id);
   }
 }

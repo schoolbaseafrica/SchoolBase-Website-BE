@@ -36,7 +36,7 @@ async function bootstrap() {
     .setDescription('API documentation for Open School Portal')
     .setVersion('1.0')
     .addTag('Waitlist')
-    .addServer(`/${globalPrefix}`)
+    // .addServer(`/${globalPrefix}`)
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
