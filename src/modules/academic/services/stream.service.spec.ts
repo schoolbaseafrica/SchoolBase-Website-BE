@@ -3,7 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { CLASS_NOT_FOUND } from '../../../constants/system.messages';
+import * as sysMsg from '../../../constants/system.messages';
+
 import { Class } from '../entities/class.entity';
 import { Stream } from '../entities/stream.entity';
 
@@ -101,7 +102,7 @@ describe('StreamService', () => {
         NotFoundException,
       );
       await expect(service.getStreamsByClass(mockClassId)).rejects.toThrow(
-        CLASS_NOT_FOUND,
+        sysMsg.CLASS_NOT_FOUND,
       );
     });
   });

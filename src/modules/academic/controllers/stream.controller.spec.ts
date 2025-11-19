@@ -1,10 +1,7 @@
 import { HttpStatus, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import {
-  CLASS_NOT_FOUND,
-  STREAMS_RETRIEVED,
-} from '../../../constants/system.messages';
+import  * as sysMsg from '../../../constants/system.messages';
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
 
@@ -41,31 +38,26 @@ describe('StreamController', () => {
 
   describe('getStreamsByClass', () => {
     it('should return streams wrapped in IBaseResponse structure', async () => {
-      // Arrange
       const mockStreams: StreamResponseDto[] = [
         { id: '1', name: 'A', studentCount: 10 },
       ];
       mockStreamService.getStreamsByClass.mockResolvedValue(mockStreams);
 
-      // Act
       const result = await controller.getStreamsByClass(mockClassId);
 
-      // Assert
       expect(service.getStreamsByClass).toHaveBeenCalledWith(mockClassId);
       expect(result).toEqual({
         status_code: HttpStatus.OK,
-        message: STREAMS_RETRIEVED,
+        message: sysMsg.STREAMS_RETRIEVED,
         data: mockStreams,
       });
     });
 
     it('should propagate errors from the service', async () => {
-      // Arrange
       mockStreamService.getStreamsByClass.mockRejectedValue(
-        new NotFoundException(CLASS_NOT_FOUND),
+        new NotFoundException(sysMsg.CLASS_NOT_FOUND),
       );
 
-      // Act & Assert
       await expect(controller.getStreamsByClass(mockClassId)).rejects.toThrow(
         NotFoundException,
       );

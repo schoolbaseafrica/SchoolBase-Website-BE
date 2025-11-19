@@ -7,11 +7,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import {
-  CLASS_NOT_FOUND,
-  STREAMS_RETRIEVED,
-} from '../../../constants/system.messages';
-
+import  * as sysMsg from '../../../constants/system.messages';
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
 
@@ -36,12 +32,12 @@ export class StreamController {
   })
   @ApiResponse({
     status: HttpStatus.OK,
-    description: STREAMS_RETRIEVED,
+    description: sysMsg.STREAMS_RETRIEVED,
     type: [StreamResponseDto],
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: CLASS_NOT_FOUND,
+    description: sysMsg.CLASS_NOT_FOUND,
   })
   async getStreamsByClass(
     @Param('classId', new ParseUUIDPipe()) classId: string,
@@ -50,7 +46,7 @@ export class StreamController {
 
     return {
       status_code: HttpStatus.OK,
-      message: STREAMS_RETRIEVED,
+      message: sysMsg.STREAMS_RETRIEVED,
       data: streams,
     };
   }

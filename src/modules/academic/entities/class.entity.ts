@@ -11,7 +11,7 @@ export class Class extends BaseEntity {
   name: string;
 
   @Column()
-  level: string; // e.g. "JSS1", "SSS2", "Primary 1"
+  level: string; 
 
   @OneToMany(() => Stream, (stream) => stream.class)
   streams: Stream[];
