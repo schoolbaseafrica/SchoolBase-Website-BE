@@ -273,7 +273,7 @@ export class AuthService {
 
   async getProfile(accessToken: string) {
     if (!accessToken) {
-      throw new UnauthorizedException('Authorization header is missing');
+      throw new UnauthorizedException(sysMsg.AUTHORIZATION_HEADER_MISSING);
     }
 
     // Extract token from "Bearer <token>"
@@ -286,12 +286,27 @@ export class AuthService {
 
       const user = await this.userService.findByEmail(decryptedToken.email);
       if (!user) {
-        throw new UnauthorizedException('User not found');
+        throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
       }
-      return user;
+      return {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        middle_name: user.middle_name,
+        role: user.role,
+        gender: user.gender,
+        dob: user.dob,
+        phone: user.phone,
+        is_active: user.is_active,
+        created_at: user.createdAt,
+        updated_at: user.updatedAt,
+      };
     } catch (error) {
-      this.logger.error('Invalid refresh token: ', error?.message);
-      throw new UnauthorizedException('Invalid or expired token');
+      this.logger.error(sysMsg.REQUEST_FAILED, error?.message);
+      throw new UnauthorizedException(
+        `${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`,
+      );
     }
   }
 

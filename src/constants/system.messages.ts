@@ -58,6 +58,7 @@ export const UNAUTHORIZED = 'unauthorized';
 export const FORBIDDEN = 'forbidden';
 export const NOT_ALLOWED = 'not allowed';
 export const PERMISSION_DENIED = 'permission denied';
+export const AUTHORIZATION_HEADER_MISSING = 'authorization header missing';
 
 // Validation
 export const VALIDATION_ERROR = 'validation error';
