@@ -8,7 +8,6 @@ import {
 } from 'typeorm';
 
 import { Teacher } from '../../teacher/entities/teacher.entity';
-
 import { Class } from './classes.entity';
 
 @Entity('class_teachers')
@@ -16,13 +15,14 @@ export class ClassTeacher {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  sessionId: string; // Links to a Session entity (not shown)
+  // FIX: explicitly map to 'session_id' and fix property casing
+  @Column({ name: 'session_id' })
+  session_id: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'assignment_date' })
   assignment_date: Date;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   is_active: boolean;
 
   @ManyToOne(() => Class, (cls) => cls.teacher_assignment)

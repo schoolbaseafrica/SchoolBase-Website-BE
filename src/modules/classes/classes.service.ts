@@ -38,7 +38,7 @@ export class ClassesService {
     const assignments = await this.classTeacherRepository.find({
       where: {
         class: { id: classId },
-        sessionId: target_session,
+        session_id: target_session,
         is_active: true,
       },
       relations: ['teacher', 'class'],
