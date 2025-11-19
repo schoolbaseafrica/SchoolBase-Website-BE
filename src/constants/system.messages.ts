@@ -16,11 +16,16 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 
+export const ACTIVATE_ACCOUNT = 'Activate a user account';
+export const USER_IS_ACTIVATED = 'user already activated';
+export const USER_ACTIVATED = 'user activated';
+
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
 export const ACCOUNT_NOT_FOUND = 'account not found';
 export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
+export const ACCOUNT_DELETED = 'account deleted';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -113,3 +118,24 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+// Invites
+export const INVITE_SENT = 'INVITE_SENT';
+export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
+export const NO_PENDING_INVITES = 'No pending invites found';
+export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+
+//Academic Session
+export const ACADEMIC_SESSION_CREATED =
+  'Academic session created successfully.';
+export const DUPLICATE_SESSION_NAME =
+  'An academic session with this name already exists.';
+export const INVALID_DATE_RANGE = 'End date must be after start date.';
+export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
+export const END_DATE_IN_PAST = 'End date cannot be in the past.';
+
+// Session management messages
+export const SESSION_REVOKED = 'session revoked successfully';
+export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
+export const SESSION_NOT_FOUND = 'session not found';
+export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
