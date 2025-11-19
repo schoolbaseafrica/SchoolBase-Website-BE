@@ -91,17 +91,10 @@ export class AcademicSessionController {
     const parsedPage = Number(page);
     const parsedLimit = Number(limit);
 
-    const { data, meta } = await this.academicSessionService.findAll({
+    return this.academicSessionService.findAll({
       page: Number.isNaN(parsedPage) ? undefined : parsedPage,
       limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
     });
-
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
-      data,
-      meta,
-    };
   }
 
   @Get(':id')

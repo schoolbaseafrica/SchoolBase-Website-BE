@@ -101,6 +101,8 @@ export class AcademicSessionService {
     });
 
     return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
       data: payload,
       meta: paginationMeta,
     };

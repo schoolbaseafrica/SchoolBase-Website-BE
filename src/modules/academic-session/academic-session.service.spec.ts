@@ -185,6 +185,8 @@ describe('AcademicSessionService', () => {
       const result = await service.findAll();
 
       expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
         data: mockSessions,
         meta: mockPaginationMeta,
       });
@@ -206,6 +208,8 @@ describe('AcademicSessionService', () => {
       const result = await service.findAll({ page: 2, limit: 1 });
 
       expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
         data: mockSessions.slice(0, 1),
         meta: { ...mockPaginationMeta, page: 2, limit: 1 },
       });
