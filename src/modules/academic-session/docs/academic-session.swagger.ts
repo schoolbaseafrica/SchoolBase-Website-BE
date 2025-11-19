@@ -1,3 +1,4 @@
+import * as sysMsg from '../../../constants/system.messages';
 import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
 
 /**
@@ -151,6 +152,27 @@ export const AcademicSessionSwagger = {
         },
       },
     },
+    getActiveSession: {
+      summary: sysMsg.ACADEMIC_SESSION,
+      description: 'Retrieves the currently active academic session.',
+      responses: {
+        ['200']: {
+          description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+        },
+        ['404']: {
+          description: sysMsg.USER_NOT_FOUND,
+        },
+        ['401']: {
+          description: sysMsg.TOKEN_INVALID,
+        },
+        ['403']: {
+          description: sysMsg.PERMISSION_DENIED,
+        },
+        ['500']: {
+          description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+        },
+      },
+    },
   },
   decorators: {
     create: {
@@ -177,6 +199,35 @@ export const AcademicSessionSwagger = {
         status: 201,
         description: 'Academic session created successfully.',
       },
+    },
+    activeSession: {
+      operation: {
+        summary: sysMsg.ACADEMIC_SESSION,
+        description:
+          'Retrieves the currently active academic session. Ensures only one session is active at a time.',
+      },
+      response: {
+        status: 200,
+        description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+      },
+      errorResponses: [
+        {
+          status: 404,
+          description: sysMsg.USER_NOT_FOUND,
+        },
+        {
+          status: 401,
+          description: sysMsg.TOKEN_INVALID,
+        },
+        {
+          status: 403,
+          description: sysMsg.PERMISSION_DENIED,
+        },
+        {
+          status: 500,
+          description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+        },
+      ],
     },
   },
 };

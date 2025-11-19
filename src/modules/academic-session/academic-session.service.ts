@@ -3,12 +3,16 @@ import {
   ConflictException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
-import { AcademicSession } from './entities/academic-session.entity';
+import {
+  AcademicSession,
+  SessionStatus,
+} from './entities/academic-session.entity';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
 
 export interface ICreateSessionResponse {
@@ -60,6 +64,21 @@ export class AcademicSessionService {
       message: sysMsg.ACADEMIC_SESSION_CREATED,
       data: newSession,
     };
+  }
+
+  async activeSessions() {
+    const sessions = await this.sessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+
+    if (!sessions.payload.length) return null;
+
+    if (sessions.payload.length > 1)
+      throw new InternalServerErrorException(
+        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+      );
+
+    return sessions.payload[0];
   }
 
   findAll() {
