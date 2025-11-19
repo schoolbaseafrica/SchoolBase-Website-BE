@@ -49,4 +49,10 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true, default: null })
   last_login_at: Date | null;
+
+  @Column({ nullable: true })
+  reset_token?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  reset_token_expiry?: Date;
 }

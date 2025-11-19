@@ -46,8 +46,8 @@ export class WaitlistService {
     const emailPayload: EmailPayload = {
       to: [{ email: savedEntry.email, name: savedEntry.firstName }],
       subject: "You're on the Waitlist! | Open School Portal",
-      templateNameID: EmailTemplateID.WaitlistWelcome,
-      context: {
+      templateNameID: EmailTemplateID.WAITLIST_WELCOME,
+      templateData: {
         greeting: `Hi ${savedEntry.firstName},`,
       },
     };

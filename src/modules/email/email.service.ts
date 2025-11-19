@@ -66,9 +66,9 @@ export class EmailService {
    * @param payload The EmailPayload object
    */
   async sendMail(payload: EmailPayload): Promise<void> {
-    const { from, to, subject, templateNameID, context, text } = payload;
+    const { from, to, subject, templateNameID, templateData, text } = payload;
 
-    const html = await this.compileTemplate(templateNameID, context);
+    const html = await this.compileTemplate(templateNameID, templateData);
 
     const fromAddress =
       from?.email ?? this.configService.get<string>('MAIL_FROM_ADDRESS');

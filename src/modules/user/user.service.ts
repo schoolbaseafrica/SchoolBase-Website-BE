@@ -32,6 +32,28 @@ export class UserService {
     });
   }
 
+  async updateUser(
+    payload: Parameters<typeof this.userModelAction.update>[0]['updatePayload'],
+    identifierOptions: Parameters<
+      typeof this.userModelAction.update
+    >[0]['identifierOptions'],
+    options?: Parameters<
+      typeof this.userModelAction.update
+    >[0]['transactionOptions'],
+  ) {
+    return this.userModelAction.update({
+      updatePayload: payload,
+      identifierOptions,
+      transactionOptions: options,
+    });
+  }
+
+  async findByResetToken(resetToken: string) {
+    return this.userModelAction.get({
+      identifierOptions: { reset_token: resetToken },
+    });
+  }
+
   async findByEmail(email: string) {
     return this.userModelAction.get({
       identifierOptions: { email },
