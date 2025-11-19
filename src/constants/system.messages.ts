@@ -91,9 +91,11 @@ export const RETRY_LATER = 'retry later';
 
 // Waitlist messages
 export const WAITLIST_ADDED_SUCCESSFULLY = 'Successfully added to waitlist';
-export const WAITLIST_RETRIEVED_SUCCESSFULLY ='Waitlist entries retrieved successfully';
+export const WAITLIST_RETRIEVED_SUCCESSFULLY =
+  'Waitlist entries retrieved successfully';
 export const EMAIL_ALREADY_EXISTS = 'Email already exists in waitlist';
-export const WAITLIST_REMOVED_SUCCESSFULLY ='Entry removed from waitlist successfully';
+export const WAITLIST_REMOVED_SUCCESSFULLY =
+  'Entry removed from waitlist successfully';
 
 // Rate limits
 export const TOO_MANY_REQUESTS = 'too many requests';
@@ -116,6 +118,14 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
+//Academic Session
+export const ACADEMIC_SESSION_CREATED =
+  'Academic session created successfully.';
+export const DUPLICATE_SESSION_NAME =
+  'An academic session with this name already exists.';
+export const INVALID_DATE_RANGE = 'End date must be after start date.';
+export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
+export const END_DATE_IN_PAST = 'End date cannot be in the past.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';

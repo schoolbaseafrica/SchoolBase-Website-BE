@@ -9,6 +9,7 @@ import { GlobalExceptionFilter } from './common/exceptions/filters/global-except
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggerModule } from './common/logger.module';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
+import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { SchoolModule } from './modules/school/school.module';
@@ -45,6 +46,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     SchoolModule,
     SessionModule,
     AuthModule,
+    AcademicSessionModule,
   ],
   controllers: [AppController],
   providers: [
