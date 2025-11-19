@@ -1,14 +1,7 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
-import {
-  PENDING_INVITES_FETCHED,
-  INVITE_SENT,
-  NO_PENDING_INVITES,
-  INVITE_ALREADY_SENT,
-} from '../../constants/system.messages';
-
+import * as sysMsg from '../../constants/system.messages';
 import {
   InviteUserDto,
   CreatedInviteDto,
@@ -35,7 +28,7 @@ export class InviteService {
     if (exists) {
       return {
         status_code: HttpStatus.CONFLICT,
-        message: INVITE_ALREADY_SENT,
+        message: sysMsg.INVITE_ALREADY_SENT,
         data: [],
       };
     }
@@ -59,7 +52,7 @@ export class InviteService {
     {
       return {
         status_code: HttpStatus.OK,
-        message: INVITE_SENT,
+        message: sysMsg.INVITE_SENT,
         data: [createdInvite],
       };
     }
@@ -74,7 +67,7 @@ export class InviteService {
     if (invites.length === 0) {
       return {
         status_code: HttpStatus.NOT_FOUND,
-        message: NO_PENDING_INVITES,
+        message: sysMsg.NO_PENDING_INVITES,
         data: [],
       };
     }
@@ -87,7 +80,7 @@ export class InviteService {
 
     return {
       status_code: HttpStatus.OK,
-      message: PENDING_INVITES_FETCHED,
+      message: sysMsg.PENDING_INVITES_FETCHED,
       data: mappedInvites,
     };
   }

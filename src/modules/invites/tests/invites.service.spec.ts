@@ -1,13 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-
-import {
-  INVITE_ALREADY_SENT,
-  INVITE_SENT,
-  NO_PENDING_INVITES,
-  PENDING_INVITES_FETCHED,
-} from '../../../constants/system.messages';
+import * as sysMsg from '../../../constants/system.messages';
 import { InviteUserDto, InviteRole } from '../dto/invite-user.dto';
 import { PendingInvitesResponseDto } from '../dto/pending-invite.dto';
 import { Invite } from '../entities/invites.entity';
@@ -58,7 +52,7 @@ describe('InviteService', () => {
       const result = await service.sendInvite(payload);
 
       expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(INVITE_SENT);
+      expect(result.message).toBe(sysMsg.INVITE_SENT);
       expect(result.data[0].email).toBe(payload.email);
     });
 
@@ -75,7 +69,7 @@ describe('InviteService', () => {
       const result = await service.sendInvite(payload);
 
       expect(result.status_code).toBe(HttpStatus.CONFLICT);
-      expect(result.message).toBe(INVITE_ALREADY_SENT);
+      expect(result.message).toBe(sysMsg.INVITE_ALREADY_SENT);
       expect(result.data).toHaveLength(0);
     });
   });
@@ -91,7 +85,7 @@ describe('InviteService', () => {
         await service.getPendingInvites();
 
       expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(PENDING_INVITES_FETCHED);
+      expect(result.message).toBe(sysMsg.PENDING_INVITES_FETCHED);
       expect(result.data).toHaveLength(invites.length);
     });
 
@@ -102,7 +96,7 @@ describe('InviteService', () => {
         await service.getPendingInvites();
 
       expect(result.status_code).toBe(HttpStatus.NOT_FOUND);
-      expect(result.message).toBe(NO_PENDING_INVITES);
+      expect(result.message).toBe(sysMsg.NO_PENDING_INVITES);
       expect(result.data).toHaveLength(0);
     });
   });
