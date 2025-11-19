@@ -12,6 +12,7 @@ import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmailModule } from './modules/email/email.module';
 import { SchoolModule } from './modules/school/school.module';
+import { SessionModule } from './modules/session/session.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -42,6 +43,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     UserModule,
     EmailModule,
     SchoolModule,
+    SessionModule,
     AuthModule,
   ],
   controllers: [AppController],

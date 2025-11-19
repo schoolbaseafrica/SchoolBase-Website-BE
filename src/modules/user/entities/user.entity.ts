@@ -1,6 +1,7 @@
-import { Entity, Column, Unique } from 'typeorm';
+import { Entity, Column, Unique, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Session } from '../../session/entities/session.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -58,4 +59,7 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expiry?: Date;
+
+  @OneToMany(() => Session, (session) => session.user)
+  sessions!: Session[];
 }

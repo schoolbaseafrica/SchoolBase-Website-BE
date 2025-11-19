@@ -115,3 +115,9 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+
+// Session management messages
+export const SESSION_REVOKED = 'session revoked successfully';
+export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
+export const SESSION_NOT_FOUND = 'session not found';
+export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
