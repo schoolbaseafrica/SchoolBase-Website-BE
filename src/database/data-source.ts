@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 
-import config from 'src/config/config';
+import config from '../config/config';
 
 dotenv.config();
 

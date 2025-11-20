@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-commented-out-tests */
 import {
   HttpException,
   HttpStatus,
@@ -13,8 +12,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
-import config from 'src/config/config';
-
+import config from '../../../config/config';
 import { BaseException } from '../base-exception';
 import { UserNotFoundException } from '../domain.exceptions';
 
@@ -358,37 +356,50 @@ describe('GlobalExceptionFilter', () => {
       );
     });
 
-    // it('should not include stack trace in production mode', () => {
-    //   config().env = 'production';
+    it('should not include stack trace in production mode', () => {
+      // Mock process.env for production
+      // eslint-disable-next-line no-restricted-syntax
+      const originalEnv = process.env.NODE_ENV;
+      // eslint-disable-next-line no-restricted-syntax
+      process.env.NODE_ENV = 'production';
 
-    //   const error = new Error('Test error');
-    //   error.stack = 'Error: Test error\n    at test.js:1:1';
+      const error = new Error('Test error');
+      error.stack = 'Error: Test error\n    at test.js:1:1';
 
-    //   filter.catch(error, mockArgumentsHost);
+      filter.catch(error, mockArgumentsHost);
 
-    //   expect(mockResponse.json).toHaveBeenCalledWith(
-    //     expect.not.objectContaining({
-    //       stack: expect.anything(),
-    //     }),
-    //   );
-    // });
+      const responseCall = mockResponse.json.mock.calls[0][0];
+      expect(responseCall).not.toHaveProperty('stack');
 
-    // it('should sanitize error messages in production for 500 errors', () => {
-    //   config().env = 'production';
+      // Restore original env
+      // eslint-disable-next-line no-restricted-syntax
+      process.env.NODE_ENV = originalEnv;
+    });
 
-    //   const error = new Error('Sensitive internal error details');
+    it('should sanitize error messages in production for 500 errors', () => {
+      // Mock process.env for production
+      // eslint-disable-next-line no-restricted-syntax
+      const originalEnv = process.env.NODE_ENV;
+      // eslint-disable-next-line no-restricted-syntax
+      process.env.NODE_ENV = 'production';
 
-    //   filter.catch(error, mockArgumentsHost);
+      const error = new Error('Sensitive internal error details');
 
-    //   expect(mockResponse.json).toHaveBeenCalledWith(
-    //     expect.objectContaining({
-    //       status_code: 500,
-    //       message: 'An internal server error occurred',
-    //       data: null,
-    //       error: 'Internal Server Error',
-    //     }),
-    //   );
-    // });
+      filter.catch(error, mockArgumentsHost);
+
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status_code: 500,
+          message: 'An internal server error occurred',
+          data: null,
+          error: 'Internal Server Error',
+        }),
+      );
+
+      // Restore original env
+      // eslint-disable-next-line no-restricted-syntax
+      process.env.NODE_ENV = originalEnv;
+    });
 
     it('should not sanitize 4xx errors in production', () => {
       config().env = 'production';
