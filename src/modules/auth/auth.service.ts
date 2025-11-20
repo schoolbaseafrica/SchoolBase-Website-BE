@@ -13,6 +13,8 @@ import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import config from 'src/config/config';
+
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
@@ -137,7 +139,7 @@ export class AuthService {
   async refreshToken(refreshToken: string) {
     try {
       const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: config().jwt.secret,
       });
 
       const tokens = await this.generateTokens(
@@ -272,15 +274,16 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string, role: string[]) {
+    const { jwt } = config();
     const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET,
+        secret: jwt.secret,
         expiresIn: '15m',
       }),
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: jwt.refreshSecret,
         expiresIn: '7d',
       }),
     ]);

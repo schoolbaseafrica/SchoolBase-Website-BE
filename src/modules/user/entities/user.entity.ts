@@ -2,7 +2,6 @@ import { Entity, Column, Unique, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { Session } from '../../sessions/entities/session.entity';
-//import { TeacherProfile } from '../teacher/entities/teacher-profile.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -53,7 +52,7 @@ export class User extends BaseEntity {
   is_verified?: boolean;
 
   @OneToMany(() => Session, (session) => session.user)
-  sessions: Session[];
+  sessions!: Session[];
 
   @Column({ type: 'timestamp', nullable: true, default: null })
   last_login_at: Date | null;
@@ -64,6 +63,6 @@ export class User extends BaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   reset_token_expiry?: Date;
 
-  @OneToMany(() => Session, (session) => session.user)
-  sessions!: Session[];
+  @Column({ type: 'timestamp', nullable: true, default: null })
+  deleted_at: Date | null;
 }

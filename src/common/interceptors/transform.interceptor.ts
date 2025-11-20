@@ -40,12 +40,19 @@ export class TransformInterceptor implements NestInterceptor {
         };
 
         if (isEnvelope(result)) {
-          const envelope = result as ResponseEnvelope<unknown>;
-          return {
+          const envelope = result as ResponseEnvelope<unknown> & {
+            meta?: unknown;
+          };
+          const response: Record<string, unknown> = {
             status_code: envelope.status_code ?? envelope.statusCode ?? 200,
             message: envelope.message ?? null,
             data: envelope.data ?? null,
           };
+          // Preserve meta if it exists
+          if ('meta' in envelope && envelope.meta !== undefined) {
+            response.meta = envelope.meta;
+          }
+          return response;
         }
 
         const response = ctx
@@ -81,16 +88,22 @@ export class TransformInterceptor implements NestInterceptor {
             message,
             status_code: sc,
             statusCode: scCamel,
+            meta,
             ...rest
           } = resultObj;
           const hasKeys = Object.keys(rest).length > 0;
           const data: Record<string, unknown> | null = hasKeys ? rest : null;
 
-          return {
+          const response: Record<string, unknown> = {
             status_code: sc ?? scCamel ?? statusCode,
             message: message as string,
             data,
           };
+          // Preserve meta if it exists
+          if (meta !== undefined) {
+            response.meta = meta;
+          }
+          return response;
         }
 
         if (
@@ -101,9 +114,14 @@ export class TransformInterceptor implements NestInterceptor {
         ) {
           const resultObj = result as Record<string, unknown>;
           if ('status_code' in resultObj || 'statusCode' in resultObj) {
-            const { status_code: sc, statusCode: scCamel, ...rest } = resultObj;
+            const {
+              status_code: sc,
+              statusCode: scCamel,
+              meta,
+              ...rest
+            } = resultObj;
             const hasKeys = Object.keys(rest).length > 0;
-            return {
+            const response: Record<string, unknown> = {
               status_code: sc ?? scCamel ?? statusCode,
               message:
                 typeof resultObj.message === 'string'
@@ -111,6 +129,11 @@ export class TransformInterceptor implements NestInterceptor {
                   : null,
               data: hasKeys ? rest : null,
             };
+            // Preserve meta if it exists
+            if (meta !== undefined) {
+              response.meta = meta;
+            }
+            return response;
           }
         }
 

@@ -1,3 +1,4 @@
+import * as sysMsg from '../../../constants/system.messages';
 import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
 
 /**
@@ -84,10 +85,120 @@ export const AcademicSessionSwagger = {
     },
     findAll: {
       summary: 'Get All Academic Sessions',
-      description: 'Retrieves all academic sessions.',
+      description:
+        'Retrieves all academic sessions with pagination support. Defaults to page 1 and limit 20 if not provided.',
+      parameters: [
+        {
+          name: 'page',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'integer',
+            minimum: 1,
+            default: 1,
+          },
+          description: 'Page number (defaults to 1)',
+          example: 1,
+        },
+        {
+          name: 'limit',
+          in: 'query',
+          required: false,
+          schema: {
+            type: 'integer',
+            minimum: 1,
+            default: 20,
+          },
+          description: 'Number of items per page (defaults to 20)',
+          example: 20,
+        },
+      ],
       responses: {
         ['200']: {
-          description: 'List of academic sessions.',
+          description: 'Paginated list of academic sessions.',
+          content: {
+            ['application/json']: {
+              schema: {
+                type: 'object',
+                properties: {
+                  data: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', format: 'uuid' },
+                        name: { type: 'string' },
+                        startDate: { type: 'string', format: 'date' },
+                        endDate: { type: 'string', format: 'date' },
+                        status: {
+                          type: 'string',
+                          enum: ['Active', 'Inactive'],
+                        },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        updatedAt: { type: 'string', format: 'date-time' },
+                      },
+                    },
+                  },
+                  meta: {
+                    type: 'object',
+                    properties: {
+                      total: {
+                        type: 'integer',
+                        description: 'Total number of sessions',
+                      },
+                      limit: { type: 'integer', description: 'Items per page' },
+                      page: {
+                        type: 'integer',
+                        description: 'Current page number',
+                      },
+                      total_pages: {
+                        type: 'integer',
+                        description: 'Total number of pages',
+                      },
+                      has_next: {
+                        type: 'boolean',
+                        description: 'Whether there is a next page',
+                      },
+                      has_previous: {
+                        type: 'boolean',
+                        description: 'Whether there is a previous page',
+                      },
+                    },
+                  },
+                },
+              },
+              example: {
+                data: [
+                  {
+                    id: '550e8400-e29b-41d4-a716-446655440000',
+                    name: '2024/2025',
+                    startDate: '2024-09-01',
+                    endDate: '2025-06-30',
+                    status: 'Inactive',
+                    createdAt: '2024-01-15T10:30:00Z',
+                    updatedAt: '2024-01-15T10:30:00Z',
+                  },
+                  {
+                    id: '660e8400-e29b-41d4-a716-446655440001',
+                    name: '2025/2026',
+                    startDate: '2025-09-01',
+                    endDate: '2026-06-30',
+                    status: 'Active',
+                    createdAt: '2024-01-15T10:30:00Z',
+                    updatedAt: '2024-01-15T10:30:00Z',
+                  },
+                ],
+                meta: {
+                  total: 2,
+                  limit: 20,
+                  page: 1,
+                  total_pages: 1,
+                  has_next: false,
+                  has_previous: false,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -151,6 +262,27 @@ export const AcademicSessionSwagger = {
         },
       },
     },
+    getActiveSession: {
+      summary: sysMsg.ACADEMIC_SESSION,
+      description: 'Retrieves the currently active academic session.',
+      responses: {
+        ['200']: {
+          description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+        },
+        ['404']: {
+          description: sysMsg.USER_NOT_FOUND,
+        },
+        ['401']: {
+          description: sysMsg.TOKEN_INVALID,
+        },
+        ['403']: {
+          description: sysMsg.PERMISSION_DENIED,
+        },
+        ['500']: {
+          description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+        },
+      },
+    },
   },
   decorators: {
     create: {
@@ -177,6 +309,46 @@ export const AcademicSessionSwagger = {
         status: 201,
         description: 'Academic session created successfully.',
       },
+    },
+    findAll: {
+      operation: {
+        summary: 'Get All Academic Sessions',
+        description:
+          'Retrieves all academic sessions with pagination support. Defaults to page 1 and limit 20 if not provided.',
+      },
+      response: {
+        status: 200,
+        description: 'Paginated list of academic sessions.',
+      },
+    },
+    activeSession: {
+      operation: {
+        summary: sysMsg.ACADEMIC_SESSION,
+        description:
+          'Retrieves the currently active academic session. Ensures only one session is active at a time.',
+      },
+      response: {
+        status: 200,
+        description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+      },
+      errorResponses: [
+        {
+          status: 404,
+          description: sysMsg.USER_NOT_FOUND,
+        },
+        {
+          status: 401,
+          description: sysMsg.TOKEN_INVALID,
+        },
+        {
+          status: 403,
+          description: sysMsg.PERMISSION_DENIED,
+        },
+        {
+          status: 500,
+          description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+        },
+      ],
     },
   },
 };

@@ -3,13 +3,24 @@ import {
   ConflictException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
 } from '@nestjs/common';
+import { FindOptionsOrder } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
-import { AcademicSession } from './entities/academic-session.entity';
+import {
+  AcademicSession,
+  SessionStatus,
+} from './entities/academic-session.entity';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
+
+export interface IListSessionsOptions {
+  page?: number;
+  limit?: number;
+  order?: FindOptionsOrder<AcademicSession>;
+}
 
 export interface ICreateSessionResponse {
   status_code: HttpStatus;
@@ -62,8 +73,39 @@ export class AcademicSessionService {
     };
   }
 
-  findAll() {
-    return `This action returns all academicSession`;
+  async activeSessions() {
+    const sessions = await this.sessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+
+    if (!sessions.payload.length) return null;
+
+    if (sessions.payload.length > 1)
+      throw new InternalServerErrorException(
+        sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+      );
+
+    return sessions.payload[0];
+  }
+
+  async findAll(options: IListSessionsOptions = {}) {
+    const normalizedPage = Math.max(1, Math.floor(options.page ?? 1));
+    const normalizedLimit = Math.max(1, Math.floor(options.limit ?? 20));
+
+    const { payload, paginationMeta } = await this.sessionModelAction.list({
+      order: options.order ?? { startDate: 'ASC' },
+      paginationPayload: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+      },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
+      data: payload,
+      meta: paginationMeta,
+    };
   }
 
   findOne(id: number) {
