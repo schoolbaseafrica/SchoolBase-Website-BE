@@ -25,9 +25,9 @@ export class ClassesController {
   @ApiResponse({ status: 404, description: 'Class not found.' })
   @ApiResponse({ status: 500, description: 'Database connection failure.' })
   async getTeachers(
-    @Param('id', ParseIntPipe) class_id: number,
+    @Param('id', ParseIntPipe) classId: number,
     @Query() query: GetTeachersQueryDto,
   ): Promise<TeacherAssignmentResponseDto[]> {
-    return this.classesService.getTeachersByClass(class_id, query.session_id);
+    return this.classesService.getTeachersByClass(classId, query.session_id);
   }
 }
