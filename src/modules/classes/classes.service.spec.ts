@@ -25,8 +25,11 @@ const mockTeacherAssignment = {
   is_active: true,
   teacher: {
     id: 101,
-    name: 'John Doe',
-    email: 'john@school.com',
+    employmentId: 'EMP-2025-001',
+    user: {
+      first_name: 'John',
+      last_name: 'Doe',
+    },
   },
   class: mockClass,
 } as unknown as ClassTeacher;
@@ -87,14 +90,13 @@ describe('ClassesService', () => {
           session_id: MOCK_SESSION_ID,
           is_active: true,
         },
-        relations: ['teacher', 'class'],
-        // Updated to match the specific structure from your error log
+        relations: ['teacher', 'teacher.user', 'class'],
         select: {
           id: true,
           assignment_date: true,
           teacher: {
             id: true,
-            name: true,
+            employmentId: true,
           },
           class: {
             id: true,
