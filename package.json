@@ -42,6 +42,7 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^17.2.3",
+    "morgan": "^1.10.1",
     "nest-winston": "^1.10.2",
     "nodemailer": "^7.0.10",
     "nunjucks": "^3.2.4",
@@ -107,6 +108,9 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    }
   }
 }

@@ -10,6 +10,8 @@ import {
 import { Request, Response } from 'express';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
+import config from 'src/config/config';
+
 import { BaseException } from '../base-exception';
 
 interface IHttpExceptionResponse {
@@ -68,7 +70,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message: string | string[];
     let error: string | null = null;
     let stack: string | undefined;
-    const isDev = process.env.NODE_ENV !== 'production';
+    const isDev = config().env !== 'production';
 
     // Handle HttpException and its subclasses (including BaseException)
     if (exception instanceof HttpException) {

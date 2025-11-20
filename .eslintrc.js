@@ -51,57 +51,31 @@ module.exports = {
         },
       },
     ],
-    // 'unused-imports/no-unused-vars': [
-    //   'warn',
-    //   {
-    //     vars: 'all',
-    //     varsIgnorePattern: '^_',
-    //     args: 'after-used',
-    //     argsIgnorePattern: '^_',
-    //   },
-    // ],
+
     '@typescript-eslint/naming-convention': [
       'error',
-      {
-        selector: 'default',
-        format: ['camelCase'],
-      },
+      { selector: 'default', format: ['camelCase'] },
       {
         selector: 'variable',
         format: ['camelCase', 'UPPER_CASE', 'PascalCase', 'snake_case'],
       },
-      {
-        selector: 'function',
-        format: ['camelCase'],
-      },
+      { selector: 'function', format: ['camelCase'] },
       {
         selector: 'parameter',
         format: ['camelCase'],
         leadingUnderscore: 'allow',
       },
-      {
-        selector: 'typeLike',
-        format: ['PascalCase', 'snake_case'],
-      },
-      {
-        selector: 'enum',
-        format: ['PascalCase', 'snake_case', 'UPPER_CASE'],
-      },
-      {
-        selector: 'interface',
-        format: ['PascalCase'],
-        prefix: ['I'],
-      },
-      {
-        selector: 'enumMember',
-        format: ['UPPER_CASE'],
-      },
+      { selector: 'typeLike', format: ['PascalCase', 'snake_case'] },
+      { selector: 'enum', format: ['PascalCase', 'snake_case', 'UPPER_CASE'] },
+      { selector: 'interface', format: ['PascalCase'], prefix: ['I'] },
+      { selector: 'enumMember', format: ['UPPER_CASE'] },
       {
         selector: 'property',
         format: ['camelCase', 'PascalCase', 'snake_case'],
         leadingUnderscore: 'allow',
       },
     ],
+
     'no-console': 'warn',
     'no-debugger': 'error',
     'no-duplicate-imports': 'error',
@@ -111,6 +85,16 @@ module.exports = {
     eqeqeq: ['error', 'always'],
 
     'prettier/prettier': ['error', { endOfLine: 'auto' }],
+
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector:
+          "MemberExpression[object.name='process'][property.name='env']",
+        message:
+          'Direct use of process.env is forbidden. Use a config service or environment abstraction instead.',
+      },
+    ],
   },
   settings: {
     'import/resolver': {
