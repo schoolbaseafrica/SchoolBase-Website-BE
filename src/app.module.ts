@@ -20,6 +20,7 @@ import { SessionModule } from './modules/session/session.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
+import { TermModule } from './modules/term/term.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ClassesModule,
     InviteModule,
     AcademicSessionModule,
+    TermModule,
   ],
   controllers: [AppController],
   providers: [
