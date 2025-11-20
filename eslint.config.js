@@ -1,30 +1,20 @@
-const {
-    defineConfig,
-    globalIgnores,
-} = require("eslint/config");
-
-const tsParser = require("@typescript-eslint/parser");
-const typescriptEslintEslintPlugin = require("@typescript-eslint/eslint-plugin");
-const _import = require("eslint-plugin-import");
-const unusedImports = require("eslint-plugin-unused-imports");
-const jest = require("eslint-plugin-jest");
-
-const {
-    fixupPluginRules,
-    fixupConfigRules,
-} = require("@eslint/compat");
-
-const globals = require("globals");
-const js = require("@eslint/js");
-
-const {
-    FlatCompat,
-} = require("@eslint/eslintrc");
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { fixupPluginRules, fixupConfigRules } = require('@eslint/compat');
+const { FlatCompat } = require('@eslint/eslintrc');
+const js = require('@eslint/js');
+const typescriptEslintEslintPlugin = require('@typescript-eslint/eslint-plugin');
+const tsParser = require('@typescript-eslint/parser');
+const { defineConfig, globalIgnores } = require('eslint/config');
+const _import = require('eslint-plugin-import');
+const jest = require('eslint-plugin-jest');
+const unusedImports = require('eslint-plugin-unused-imports');
+const globals = require('globals');
 
 const compat = new FlatCompat({
-    baseDirectory: __dirname,
-    recommendedConfig: js.configs.recommended,
-    allConfig: js.configs.all
+  baseDirectory: __dirname,
+  recommendedConfig: js.configs.recommended,
+  allConfig: js.configs.all,
 });
 
 module.exports = defineConfig([
@@ -79,9 +69,7 @@ module.exports = defineConfig([
             'object',
             'type',
           ],
-
           'newlines-between': 'always',
-
           alphabetize: {
             order: 'asc',
             caseInsensitive: true,
@@ -91,40 +79,24 @@ module.exports = defineConfig([
 
       '@typescript-eslint/naming-convention': [
         'error',
-        {
-          selector: 'default',
-          format: ['camelCase'],
-        },
+        { selector: 'default', format: ['camelCase'] },
         {
           selector: 'variable',
           format: ['camelCase', 'UPPER_CASE', 'PascalCase', 'snake_case'],
         },
-        {
-          selector: 'function',
-          format: ['camelCase'],
-        },
+        { selector: 'function', format: ['camelCase'] },
         {
           selector: 'parameter',
           format: ['camelCase'],
           leadingUnderscore: 'allow',
         },
-        {
-          selector: 'typeLike',
-          format: ['PascalCase', 'snake_case'],
-        },
+        { selector: 'typeLike', format: ['PascalCase', 'snake_case'] },
         {
           selector: 'enum',
           format: ['PascalCase', 'snake_case', 'UPPER_CASE'],
         },
-        {
-          selector: 'interface',
-          format: ['PascalCase'],
-          prefix: ['I'],
-        },
-        {
-          selector: 'enumMember',
-          format: ['UPPER_CASE'],
-        },
+        { selector: 'interface', format: ['PascalCase'], prefix: ['I'] },
+        { selector: 'enumMember', format: ['UPPER_CASE'] },
         {
           selector: 'property',
           format: ['camelCase', 'PascalCase', 'snake_case'],
@@ -140,22 +112,23 @@ module.exports = defineConfig([
       'prefer-const': 'error',
       eqeqeq: ['error', 'always'],
 
-      'prettier/prettier': [
+      'prettier/prettier': ['error', { endOfLine: 'auto' }],
+
+      'no-restricted-syntax': [
         'error',
         {
-          endOfLine: 'auto',
+          selector:
+            "MemberExpression[object.name='process'][property.name='env']",
+          message:
+            'Direct use of process.env is forbidden. Use a config service or environment abstraction instead.',
         },
       ],
     },
 
     settings: {
       'import/resolver': {
-        typescript: {
-          project: './tsconfig.json',
-        },
-        node: {
-          extensions: ['.ts', '.tsx', '.js', '.jsx'],
-        },
+        typescript: { project: './tsconfig.json' },
+        node: { extensions: ['.ts', '.tsx', '.js', '.jsx'] },
       },
     },
   },

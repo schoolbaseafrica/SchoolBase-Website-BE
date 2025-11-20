@@ -3,14 +3,28 @@ import {
   Controller,
   Delete,
   Get,
-  HttpStatus,
   Param,
   Patch,
   Post,
+  Query,
+  HttpStatus,
+  UseGuards,
+  HttpCode,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
 
 import { AcademicSessionService } from './academic-session.service';
 import { AcademicSessionSwagger } from './docs/academic-session.swagger';
@@ -24,6 +38,10 @@ export class AcademicSessionController {
   ) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation(AcademicSessionSwagger.decorators.create.operation)
   @ApiBody(AcademicSessionSwagger.decorators.create.body)
   @ApiResponse(AcademicSessionSwagger.decorators.create.response)
@@ -32,6 +50,10 @@ export class AcademicSessionController {
   }
 
   @Get('active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
   @ApiOperation(AcademicSessionSwagger.decorators.activeSession.operation)
   @ApiResponse(AcademicSessionSwagger.decorators.activeSession.response)
   async activeSession() {
@@ -45,8 +67,34 @@ export class AcademicSessionController {
   }
 
   @Get()
-  findAll() {
-    return this.academicSessionService.findAll();
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation(AcademicSessionSwagger.decorators.findAll.operation)
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    type: Number,
+    description: 'Page number (defaults to 1)',
+    example: 1,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Number of items per page (defaults to 20)',
+    example: 20,
+  })
+  @ApiResponse(AcademicSessionSwagger.decorators.findAll.response)
+  async findAll(@Query('page') page?: string, @Query('limit') limit?: string) {
+    const parsedPage = Number(page);
+    const parsedLimit = Number(limit);
+
+    return this.academicSessionService.findAll({
+      page: Number.isNaN(parsedPage) ? undefined : parsedPage,
+      limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
+    });
   }
 
   @Get(':id')

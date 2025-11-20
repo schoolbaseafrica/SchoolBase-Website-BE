@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { GlobalExceptionFilter } from './common/exceptions/filters/global-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { LoggerModule } from './common/logger.module';
+import configuration from './config/config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -25,6 +26,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     LoggerModule,
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [configuration],
     }),
 
     TypeOrmModule.forRootAsync({

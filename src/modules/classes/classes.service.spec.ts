@@ -84,7 +84,7 @@ describe('ClassesService', () => {
       expect(classTeacherRepository.find).toHaveBeenCalledWith({
         where: {
           class: { id: MOCK_CLASS_ID },
-          session_id: MOCK_SESSION_ID, // Expecting snake_case
+          session_id: MOCK_SESSION_ID,
           is_active: true,
         },
         relations: ['teacher', 'class'],
@@ -126,7 +126,7 @@ describe('ClassesService', () => {
       expect(classTeacherRepository.find).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            sessionId: MOCK_ACTIVE_SESSION, // Expecting snake_case
+            session_id: MOCK_ACTIVE_SESSION,
           }),
         }),
       );
