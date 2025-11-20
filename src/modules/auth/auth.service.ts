@@ -13,10 +13,13 @@ import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import config from 'src/config/config';
+
 import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
+import { SessionService } from '../session/session.service';
 import { UserService } from '../user/user.service';
 
 import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
@@ -30,6 +33,7 @@ export class AuthService {
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
+    private readonly sessionService: SessionService,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -63,6 +67,15 @@ export class AuthService {
       newUser.role,
     );
 
+    // Create session in DB
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.createSession(
+        newUser.id,
+        tokens.refresh_token,
+      );
+    }
+
     return {
       user: {
         id: newUser.id,
@@ -72,6 +85,8 @@ export class AuthService {
         role: newUser.role,
       },
       ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 
@@ -99,6 +114,14 @@ export class AuthService {
     // Generate tokens
     const tokens = await this.generateTokens(user.id, user.email, user.role);
 
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.createSession(
+        user.id,
+        tokens.refresh_token,
+      );
+    }
+
     return {
       user: {
         id: user.id,
@@ -108,13 +131,15 @@ export class AuthService {
         role: user.role,
       },
       ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 
   async refreshToken(refreshToken: string) {
     try {
       const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: config().jwt.secret,
       });
 
       const tokens = await this.generateTokens(
@@ -123,7 +148,20 @@ export class AuthService {
         payload.role,
       );
 
-      return tokens;
+      // Create session in DB
+      let sessionInfo = null;
+      if (this.sessionService && tokens.refresh_token) {
+        sessionInfo = await this.sessionService.createSession(
+          payload.sub,
+          tokens.refresh_token,
+        );
+      }
+
+      return {
+        ...tokens,
+        session_id: sessionInfo?.session_id,
+        session_expires_at: sessionInfo?.expires_at,
+      };
     } catch (error) {
       this.logger.error('Invalid refresh token: ', error?.message);
       throw new UnauthorizedException('Invalid refresh token');
@@ -236,15 +274,16 @@ export class AuthService {
   }
 
   private async generateTokens(userId: string, email: string, role: string[]) {
+    const { jwt } = config();
     const payload = { sub: userId, email, role };
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_SECRET,
+        secret: jwt.secret,
         expiresIn: '15m',
       }),
       this.jwtService.signAsync(payload, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: jwt.refreshSecret,
         expiresIn: '7d',
       }),
     ]);

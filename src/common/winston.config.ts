@@ -1,10 +1,12 @@
 import { WinstonModuleOptions } from 'nest-winston';
 import * as winston from 'winston';
 
+import config from 'src/config/config';
+
 export const winstonConfig: WinstonModuleOptions = {
   levels: winston.config.npm.levels,
 
-  level: process.env.LOG_LEVEL || 'info',
+  level: config().logger.legLevel,
 
   // Define log format
   format: winston.format.combine(

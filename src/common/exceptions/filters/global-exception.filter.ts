@@ -10,6 +10,8 @@ import {
 import { Request, Response } from 'express';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
+import config from 'src/config/config';
+
 import { BaseException } from '../base-exception';
 
 interface IHttpExceptionResponse {
@@ -36,9 +38,10 @@ interface IDatabaseError {
 }
 
 interface IErrorResponse {
-  statusCode: number;
-  message: string[];
+  status_code: number;
+  message: string | string[];
   error: string | null;
+  data: null;
   timestamp: string;
   path: string;
   method: string;
@@ -67,7 +70,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let message: string | string[];
     let error: string | null = null;
     let stack: string | undefined;
-    const isDev = process.env.NODE_ENV !== 'production';
+    const isDev = config().env !== 'production';
 
     // Handle HttpException and its subclasses (including BaseException)
     if (exception instanceof HttpException) {
@@ -167,13 +170,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       stack = errorStack;
     }
 
-    // Normalize message to array format for consistency
-    const normalizedMessage = Array.isArray(message) ? message : [message];
+    // Normalize message - keep as string or array based on original format
+    const normalizedMessage = Array.isArray(message) ? message : message;
 
     const errorResponse: IErrorResponse = {
-      statusCode: status,
+      status_code: status,
       message: normalizedMessage,
       error: error,
+      data: null,
       timestamp: new Date().toISOString(),
       path: request.url,
       method: request.method,
@@ -186,7 +190,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Sanitize response in production for security
     if (!isDev && status >= 500) {
-      errorResponse.message = ['An internal server error occurred'];
+      errorResponse.message = 'An internal server error occurred';
       errorResponse.error = 'Internal Server Error';
     }
 
