@@ -41,7 +41,7 @@ export class ClassesService {
         session_id: target_session,
         is_active: true,
       },
-      relations: ['teacher', 'class'],
+      relations: ['teacher', 'teacher.user', 'class'],
       select: {
         id: true,
         assignment_date: true,
@@ -54,7 +54,6 @@ export class ClassesService {
           stream: true,
         },
       },
-      relations: ['teacher', 'teacher.user'],
     });
 
     // 4. Map to DTO
