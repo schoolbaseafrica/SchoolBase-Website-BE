@@ -28,6 +28,7 @@ describe('AcademicSessionService', () => {
     const mockModelActionProvider: Partial<AcademicSessionModelAction> = {
       get: jest.fn(),
       create: jest.fn(),
+      list: jest.fn(),
     };
 
     mockSessionModelAction =
@@ -147,9 +148,95 @@ describe('AcademicSessionService', () => {
 
   // --- Placeholder Tests (Unchanged) ---
   describe('findAll', () => {
-    it('should return all academic sessions message', () => {
-      const result = service.findAll();
-      expect(result).toBe('This action returns all academicSession');
+    const mockSessions: AcademicSession[] = [
+      {
+        id: '1',
+        name: '2024/2025',
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-12-31'),
+        status: SessionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        id: '2',
+        name: '2025/2026',
+        startDate: new Date('2025-01-01'),
+        endDate: new Date('2025-12-31'),
+        status: SessionStatus.INACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    const mockPaginationMeta = {
+      total: 2,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    };
+
+    it('should return paginated academic sessions with default pagination', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: mockSessions,
+        paginationMeta: mockPaginationMeta,
+      });
+
+      const result = await service.findAll();
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
+        data: mockSessions,
+        meta: mockPaginationMeta,
+      });
+      expect(mockSessionModelAction.list).toHaveBeenCalledWith({
+        order: { startDate: 'ASC' },
+        paginationPayload: {
+          page: 1,
+          limit: 20,
+        },
+      });
+    });
+
+    it('should return paginated academic sessions with custom pagination', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: mockSessions.slice(0, 1),
+        paginationMeta: { ...mockPaginationMeta, page: 2, limit: 1 },
+      });
+
+      const result = await service.findAll({ page: 2, limit: 1 });
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
+        data: mockSessions.slice(0, 1),
+        meta: { ...mockPaginationMeta, page: 2, limit: 1 },
+      });
+      expect(mockSessionModelAction.list).toHaveBeenCalledWith({
+        order: { startDate: 'ASC' },
+        paginationPayload: {
+          page: 2,
+          limit: 1,
+        },
+      });
+    });
+
+    it('should normalize invalid page and limit values', async () => {
+      mockSessionModelAction.list.mockResolvedValue({
+        payload: mockSessions,
+        paginationMeta: mockPaginationMeta,
+      });
+
+      await service.findAll({ page: -1, limit: 0 });
+
+      expect(mockSessionModelAction.list).toHaveBeenCalledWith({
+        order: { startDate: 'ASC' },
+        paginationPayload: {
+          page: 1,
+          limit: 1,
+        },
+      });
     });
   });
 

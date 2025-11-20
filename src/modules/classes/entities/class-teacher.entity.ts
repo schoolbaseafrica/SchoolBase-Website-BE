@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 
 import { Teacher } from '../../teacher/entities/teacher.entity';
+
 import { Class } from './classes.entity';
 
 @Entity('class_teachers')
