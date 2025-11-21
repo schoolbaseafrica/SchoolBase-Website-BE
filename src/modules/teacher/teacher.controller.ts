@@ -8,7 +8,7 @@ import {
   Param,
   Query,
   UseGuards,
-  ParseIntPipe,
+  ParseUUIDPipe,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -131,7 +131,7 @@ export class TeacherController {
   })
   @ApiResponse({ status: 404, description: 'Teacher not found' })
   async findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
   ): Promise<TeacherResponseDto> {
     return this.teacherService.findOne(id);
   }
@@ -150,7 +150,7 @@ export class TeacherController {
   @ApiResponse({ status: 404, description: 'Teacher not found' })
   @ApiResponse({ status: 409, description: 'Employment ID cannot be updated' })
   async update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() updateDto: UpdateTeacherDto,
   ): Promise<TeacherResponseDto> {
     return this.teacherService.update(id, updateDto);
@@ -168,7 +168,7 @@ export class TeacherController {
     description: 'Teacher deactivated successfully',
   })
   @ApiResponse({ status: 404, description: 'Teacher not found' })
-  async remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.teacherService.remove(id);
   }
 }

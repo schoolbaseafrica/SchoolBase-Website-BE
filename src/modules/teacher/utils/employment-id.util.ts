@@ -14,14 +14,14 @@ export async function generateEmploymentId(
 
   // Query the highest existing sequential number for the current year
   const lastTeacher = await teacherRepository.findOne({
-    where: { employmentId: Like(`${yearPrefix}%`) },
-    order: { employmentId: 'DESC' },
+    where: { employment_id: Like(`${yearPrefix}%`) },
+    order: { employment_id: 'DESC' },
   });
 
   let nextSequence = 1;
   if (lastTeacher) {
     // Extract the numeric part (e.g., '014' from 'EMP-2025-014')
-    const parts = lastTeacher.employmentId.split('-');
+    const parts = lastTeacher.employment_id.split('-');
     if (parts.length === 3) {
       const lastId = parts[2];
       nextSequence = parseInt(lastId, 10) + 1;

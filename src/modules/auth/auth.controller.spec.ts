@@ -1,4 +1,8 @@
-import { HttpStatus, NotFoundException } from '@nestjs/common';
+import {
+  HttpStatus,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -12,6 +16,7 @@ describe('AuthController', () => {
 
   const mockAuthService = {
     activateUserAccount: jest.fn(),
+    getProfile: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -77,6 +82,78 @@ describe('AuthController', () => {
       await expect(controller.activateAccount(userId)).rejects.toThrow(
         sysMsg.USER_NOT_FOUND,
       );
+    });
+  });
+
+  describe('getProfile', () => {
+    const mockAuthorization = 'Bearer mock-access-token';
+
+    it('should successfully return user profile', async () => {
+      const mockUserProfile = {
+        id: 'user-id-123',
+        email: 'john.doe@example.com',
+        first_name: 'John',
+        last_name: 'Doe',
+        middle_name: 'Michael',
+        role: ['STUDENT'],
+        gender: 'Male',
+        dob: '2000-01-15',
+        phone: '+1234567890',
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      mockAuthService.getProfile.mockResolvedValue(mockUserProfile);
+
+      const result = await controller.getProfile(mockAuthorization);
+
+      expect(authService.getProfile).toHaveBeenCalledWith(mockAuthorization);
+      expect(result).toEqual(mockUserProfile);
+      expect(result.id).toBeDefined();
+      expect(result.email).toBeDefined();
+      expect(result.first_name).toBeDefined();
+      expect(result.last_name).toBeDefined();
+    });
+
+    it('should throw UnauthorizedException when authorization header is missing', async () => {
+      mockAuthService.getProfile.mockRejectedValue(
+        new UnauthorizedException(sysMsg.AUTHORIZATION_HEADER_MISSING),
+      );
+
+      await expect(controller.getProfile('')).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(authService.getProfile).toHaveBeenCalledWith('');
+    });
+
+    it('should throw UnauthorizedException for invalid token', async () => {
+      mockAuthService.getProfile.mockRejectedValue(
+        new UnauthorizedException(
+          `${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`,
+        ),
+      );
+
+      await expect(
+        controller.getProfile('Bearer invalid-token'),
+      ).rejects.toThrow(UnauthorizedException);
+      expect(authService.getProfile).toHaveBeenCalledWith(
+        'Bearer invalid-token',
+      );
+    });
+
+    it('should throw UnauthorizedException when user not found', async () => {
+      mockAuthService.getProfile.mockRejectedValue(
+        new UnauthorizedException(sysMsg.USER_NOT_FOUND),
+      );
+
+      await expect(controller.getProfile(mockAuthorization)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      await expect(controller.getProfile(mockAuthorization)).rejects.toThrow(
+        sysMsg.USER_NOT_FOUND,
+      );
+      expect(authService.getProfile).toHaveBeenCalledWith(mockAuthorization);
     });
   });
 });

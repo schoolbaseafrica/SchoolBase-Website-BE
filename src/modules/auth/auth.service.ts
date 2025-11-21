@@ -286,6 +286,47 @@ export class AuthService {
     return sysMsg.USER_ACTIVATED;
   }
 
+  async getProfile(accessToken: string) {
+    if (!accessToken) {
+      throw new UnauthorizedException(sysMsg.AUTHORIZATION_HEADER_MISSING);
+    }
+
+    // Extract token from "Bearer <token>"
+    const token = accessToken.replace('Bearer ', '');
+
+    const decryptedToken = await this.jwtService.verifyAsync(token, {
+      secret: config().jwt.secret,
+    });
+
+    if (!decryptedToken.email) {
+      this.logger.error(`${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`);
+      throw new UnauthorizedException(
+        `${sysMsg.TOKEN_INVALID} or ${sysMsg.TOKEN_EXPIRED}`,
+      );
+    }
+
+    const user = await this.userService.findByEmail(decryptedToken.email);
+    if (!user) {
+      this.logger.error(sysMsg.USER_NOT_FOUND);
+      throw new UnauthorizedException(sysMsg.USER_NOT_FOUND);
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      middle_name: user.middle_name,
+      role: user.role,
+      gender: user.gender,
+      dob: user.dob,
+      phone: user.phone,
+      is_active: user.is_active,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
+    };
+  }
+
   private async generateTokens(userId: string, email: string, role: string[]) {
     const { jwt } = config();
     const payload = { sub: userId, email, role };

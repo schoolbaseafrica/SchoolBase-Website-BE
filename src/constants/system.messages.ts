@@ -23,6 +23,7 @@ export const USER_IS_ACTIVATED = 'user already activated';
 export const USER_ACTIVATED = 'user activated';
 export const USER_INACTIVE = 'user account inactive';
 export const USER_ACTIVE = 'user account active';
+export const PROFILE_RETRIEVED = 'user profile retrieved successfully';
 
 // User / Account
 export const ACCOUNT_CREATED = 'account created';
@@ -62,6 +63,7 @@ export const UNAUTHORIZED = 'unauthorized';
 export const FORBIDDEN = 'forbidden';
 export const NOT_ALLOWED = 'not allowed';
 export const PERMISSION_DENIED = 'permission denied';
+export const AUTHORIZATION_HEADER_MISSING = 'authorization header missing';
 
 // Validation
 export const VALIDATION_ERROR = 'validation error';

@@ -47,7 +47,7 @@ export class ClassesService {
         assignment_date: true,
         teacher: {
           id: true,
-          employmentId: true,
+          employment_id: true,
         },
         class: {
           id: true,
@@ -61,7 +61,7 @@ export class ClassesService {
       teacher_id: assignment.teacher.id,
       name: assignment.teacher.user
         ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
-        : `Teacher ${assignment.teacher.employmentId}`,
+        : `Teacher ${assignment.teacher.employment_id}`,
       assignment_date: assignment.assignment_date,
       stream: assignment.class.stream,
     }));
