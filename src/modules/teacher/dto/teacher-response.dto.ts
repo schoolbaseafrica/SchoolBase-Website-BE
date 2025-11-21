@@ -2,9 +2,12 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
 
 export class TeacherResponseDto {
-  @ApiProperty({ description: 'Teacher ID', example: 1 })
+  @ApiProperty({
+    description: 'Teacher ID (UUID)',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
   @Expose()
-  id: number; // Teacher ID
+  id: string; // Teacher ID (UUID)
 
   @ApiProperty({
     description: 'Employment ID',

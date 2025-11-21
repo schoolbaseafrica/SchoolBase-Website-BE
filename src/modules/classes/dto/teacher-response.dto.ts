@@ -3,11 +3,11 @@ import { Expose } from 'class-transformer';
 
 export class TeacherAssignmentResponseDto {
   @ApiProperty({
-    example: 101,
-    description: 'Unique identifier of the teacher',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'Unique identifier of the teacher (UUID)',
   })
   @Expose()
-  teacher_id: number;
+  teacher_id: string;
 
   @ApiProperty({ example: 'Jane Doe', description: 'Full name of the teacher' })
   @Expose()
