@@ -480,12 +480,25 @@ describe('AcademicSessionService', () => {
           .fn()
           .mockImplementation(
             async (callback: (manager: EntityManager) => unknown) => {
-              const mockManager: Partial<EntityManager> = {
-                update: jest.fn(),
+              // Mock query builder for deactivating all sessions
+              const mockQueryBuilder = {
+                update: jest.fn().mockReturnThis(),
+                set: jest.fn().mockReturnThis(),
+                execute: jest.fn().mockResolvedValue({ affected: 1 }),
+              };
+
+              // Mock repository
+              const mockRepository = {
+                createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
                 findOne: jest.fn().mockResolvedValue({
                   ...mockSession,
                   status: SessionStatus.ACTIVE,
                 }),
+              };
+
+              const mockManager: Partial<EntityManager> = {
+                update: jest.fn().mockResolvedValue({ affected: 1 }),
+                getRepository: jest.fn().mockReturnValue(mockRepository),
               };
               return callback(mockManager as EntityManager);
             },
@@ -513,7 +526,7 @@ describe('AcademicSessionService', () => {
 
       expect(result).toEqual({
         status_code: HttpStatus.OK,
-        message: 'Session activated successfully',
+        message: sysMsg.ACADEMY_SESSION_ACTIVATED,
         data: { ...mockSession, status: SessionStatus.ACTIVE },
       });
 
@@ -522,29 +535,46 @@ describe('AcademicSessionService', () => {
         .calls[0][0];
 
       // Run transaction manually to inspect calls
+      // Mock query builder for deactivating all sessions
+      const mockQueryBuilder = {
+        update: jest.fn().mockReturnThis(),
+        set: jest.fn().mockReturnThis(),
+        execute: jest.fn().mockResolvedValue({ affected: 1 }),
+      };
+
+      // Mock repository
+      const mockRepository = {
+        createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+        findOne: jest.fn().mockResolvedValue({
+          ...mockSession,
+          status: SessionStatus.ACTIVE,
+        }),
+      };
+
       const mockManager: Partial<EntityManager> = {
-        update: jest.fn(),
-        findOne: jest
-          .fn()
-          .mockResolvedValue({ ...mockSession, status: SessionStatus.ACTIVE }),
+        update: jest.fn().mockResolvedValue({ affected: 1 }),
+        getRepository: jest.fn().mockReturnValue(mockRepository),
       };
       await transactionFn(mockManager as EntityManager);
 
-      expect(mockManager.update).toHaveBeenNthCalledWith(
-        1,
-        AcademicSession,
-        {},
-        { status: SessionStatus.INACTIVE },
-      );
+      // Verify query builder was used to deactivate all sessions
+      expect(mockManager.getRepository).toHaveBeenCalledWith(AcademicSession);
+      expect(mockRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.update).toHaveBeenCalledWith(AcademicSession);
+      expect(mockQueryBuilder.set).toHaveBeenCalledWith({
+        status: SessionStatus.INACTIVE,
+      });
+      expect(mockQueryBuilder.execute).toHaveBeenCalled();
 
-      expect(mockManager.update).toHaveBeenNthCalledWith(
-        2,
+      // Verify the selected session was activated
+      expect(mockManager.update).toHaveBeenCalledWith(
         AcademicSession,
         { id: sessionId },
         { status: SessionStatus.ACTIVE },
       );
 
-      expect(mockManager.findOne).toHaveBeenCalledWith(AcademicSession, {
+      // Verify the updated session was fetched
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { id: sessionId },
       });
     });
@@ -557,14 +587,14 @@ describe('AcademicSessionService', () => {
       );
     });
 
-    it('should throw InternalServerErrorException if transaction fails', async () => {
+    it('should throw error if transaction fails', async () => {
       mockSessionModelAction.get.mockResolvedValue(mockSession);
       (mockDataSource.transaction as jest.Mock).mockImplementationOnce(() => {
         throw new Error('DB error');
       });
 
       await expect(service.activateSession(sessionId)).rejects.toThrow(
-        InternalServerErrorException,
+        'DB error',
       );
     });
   });

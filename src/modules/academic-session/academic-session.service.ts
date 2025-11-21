@@ -120,37 +120,48 @@ export class AcademicSessionService {
       throw new BadRequestException('Session not found');
     }
 
-    try {
-      return await this.dataSource.transaction(async (manager) => {
-        // 1. Deactivate all sessions
-        await manager.update(
-          AcademicSession,
-          {},
-          { status: SessionStatus.INACTIVE },
-        );
+    const updatedAcademicSession = await this.dataSource.transaction(
+      async (manager) => {
+        const repository = manager.getRepository(AcademicSession);
+
+        // 1. Deactivate all sessions using query builder
+        await repository
+          .createQueryBuilder()
+          .update(AcademicSession)
+          .set({ status: SessionStatus.INACTIVE })
+          .execute();
 
         // 2. Activate selected session
-        await manager.update(
+        const updateResult = await manager.update(
           AcademicSession,
           { id: sessionId },
           { status: SessionStatus.ACTIVE },
         );
 
+        if (updateResult?.affected === 0) {
+          throw new BadRequestException(
+            `Failed to activate session ${sessionId}. Session may have been deleted.`,
+          );
+        }
+
         // 3. Fetch updated session
-        const updated = await manager.findOne(AcademicSession, {
+        const updated = await repository.findOne({
           where: { id: sessionId },
         });
 
-        return {
-          status_code: HttpStatus.OK,
-          message: 'Session activated successfully',
-          data: updated,
-        };
-      });
-    } catch (error) {
-      this.logger.error(`Failed to activate session ${sessionId}`, error);
-      throw new InternalServerErrorException('Activation failed');
-    }
+        if (!updated) {
+          throw new InternalServerErrorException(
+            `Session ${sessionId} was updated but could not be retrieved.`,
+          );
+        }
+        return updated;
+      },
+    );
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMY_SESSION_ACTIVATED,
+      data: updatedAcademicSession,
+    };
   }
 
   findOne(id: number) {
