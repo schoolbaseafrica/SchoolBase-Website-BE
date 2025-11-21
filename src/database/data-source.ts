@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import { DataSource } from 'typeorm';
 
-import config from 'src/config/config';
+import config from '../config/config';
 
 dotenv.config();
 
@@ -12,7 +12,7 @@ const dataSource = new DataSource({
   port: database.port || parseInt('5432'),
   username: database.user,
   password: database.pass || 'postgres',
-  database: database.user,
+  database: database.name,
   entities: [__dirname + '/**/*.entity.{ts,js}'],
   migrations: [],
   synchronize: true,

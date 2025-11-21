@@ -1,7 +1,7 @@
 import { WinstonModuleOptions } from 'nest-winston';
 import * as winston from 'winston';
 
-import config from 'src/config/config';
+import config from '../config/config';
 
 export const winstonConfig: WinstonModuleOptions = {
   levels: winston.config.npm.levels,
