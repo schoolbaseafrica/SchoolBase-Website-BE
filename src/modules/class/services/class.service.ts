@@ -23,10 +23,10 @@ export class ClassService {
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
     // 1. Validate Class Existence
-    const class_exist = await this.classRepository.findOne({
+    const classExist = await this.classRepository.findOne({
       where: { id: classId },
     });
-    if (!class_exist) {
+    if (!classExist) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 

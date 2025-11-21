@@ -9,8 +9,8 @@ import { Class } from '../entities/class.entity';
 export class ClassModelAction extends AbstractModelAction<Class> {
   constructor(
     @InjectRepository(Class)
-    studentRepository: Repository<Class>,
+    classRepository: Repository<Class>,
   ) {
-    super(studentRepository, Class);
+    super(classRepository, Class);
   }
 }
