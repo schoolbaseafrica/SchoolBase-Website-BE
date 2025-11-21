@@ -7,12 +7,22 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { AuthService } from './auth.service';
-import { AuthDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
+import {
+  LoginResponseDto,
+  RefreshTokenResponseDto,
+  SignupResponseDto,
+} from './dto/auth-response.dto';
+import {
+  AuthDto,
+  ForgotPasswordDto,
+  RefreshTokenDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
 
 @ApiTags('Authentication')
@@ -23,29 +33,17 @@ export class AuthController {
   @Post('signup')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'User successfully registered',
-    schema: {
-      example: {
-        user: {
-          id: 1,
-          email: 'user@example.com',
-          first_name: 'John',
-          last_name: 'Doe',
-          role: ['STUDENT'],
-        },
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      },
-    },
+    status: HttpStatus.CREATED,
+    description: sysMsg.ACCOUNT_CREATED,
+    type: SignupResponseDto,
   })
   @ApiResponse({
-    status: 409,
-    description: 'User with this email already exists',
+    status: HttpStatus.CONFLICT,
+    description: sysMsg.ACCOUNT_ALREADY_EXISTS,
   })
   @ApiResponse({
-    status: 400,
-    description: 'Validation error',
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.VALIDATION_ERROR,
   })
   signup(@Body() signupDto: AuthDto) {
     return this.authService.signup(signupDto);
@@ -55,25 +53,17 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiResponse({
-    status: 200,
-    description: 'User successfully logged in',
-    schema: {
-      example: {
-        user: {
-          id: 1,
-          email: 'user@example.com',
-          first_name: 'John',
-          last_name: 'Doe',
-          role: ['STUDENT'],
-        },
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      },
-    },
+    status: HttpStatus.OK,
+    description: sysMsg.LOGIN_SUCCESS,
+    type: LoginResponseDto,
   })
   @ApiResponse({
-    status: 401,
-    description: 'Invalid credentials or account inactive',
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.INVALID_CREDENTIALS,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.VALIDATION_ERROR,
   })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
@@ -82,32 +72,20 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        refresh_token: {
-          type: 'string',
-          example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        },
-      },
-    },
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.TOKEN_REFRESH_SUCCESS,
+    type: RefreshTokenResponseDto,
   })
   @ApiResponse({
-    status: 200,
-    description: 'Tokens successfully refreshed',
-    schema: {
-      example: {
-        access_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        refresh_token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-      },
-    },
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.TOKEN_INVALID,
   })
   @ApiResponse({
-    status: 401,
-    description: 'Invalid refresh token',
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.VALIDATION_ERROR,
   })
-  refreshToken(@Body('refresh_token') refreshToken: string) {
+  refreshToken(@Body() refreshToken: RefreshTokenDto) {
     return this.authService.refreshToken(refreshToken);
   }
 
