@@ -25,7 +25,7 @@ const mockTeacherAssignment = {
   is_active: true,
   teacher: {
     id: 'teacher-uuid-101',
-    employmentId: 'EMP-2025-001',
+    employment_id: 'EMP-2025-001',
     user: {
       first_name: 'John',
       last_name: 'Doe',
@@ -96,7 +96,7 @@ describe('ClassesService', () => {
           assignment_date: true,
           teacher: {
             id: true,
-            employmentId: true,
+            employment_id: true,
           },
           class: {
             id: true,
