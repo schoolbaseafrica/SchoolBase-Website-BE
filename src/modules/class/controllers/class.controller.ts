@@ -12,7 +12,7 @@ import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassService } from '../services/class.service';
 
-@ApiTags('Classes')
+@ApiTags(ClassSwagger.tags[0])
 @Controller('classes')
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
