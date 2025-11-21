@@ -15,7 +15,7 @@ import { ClassService } from '../services/class.service';
 @ApiTags('Classes')
 @Controller('classes')
 export class ClassController {
-  constructor(private readonly classesService: ClassService) {}
+  constructor(private readonly classService: ClassService) {}
 
   @Get(':id/teachers')
   @ApiOperation({
@@ -33,6 +33,6 @@ export class ClassController {
     @Param('id', ParseUUIDPipe) classId: string,
     @Query() query: GetTeachersQueryDto,
   ): Promise<TeacherAssignmentResponseDto[]> {
-    return this.classesService.getTeachersByClass(classId, query.session_id);
+    return this.classService.getTeachersByClass(classId, query.session_id);
   }
 }
