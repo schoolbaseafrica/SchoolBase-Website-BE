@@ -1,21 +1,18 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
 } from 'typeorm';
 
+import { BaseEntity } from '../../../entities/base-entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 
 import { Class } from './class.entity';
 
 @Entity('class_teachers')
-export class ClassTeacher {
-  @PrimaryGeneratedColumn()
-  id: number;
-
+export class ClassTeacher extends BaseEntity {
   // FIX: explicitly map to 'session_id' and fix property casing
   @Column({ name: 'session_id' })
   session_id: string;
