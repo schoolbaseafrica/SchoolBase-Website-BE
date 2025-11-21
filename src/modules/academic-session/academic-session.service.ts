@@ -125,7 +125,7 @@ export class AcademicSessionService {
         // 1. Deactivate all sessions
         await manager.update(
           AcademicSession,
-          {},
+          { id: sessionId },
           { status: SessionStatus.INACTIVE },
         );
 
