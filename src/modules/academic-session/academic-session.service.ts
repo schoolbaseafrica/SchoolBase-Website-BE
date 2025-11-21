@@ -117,7 +117,7 @@ export class AcademicSessionService {
     });
 
     if (!session) {
-      throw new BadRequestException('Session not found');
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
     try {
@@ -143,13 +143,13 @@ export class AcademicSessionService {
 
         return {
           status_code: HttpStatus.OK,
-          message: 'Session activated successfully',
+          message: sysMsg.SESSION_ACTIVATED_SUCCESSFULLY,
           data: updated,
         };
       });
     } catch (error) {
       this.logger.error(`Failed to activate session ${sessionId}`, error);
-      throw new InternalServerErrorException('Activation failed');
+      throw new InternalServerErrorException(sysMsg.SESSION_ACTIVATION_FAILED);
     }
   }
 

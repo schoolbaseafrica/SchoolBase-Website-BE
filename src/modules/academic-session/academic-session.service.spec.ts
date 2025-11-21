@@ -513,7 +513,7 @@ describe('AcademicSessionService', () => {
 
       expect(result).toEqual({
         status_code: HttpStatus.OK,
-        message: 'Session activated successfully',
+        message: sysMsg.SESSION_ACTIVATED_SUCCESSFULLY,
         data: { ...mockSession, status: SessionStatus.ACTIVE },
       });
 
