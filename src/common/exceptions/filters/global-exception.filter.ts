@@ -10,8 +10,7 @@ import {
 import { Request, Response } from 'express';
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston';
 
-import config from 'src/config/config';
-
+import config from '../../../config/config';
 import { BaseException } from '../base-exception';
 
 interface IHttpExceptionResponse {

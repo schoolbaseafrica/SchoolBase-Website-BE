@@ -41,13 +41,13 @@ export class ClassesService {
         session_id: target_session,
         is_active: true,
       },
-      relations: ['teacher', 'class'],
+      relations: ['teacher', 'teacher.user', 'class'],
       select: {
         id: true,
         assignment_date: true,
         teacher: {
           id: true,
-          name: true,
+          employmentId: true,
         },
         class: {
           id: true,
@@ -59,7 +59,9 @@ export class ClassesService {
     // 4. Map to DTO
     return assignments.map((assignment) => ({
       teacher_id: assignment.teacher.id,
-      name: assignment.teacher.name,
+      name: assignment.teacher.user
+        ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
+        : `Teacher ${assignment.teacher.employmentId}`,
       assignment_date: assignment.assignment_date,
       stream: assignment.class.stream,
     }));
