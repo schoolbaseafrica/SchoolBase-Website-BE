@@ -1,19 +1,21 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
-import { ClassTeacher } from '../entities/class-teacher.entity';
-import { Class } from '../entities/class.entity';
+import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
+import { ClassModelAction } from '../model-actions/class.actions';
 
 @Injectable()
 export class ClassService {
+  private readonly logger: Logger;
   constructor(
-    @InjectRepository(Class)
-    private classRepository: Repository<Class>,
-    @InjectRepository(ClassTeacher)
-    private classTeacherRepository: Repository<ClassTeacher>,
-  ) {}
+    private readonly classModelAction: ClassModelAction,
+    private readonly classTeacherModelAction: ClassTeacherModelAction,
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
+  ) {
+    this.logger = baseLogger.child({ context: ClassService.name });
+  }
 
   /**
    * Fetches teachers for a specific class and session.
@@ -22,10 +24,10 @@ export class ClassService {
     classId: string,
     sessionId?: string,
   ): Promise<TeacherAssignmentResponseDto[]> {
-    // 1. Validate Class Existence
-    const classExist = await this.classRepository.findOne({
-      where: { id: classId },
+    const classExist = await this.classModelAction.get({
+      identifierOptions: { id: classId },
     });
+
     if (!classExist) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
@@ -35,29 +37,20 @@ export class ClassService {
 
     // 3. Fetch Assignments with Relations
     // We join 'class' here to access the 'stream' property
-    const assignments = await this.classTeacherRepository.find({
-      where: {
+    const assignments = await this.classTeacherModelAction.list({
+      filterRecordOptions: {
         class: { id: classId },
         session_id: target_session,
         is_active: true,
       },
-      relations: ['teacher', 'teacher.user', 'class'],
-      select: {
-        id: true,
-        assignment_date: true,
-        teacher: {
-          id: true,
-          employment_id: true,
-        },
-        class: {
-          id: true,
-          stream: true,
-        },
+      relations: {
+        teacher: { user: true },
+        class: true,
       },
     });
 
     // 4. Map to DTO
-    return assignments.map((assignment) => ({
+    return assignments.payload.map((assignment) => ({
       teacher_id: assignment.teacher.id,
       name: assignment.teacher.user
         ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`

@@ -1,10 +1,12 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { Logger } from 'winston';
 
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
+import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
+import { ClassModelAction } from '../model-actions/class.actions';
 
 import { ClassService } from './class.service';
 
@@ -37,33 +39,53 @@ const mockTeacherAssignment = {
 
 describe('ClassService', () => {
   let service: ClassService;
-  let classRepository: Repository<Class>;
-  let classTeacherRepository: Repository<ClassTeacher>;
+  let classModelAction: jest.Mocked<ClassModelAction>;
+  let classTeacherModelAction: jest.Mocked<ClassTeacherModelAction>;
+  let mockLogger: jest.Mocked<Logger>;
+
+  const mockClassModelAction = {
+    get: jest.fn(),
+  };
+
+  const mockClassTeacherModelAction = {
+    list: jest.fn(),
+  };
 
   beforeEach(async () => {
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      debug: jest.fn(),
+      log: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    } as unknown as jest.Mocked<Logger>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ClassService,
         {
-          provide: getRepositoryToken(Class),
-          useValue: {
-            findOne: jest.fn(),
-          },
+          provide: ClassModelAction,
+          useValue: mockClassModelAction,
         },
         {
-          provide: getRepositoryToken(ClassTeacher),
-          useValue: {
-            find: jest.fn(),
-          },
+          provide: ClassTeacherModelAction,
+          useValue: mockClassTeacherModelAction,
+        },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: mockLogger,
         },
       ],
     }).compile();
 
     service = module.get<ClassService>(ClassService);
-    classRepository = module.get<Repository<Class>>(getRepositoryToken(Class));
-    classTeacherRepository = module.get<Repository<ClassTeacher>>(
-      getRepositoryToken(ClassTeacher),
-    );
+    classModelAction = module.get(ClassModelAction);
+    classTeacherModelAction = module.get(ClassTeacherModelAction);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -72,37 +94,20 @@ describe('ClassService', () => {
 
   describe('getTeachersByClass', () => {
     it('should return a list of mapped teachers for a specific session', async () => {
-      // Arrange
-      jest.spyOn(classRepository, 'findOne').mockResolvedValue(mockClass);
-      jest
-        .spyOn(classTeacherRepository, 'find')
-        .mockResolvedValue([mockTeacherAssignment]);
+      classModelAction.get.mockResolvedValue(mockClass);
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [mockTeacherAssignment],
+        paginationMeta: {},
+      });
 
-      // Act
       const result = await service.getTeachersByClass(
         MOCK_CLASS_ID,
         MOCK_SESSION_ID,
       );
 
-      // Assert
-      expect(classTeacherRepository.find).toHaveBeenCalledWith({
-        where: {
-          class: { id: MOCK_CLASS_ID },
-          session_id: MOCK_SESSION_ID,
-          is_active: true,
-        },
-        relations: ['teacher', 'teacher.user', 'class'],
-        select: {
-          id: true,
-          assignment_date: true,
-          teacher: {
-            id: true,
-            employment_id: true,
-          },
-          class: {
-            id: true,
-            stream: true,
-          },
+      expect(classModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: {
+          id: MOCK_CLASS_ID,
         },
       });
 
@@ -116,27 +121,29 @@ describe('ClassService', () => {
     });
 
     it('should use the active session if no session ID is provided', async () => {
-      // Arrange
-      jest.spyOn(classRepository, 'findOne').mockResolvedValue(mockClass);
-      jest
-        .spyOn(classTeacherRepository, 'find')
-        .mockResolvedValue([mockTeacherAssignment]);
+      classModelAction.get.mockResolvedValue(mockClass);
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [mockTeacherAssignment],
+        paginationMeta: {},
+      });
 
-      // Act
       await service.getTeachersByClass(MOCK_CLASS_ID);
 
-      // Assert
-      expect(classTeacherRepository.find).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            session_id: MOCK_ACTIVE_SESSION,
-          }),
-        }),
-      );
+      expect(classTeacherModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          class: { id: MOCK_CLASS_ID },
+          session_id: MOCK_ACTIVE_SESSION,
+          is_active: true,
+        },
+        relations: {
+          teacher: { user: true },
+          class: true,
+        },
+      });
     });
 
     it('should throw NotFoundException if the class does not exist', async () => {
-      jest.spyOn(classRepository, 'findOne').mockResolvedValue(null);
+      classModelAction.get.mockResolvedValue(null);
 
       await expect(
         service.getTeachersByClass('wrong-uuid', MOCK_SESSION_ID),
@@ -144,15 +151,19 @@ describe('ClassService', () => {
     });
 
     it('should return an empty array if class exists but has no teachers', async () => {
-      jest.spyOn(classRepository, 'findOne').mockResolvedValue(mockClass);
-      jest.spyOn(classTeacherRepository, 'find').mockResolvedValue([]);
+      const emptyPayload = {
+        payload: [],
+        paginationMeta: {},
+      };
+      classModelAction.get.mockResolvedValue(mockClass);
+      classTeacherModelAction.list.mockResolvedValue(emptyPayload);
 
       const result = await service.getTeachersByClass(
         MOCK_CLASS_ID,
         MOCK_SESSION_ID,
       );
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(emptyPayload.payload);
     });
   });
 });
