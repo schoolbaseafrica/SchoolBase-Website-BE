@@ -233,7 +233,7 @@ export class TeacherService {
     const data = plainToInstance(
       TeacherResponseDto,
       teachers.map((t) => ({
-        id: t.user?.id ?? null,
+        id: t.id,
         first_name: t.user?.first_name ?? null,
         last_name: t.user?.last_name ?? null,
         middle_name: t.user?.middle_name ?? null,
