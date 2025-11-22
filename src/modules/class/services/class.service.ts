@@ -78,7 +78,6 @@ export class ClassService {
   }
 
   async create(createClassDto: CreateClassDto) {
-    console.log('createClassDto', createClassDto);
     const { name, stream, session_id } = createClassDto;
 
     const sessionExist = await this.sessionModelAction.get({
