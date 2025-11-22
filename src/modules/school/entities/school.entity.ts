@@ -38,6 +38,24 @@ export class School extends BaseEntity {
   })
   phone: string;
 
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  primary_color?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  secondary_color?: string;
+
+  @Column({ nullable: true })
+  @IsOptional()
+  @IsString()
+  accent_color?: string;
+
+  @Column({ default: false })
+  installation_completed: boolean;
+
   @Column({ comment: 'Dedicated DB connection', type: 'text' })
   @IsString()
   @Length(10, 500)
