@@ -1,8 +1,8 @@
 import {
-  Injectable,
   ConflictException,
-  NotFoundException,
   Inject,
+  Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
@@ -14,17 +14,17 @@ import * as sysMsg from '../../constants/system.messages';
 import { UserRole } from '../shared/enums';
 import { FileService } from '../shared/file/file.service';
 import {
-  hashPassword,
   generateStrongPassword,
+  hashPassword,
 } from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import {
   CreateTeacherDto,
-  UpdateTeacherDto,
   GetTeachersQueryDto,
   TeacherResponseDto,
+  UpdateTeacherDto,
 } from './dto';
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
 import { Teacher } from './entities/teacher.entity';
@@ -179,7 +179,8 @@ export class TeacherService {
 
   // --- READ (LIST) ---
   async findAll(query: GetTeachersQueryDto) {
-    const { page, limit, search, is_active, sort_by, order } = query;
+    const { page = 1, limit = 10, search, is_active, sort_by, order } = query;
+
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.teacherRepository.createQueryBuilder('teacher');
@@ -187,36 +188,40 @@ export class TeacherService {
     // Join with User entity to search on user fields
     queryBuilder.leftJoinAndSelect('teacher.user', 'user');
 
-    // Active/Inactive Filter
+    // Active/Inactive filter
     if (is_active !== undefined) {
-      queryBuilder.andWhere('teacher.is_active = :isActive', {
-        isActive: is_active,
+      queryBuilder.andWhere('teacher.is_active = :is_active', {
+        is_active,
       });
     }
 
-    // Search Logic (Case-insensitive across multiple fields)
+    // Search filter
     if (search) {
-      const searchTerm = `%${search.toLowerCase()}%`;
+      const searchTerm = `%${search}%`;
       queryBuilder.andWhere(
-        '(LOWER(user.first_name) LIKE :searchTerm OR LOWER(user.last_name) LIKE :searchTerm OR LOWER(user.email) LIKE :searchTerm OR LOWER(teacher.employment_id) LIKE :searchTerm)',
+        `(user.first_name ILIKE :searchTerm
+        OR user.last_name ILIKE :searchTerm
+        OR user.email ILIKE :searchTerm
+        OR teacher.employment_id ILIKE :searchTerm)`,
         { searchTerm },
       );
     }
 
-    // Sorting - must be done before getCount() to avoid metadata issues
-    let orderByField = 'teacher.created_at';
-    if (sort_by === 'employment_id') orderByField = 'teacher.employment_id';
-    if (sort_by === 'name') {
-      // For name sorting, use the joined user entity
-      queryBuilder.addOrderBy(
-        'user.last_name',
-        order.toUpperCase() as 'ASC' | 'DESC',
-      );
-    } else {
-      queryBuilder.orderBy(orderByField, order.toUpperCase() as 'ASC' | 'DESC');
+    // Sorting
+    const orderDirection = order?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
+    switch (sort_by) {
+      case 'name':
+        queryBuilder.orderBy('user.last_name', orderDirection);
+        break;
+      case 'employment_id':
+        queryBuilder.orderBy('teacher.employment_id', orderDirection);
+        break;
+      default:
+        queryBuilder.orderBy('user.email', orderDirection);
     }
 
-    // Total count for pagination metadata (after ordering is set)
+    // Total count for pagination
     const total = await queryBuilder.getCount();
 
     // Apply pagination
@@ -228,15 +233,14 @@ export class TeacherService {
     const data = plainToInstance(
       TeacherResponseDto,
       teachers.map((t) => ({
-        ...t,
-        first_name: t.user.first_name,
-        last_name: t.user.last_name,
-        middle_name: t.user.middle_name,
-        email: t.user.email,
-        phone: t.user.phone,
-        gender: t.user.gender,
-        date_of_birth: t.user.dob,
-        home_address: t.user.homeAddress,
+        first_name: t.user?.first_name ?? null,
+        last_name: t.user?.last_name ?? null,
+        middle_name: t.user?.middle_name ?? null,
+        email: t.user?.email ?? null,
+        phone: t.user?.phone ?? null,
+        gender: t.user?.gender ?? null,
+        date_of_birth: t.user?.dob ?? null,
+        home_address: t.user?.homeAddress ?? null,
         is_active: t.is_active,
         employment_id: t.employment_id,
         photo_url: t.photo_url,
@@ -254,7 +258,6 @@ export class TeacherService {
       isActive: is_active,
     });
 
-    // Return Paginated Response Structure
     return {
       data,
       total,
