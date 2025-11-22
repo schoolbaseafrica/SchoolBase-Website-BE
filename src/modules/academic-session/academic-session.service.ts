@@ -122,38 +122,33 @@ export class AcademicSessionService {
 
     const updatedAcademicSession = await this.dataSource.transaction(
       async (manager) => {
-        const repository = manager.getRepository(AcademicSession);
+        await this.sessionModelAction.update({
+          updatePayload: { status: SessionStatus.INACTIVE },
+          identifierOptions: {},
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
 
-        // 1. Deactivate all sessions using query builder
-        await repository
-          .createQueryBuilder()
-          .update(AcademicSession)
-          .set({ status: SessionStatus.INACTIVE })
-          .execute();
-
-        // 2. Activate selected session
-        const updateResult = await manager.update(
-          AcademicSession,
-          { id: sessionId },
-          { status: SessionStatus.ACTIVE },
-        );
-
-        if (updateResult?.affected === 0) {
+        const updateResult = await this.sessionModelAction.update({
+          identifierOptions: { id: sessionId },
+          updatePayload: { status: SessionStatus.ACTIVE },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+        if (!updateResult) {
           throw new BadRequestException(
             `Failed to activate session ${sessionId}. Session may have been deleted.`,
           );
         }
 
-        // 3. Fetch updated session
-        const updated = await repository.findOne({
-          where: { id: sessionId },
+        const updated = await this.sessionModelAction.get({
+          identifierOptions: { id: sessionId },
         });
 
-        if (!updated) {
-          throw new InternalServerErrorException(
-            `Session ${sessionId} was updated but could not be retrieved.`,
-          );
-        }
         return updated;
       },
     );
