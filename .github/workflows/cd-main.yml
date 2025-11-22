@@ -2,7 +2,7 @@ name: Production Deployment
 
 on:
   workflow_run:
-    workflows: ['CI Pipeline (main)']
+    workflows: ['CI Pipeline']
     types:
       - completed
     branches:
@@ -31,12 +31,12 @@ jobs:
       - name: Deploy to Production
         run: |
           sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
-            cd staging-main/open-school-portal-BE
+            cd open-school/prod/open-school-portal-BE
             git reset --hard
-            pm2 stop open-school-be-main
+            pm2 stop osp-be-prod
             git pull origin main
             npm install
             npm run build
-            pm2 restart open-school-be-main --update-env
+            pm2 restart osp-be-prod --update-env
           EOF
 
