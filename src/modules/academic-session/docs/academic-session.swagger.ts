@@ -283,6 +283,78 @@ export const AcademicSessionSwagger = {
         },
       },
     },
+    activateSession: {
+      summary: 'Activate Academic Session',
+      description:
+        'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
+      parameters: [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          schema: { type: 'string' },
+          description: 'The ID of the academic session to activate',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+        },
+      ],
+      responses: {
+        ['200']: {
+          description: 'Session activated successfully.',
+          content: {
+            ['application/json']: {
+              schema: {
+                type: 'object',
+                properties: {
+                  status_code: {
+                    type: 'number',
+                    example: 200,
+                    description: 'HTTP status code',
+                  },
+                  message: {
+                    type: 'string',
+                    example: 'Session activated successfully',
+                  },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      name: { type: 'string' },
+                      startDate: { type: 'string', format: 'date' },
+                      endDate: { type: 'string', format: 'date' },
+                      status: {
+                        type: 'string',
+                        enum: ['Active', 'Inactive'],
+                      },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      updatedAt: { type: 'string', format: 'date-time' },
+                    },
+                  },
+                },
+              },
+              example: {
+                status_code: 200,
+                message: 'Session activated successfully',
+                data: {
+                  id: '550e8400-e29b-41d4-a716-446655440000',
+                  name: '2024/2025',
+                  startDate: '2024-09-01',
+                  endDate: '2025-06-30',
+                  status: 'Active',
+                  createdAt: '2024-01-15T10:30:00Z',
+                  updatedAt: '2024-01-15T10:30:00Z',
+                },
+              },
+            },
+          },
+        },
+        ['400']: {
+          description: 'Session not found.',
+        },
+        ['500']: {
+          description: 'Activation failed due to server error.',
+        },
+      },
+    },
   },
   decorators: {
     create: {
@@ -347,6 +419,27 @@ export const AcademicSessionSwagger = {
         {
           status: 500,
           description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
+        },
+      ],
+    },
+    activateSession: {
+      operation: {
+        summary: 'Activate Academic Session',
+        description:
+          'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
+      },
+      response: {
+        status: 200,
+        description: 'Session activated successfully.',
+      },
+      errorResponses: [
+        {
+          status: 400,
+          description: 'Session not found.',
+        },
+        {
+          status: 500,
+          description: 'Activation failed due to server error.',
         },
       ],
     },

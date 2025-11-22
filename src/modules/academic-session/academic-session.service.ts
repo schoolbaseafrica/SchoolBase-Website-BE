@@ -4,8 +4,9 @@ import {
   HttpStatus,
   Injectable,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
-import { FindOptionsOrder } from 'typeorm';
+import { DataSource, FindOptionsOrder } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
 
@@ -29,8 +30,10 @@ export interface ICreateSessionResponse {
 }
 @Injectable()
 export class AcademicSessionService {
+  private readonly logger = new Logger(AcademicSessionService.name);
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
+    private readonly dataSource: DataSource,
   ) {}
   async create(
     createSessionDto: CreateAcademicSessionDto,
@@ -105,6 +108,54 @@ export class AcademicSessionService {
       message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
       data: payload,
       meta: paginationMeta,
+    };
+  }
+
+  async activateSession(sessionId: string) {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id: sessionId },
+    });
+
+    if (!session) {
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+    }
+
+    const updatedAcademicSession = await this.dataSource.transaction(
+      async (manager) => {
+        await this.sessionModelAction.update({
+          updatePayload: { status: SessionStatus.INACTIVE },
+          identifierOptions: {},
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
+        const updateResult = await this.sessionModelAction.update({
+          identifierOptions: { id: sessionId },
+          updatePayload: { status: SessionStatus.ACTIVE },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+        if (!updateResult) {
+          throw new BadRequestException(
+            `Failed to activate session ${sessionId}. Session may have been deleted.`,
+          );
+        }
+
+        const updated = await this.sessionModelAction.get({
+          identifierOptions: { id: sessionId },
+        });
+
+        return updated;
+      },
+    );
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMY_SESSION_ACTIVATED,
+      data: updatedAcademicSession,
     };
   }
 
