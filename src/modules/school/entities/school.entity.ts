@@ -17,26 +17,29 @@ export class School extends BaseEntity {
   @Length(2, 150)
   name: string;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  @IsOptional()
   @IsString()
   @Length(5, 255)
-  address: string;
+  address?: string;
 
   @Column({ nullable: true })
   @IsOptional()
   @IsUrl()
   logo_url?: string;
 
-  @Column({ unique: true })
+  @Column({ unique: true, nullable: true })
+  @IsOptional()
   @IsEmail()
-  email: string;
+  email?: string;
 
-  @Column({ type: 'varchar', length: 20 })
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  @IsOptional()
   @IsString()
   @Matches(/^[0-9+\-()\s]*$/, {
     message: 'phone must contain only numbers and valid phone characters',
   })
-  phone: string;
+  phone?: string;
 
   @Column({ nullable: true })
   @IsOptional()
@@ -56,8 +59,9 @@ export class School extends BaseEntity {
   @Column({ default: false })
   installation_completed: boolean;
 
-  @Column({ comment: 'Dedicated DB connection', type: 'text' })
+  @Column({ comment: 'Dedicated DB connection', type: 'text', nullable: true })
+  @IsOptional()
   @IsString()
   @Length(10, 500)
-  database_url: string;
+  database_url?: string;
 }

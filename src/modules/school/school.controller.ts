@@ -16,6 +16,13 @@ import { ApiTags, ApiOperation, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { CreateInstallationDto } from './dto/create-installation.dto';
 import { SchoolService } from './school.service';
 
+interface IUploadedFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
+
 @ApiTags('School')
 @Controller('school')
 export class SchoolController {
@@ -41,8 +48,7 @@ export class SchoolController {
   })
   async processInstallation(
     @Body() createInstallationDto: CreateInstallationDto,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    @UploadedFile() logo?: any,
+    @UploadedFile() logo?: IUploadedFile,
   ) {
     return this.schoolService.processInstallation(createInstallationDto, logo);
   }

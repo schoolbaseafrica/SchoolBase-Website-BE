@@ -1,13 +1,21 @@
+import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
 import { Injectable, ConflictException } from '@nestjs/common';
-import sharp from 'sharp';
+import * as sharp from 'sharp';
 
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateInstallationDto } from './dto/create-installation.dto';
 import { SchoolModelAction } from './model-actions/school.action';
+
+interface IUploadedFile {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+  size: number;
+}
 
 @Injectable()
 export class SchoolService {
@@ -17,22 +25,21 @@ export class SchoolService {
 
   async processInstallation(
     createInstallationDto: CreateInstallationDto,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    logoFile?: any,
+    logoFile?: IUploadedFile,
   ) {
-    // Check if installation already completed
-    const installations = await this.schoolModelAction.list({
-      filterRecordOptions: { installation_completed: true },
-    });
+    // Check for existing installation and duplicate name in parallel
+    const [installations, schools] = await Promise.all([
+      this.schoolModelAction.list({
+        filterRecordOptions: { installation_completed: true },
+      }),
+      this.schoolModelAction.list({
+        filterRecordOptions: { name: createInstallationDto.name },
+      }),
+    ]);
 
     if (installations.payload && installations.payload.length > 0) {
       throw new ConflictException(sysMsg.INSTALLATION_ALREADY_COMPLETED);
     }
-
-    // Check if school name already exists
-    const schools = await this.schoolModelAction.list({
-      filterRecordOptions: { name: createInstallationDto.name },
-    });
 
     if (schools.payload && schools.payload.length > 0) {
       throw new ConflictException(
@@ -71,11 +78,10 @@ export class SchoolService {
     };
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async uploadLogo(file: any): Promise<string> {
+  private async uploadLogo(file: IUploadedFile): Promise<string> {
     await fs.mkdir(this.uploadDir, { recursive: true });
 
-    const filename = `logo-${Date.now()}.png`;
+    const filename = `logo-${crypto.randomBytes(16).toString('hex')}.png`;
     const filepath = path.join(this.uploadDir, filename);
 
     await sharp(file.buffer).resize(200, 200).png().toFile(filepath);

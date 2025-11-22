@@ -1,10 +1,8 @@
 // Mock external modules that have native dependencies BEFORE any imports
-/* eslint-disable @typescript-eslint/naming-convention */
-jest.mock('sharp', () => ({
-  __esModule: true,
-  default: jest.fn(),
-}));
-/* eslint-enable @typescript-eslint/naming-convention */
+
+const mockSharp = jest.fn();
+jest.mock('sharp', () => mockSharp);
+
 jest.mock('fs/promises', () => ({
   mkdir: jest.fn(),
   unlink: jest.fn(),
@@ -14,7 +12,6 @@ import * as fs from 'fs/promises';
 
 import { ConflictException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import sharp from 'sharp';
 
 import { CreateInstallationDto } from './dto/create-installation.dto';
 import { School } from './entities/school.entity';
@@ -47,7 +44,7 @@ describe('SchoolService', () => {
 
     // Reset mocks
     jest.clearAllMocks();
-    (sharp as unknown as jest.Mock).mockReturnValue({
+    mockSharp.mockReturnValue({
       resize: jest.fn().mockReturnThis(),
       png: jest.fn().mockReturnThis(),
       toFile: jest.fn().mockResolvedValue(undefined),
@@ -161,6 +158,42 @@ describe('SchoolService', () => {
 
       expect(result.name).toBe('Minimal School');
       expect(result.installation_completed).toBe(true);
+    });
+
+    it('should successfully process installation with logo file', async () => {
+      const mockFile = {
+        buffer: Buffer.from('fake-image-data'),
+        originalname: 'logo.png',
+        mimetype: 'image/png',
+        size: 1024,
+      };
+
+      const mockSchool: Partial<School> = {
+        id: 'uuid-789',
+        name: 'Test School',
+        logo_url: '/uploads/logos/logo-abc123.png',
+        primary_color: '#1E40AF',
+        secondary_color: '#3B82F6',
+        accent_color: '#60A5FA',
+        installation_completed: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      schoolModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      schoolModelAction.create.mockResolvedValue(mockSchool as School);
+
+      const result = await service.processInstallation(validDto, mockFile);
+
+      expect(fs.mkdir).toHaveBeenCalled();
+      expect(mockSharp).toHaveBeenCalledWith(mockFile.buffer);
+      expect(result.name).toBe('Test School');
+      expect(result.logo_url).toMatch(
+        /^\/uploads\/logos\/logo-[a-f0-9]+\.png$/,
+      );
     });
   });
 });

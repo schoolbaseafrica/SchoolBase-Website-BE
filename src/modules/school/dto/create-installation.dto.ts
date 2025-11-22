@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches } from 'class-validator';
+import { IsOptional, IsString, Matches, ValidateIf } from 'class-validator';
 
 export class CreateInstallationDto {
   @ApiProperty({
@@ -8,6 +8,16 @@ export class CreateInstallationDto {
   })
   @IsString()
   name: string;
+
+  @ApiProperty({
+    description: 'School logo file',
+    type: 'string',
+    format: 'binary',
+    required: false,
+  })
+  @IsOptional()
+  @ValidateIf(() => false) // Skip validation for file field
+  logo?: unknown;
 
   @ApiProperty({
     description: 'Primary color for school branding',
