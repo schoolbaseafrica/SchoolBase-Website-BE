@@ -1,12 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
+  IsBoolean,
+  IsInt,
   IsOptional,
   IsString,
-  IsInt,
-  Min,
   Max,
-  IsBoolean,
+  Min,
 } from 'class-validator';
 
 export class GetTeachersQueryDto {
@@ -61,12 +61,12 @@ export class GetTeachersQueryDto {
 
   @ApiPropertyOptional({
     description: 'Sort by field',
-    enum: ['name', 'created_at', 'employment_id'],
-    default: 'created_at',
+    enum: ['name', 'email', 'employment_id'],
+    default: 'employment_id',
   })
   @IsOptional()
   @IsString()
-  sort_by: 'name' | 'created_at' | 'employment_id' = 'created_at';
+  sort_by: 'name' | 'email' | 'employment_id' = 'employment_id';
 
   @ApiPropertyOptional({
     description: 'Sort order',
