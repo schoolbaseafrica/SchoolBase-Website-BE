@@ -17,8 +17,8 @@ export interface IBaseResponse<T> {
   data: T;
 }
 
-@ApiTags('Academic - Streams')
-@Controller('streams')
+@ApiTags('Stream')
+@Controller('stream')
 export class StreamController {
   constructor(private readonly streamService: StreamService) {}
 
@@ -28,7 +28,7 @@ export class StreamController {
     name: 'classId',
     type: 'string',
     description: 'UUID of the class',
-    example: '123e4567-e89b-12d3-a456-426614174000',
+    example: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
   })
   @ApiResponse({
     status: HttpStatus.OK,

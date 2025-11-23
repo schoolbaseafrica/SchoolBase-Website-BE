@@ -25,5 +25,5 @@ export class TeacherAssignmentResponseDto {
     description: 'The academic stream of the class (e.g. Science, Arts)',
   })
   @Expose()
-  stream?: string;
+  streams?: string;
 }

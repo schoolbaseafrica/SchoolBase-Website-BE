@@ -16,10 +16,10 @@ import { Class } from './class.entity';
 @Unique(['name', 'class'])
 export class Stream extends BaseEntity {
   @Column()
-  name: string; 
+  name: string;
 
   @ManyToOne(() => Class, (classEntity) => classEntity.streams, {
-    onDelete: 'CASCADE', 
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'class_id' })
   class: Class;

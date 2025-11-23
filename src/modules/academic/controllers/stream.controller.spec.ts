@@ -1,7 +1,7 @@
 import { HttpStatus, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import  * as sysMsg from '../../../constants/system.messages';
+import * as sysMsg from '../../../constants/system.messages';
 import { StreamResponseDto } from '../dto/stream-response.dto';
 import { StreamService } from '../services/stream.service';
 

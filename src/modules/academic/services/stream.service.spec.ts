@@ -4,7 +4,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
-
 import { Class } from '../entities/class.entity';
 import { Stream } from '../entities/stream.entity';
 
