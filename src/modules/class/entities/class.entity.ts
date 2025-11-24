@@ -1,17 +1,21 @@
 import { Entity, Column, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Stream } from '../../stream/entities/stream.entity';
 
 import { ClassTeacher } from './class-teacher.entity';
 
 @Entity()
 export class Class extends BaseEntity {
   @Column()
-  name: string; // e.g., "Grade 10"
+  name: string;
 
   @Column({ nullable: true })
-  stream: string; // e.g., "Science", "Arts", "Commerce"
+  stream: string;
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.class)
   teacher_assignment: ClassTeacher[];
+
+  @OneToMany(() => Stream, (stream) => stream.class)
+  streams: Stream[];
 }

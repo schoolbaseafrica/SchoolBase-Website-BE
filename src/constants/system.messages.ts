@@ -16,6 +16,7 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 export const TOKEN_REFRESH_SUCCESS = 'Tokens refresh successful';
+export const LOGOUT_SUCCESS = 'logout success';
 
 export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
@@ -124,6 +125,9 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
+// Streams
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
@@ -146,7 +150,13 @@ export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
   'Academic session list retrieved successfully.';
-
+export const INVALID_SESSION_ID = 'Invalid session ID provided.';
+export const SESSION_ACTIVATED_SUCCESSFULLY =
+  'Academic session activated successfully.';
+export const SESSION_ACTIVATION_FAILED =
+  'Failed to activate academic session. Please try again.';
+export const ACADEMY_SESSION_ACTIVATED =
+  'Academic session activated successfully.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';

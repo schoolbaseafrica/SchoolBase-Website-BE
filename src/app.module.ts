@@ -17,6 +17,7 @@ import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { SchoolModule } from './modules/school/school.module';
 import { SessionModule } from './modules/session/session.module';
+import { StreamModule } from './modules/stream/stream.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
 import { TermModule } from './modules/term/term.module';
@@ -59,6 +60,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     AcademicSessionModule,
     SubjectModule,
     TermModule,
+    StreamModule,
   ],
   controllers: [AppController],
   providers: [

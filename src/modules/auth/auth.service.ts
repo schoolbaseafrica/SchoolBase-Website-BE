@@ -24,6 +24,7 @@ import { UserService } from '../user/user.service';
 import {
   AuthDto,
   ForgotPasswordDto,
+  LogoutDto,
   RefreshTokenDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
@@ -344,6 +345,21 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
+    };
+  }
+
+  async logout(logoutPayload: LogoutDto) {
+    if (this.sessionService) {
+      await this.sessionService.revokeSession(
+        logoutPayload.user_id,
+        logoutPayload.session_id,
+      );
+    }
+
+    this.logger.info(sysMsg.LOGOUT_SUCCESS);
+
+    return {
+      message: sysMsg.LOGOUT_SUCCESS,
     };
   }
 }

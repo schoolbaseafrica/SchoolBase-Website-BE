@@ -1,12 +1,10 @@
-name: CI Pipeline (Staging)
+name: CI Pipeline
 
 on:
   push:
-    branches:
-      - staging
+    branches: [dev, staging, main]
   pull_request:
-    branches:
-      - staging
+    branches: [dev, staging, main]
 
 jobs:
   ci-run:

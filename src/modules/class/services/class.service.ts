@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { Stream } from '../../stream/entities/stream.entity';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
@@ -45,19 +46,23 @@ export class ClassService {
       },
       relations: {
         teacher: { user: true },
-        class: true,
+        class: { streams: true },
       },
     });
 
     // 4. Map to DTO
-    return assignments.payload.map((assignment) => ({
-      teacher_id: assignment.teacher.id,
-      name: assignment.teacher.user
-        ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
-        : `Teacher ${assignment.teacher.employment_id}`,
-      assignment_date: assignment.assignment_date,
-      stream: assignment.class.stream,
-    }));
+    return assignments.payload.map((assignment) => {
+      const streamList: Stream[] = assignment.class.streams || [];
+      const streamNames = streamList.map((s) => s.name).join(', ');
+      return {
+        teacher_id: assignment.teacher.id,
+        name: assignment.teacher.user
+          ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
+          : `Teacher ${assignment.teacher.employment_id}`,
+        assignment_date: assignment.assignment_date,
+        streams: streamNames,
+      };
+    });
   }
 
   // Mock helper for active session

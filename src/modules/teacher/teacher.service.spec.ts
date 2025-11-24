@@ -2,7 +2,7 @@ import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, Repository, QueryRunner } from 'typeorm';
+import { DataSource, QueryRunner, Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import { UserRole } from '../shared/enums';
@@ -11,7 +11,7 @@ import * as passwordUtil from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateTeacherDto, UpdateTeacherDto, GetTeachersQueryDto } from './dto';
+import { CreateTeacherDto, GetTeachersQueryDto, UpdateTeacherDto } from './dto';
 import { Teacher } from './entities/teacher.entity';
 import { TeacherTitle } from './enums/teacher.enum';
 import { TeacherModelAction } from './model-actions/teacher-actions';
@@ -286,7 +286,7 @@ describe('TeacherService', () => {
       const query: GetTeachersQueryDto = {
         page: 1,
         limit: 20,
-        sort_by: 'created_at',
+        sort_by: 'employment_id',
         order: 'desc',
       };
 
@@ -319,7 +319,7 @@ describe('TeacherService', () => {
         page: 1,
         limit: 20,
         is_active: true,
-        sort_by: 'created_at',
+        sort_by: 'employment_id',
         order: 'desc',
       };
 
@@ -340,8 +340,8 @@ describe('TeacherService', () => {
       await service.findAll(query);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'teacher.is_active = :isActive',
-        { isActive: true },
+        'teacher.is_active = :is_active',
+        { is_active: true },
       );
     });
 
@@ -350,7 +350,7 @@ describe('TeacherService', () => {
         page: 1,
         limit: 20,
         search: 'Favour',
-        sort_by: 'created_at',
+        sort_by: 'employment_id',
         order: 'desc',
       };
 
@@ -371,8 +371,10 @@ describe('TeacherService', () => {
       await service.findAll(query);
 
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        expect.stringContaining('LOWER'),
-        expect.objectContaining({ searchTerm: expect.any(String) }),
+        expect.stringContaining('ILIKE'),
+        expect.objectContaining({
+          searchTerm: expect.any(String),
+        }),
       );
     });
   });
