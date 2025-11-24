@@ -11,7 +11,7 @@ import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
  */
 
 export const ClassSwagger = {
-  tags: ['Class'],
+  tags: ['Classes'],
   summary: 'Class Management',
   description:
     'Endpoints for creating, retrieving, updating, and deleting academic sessions.',
