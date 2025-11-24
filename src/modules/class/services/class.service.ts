@@ -90,7 +90,7 @@ export class ClassService {
     }
 
     const normalizedName = name.trim().toLowerCase();
-    const normalizedStream = stream.trim().toLowerCase();
+    const normalizedStream = stream ? stream.trim().toLowerCase() : null;
 
     // Check for existing class name/stream in session
     const { payload } = await this.classModelAction.find({
@@ -115,6 +115,8 @@ export class ClassService {
           name: name.trim(),
           session_id,
           stream,
+          normalized_name: normalizedName,
+          normalized_stream: normalizedStream,
         },
         transactionOptions: {
           useTransaction: true,

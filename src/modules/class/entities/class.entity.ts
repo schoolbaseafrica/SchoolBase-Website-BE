@@ -5,7 +5,7 @@ import { BaseEntity } from '../../../entities/base-entity';
 import { ClassTeacher } from './class-teacher.entity';
 
 @Entity()
-@Unique(['normalized_name', 'normalized_stream', 'session_id'])
+@Unique(['normalized_name', 'session_id'])
 export class Class extends BaseEntity {
   @Column()
   session_id: string;
@@ -19,8 +19,8 @@ export class Class extends BaseEntity {
   @Column()
   normalized_name: string;
 
-  @Column()
-  normalized_stream: string;
+  @Column({ nullable: true })
+  normalized_stream: string | null;
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.class)
   teacher_assignment: ClassTeacher[];
