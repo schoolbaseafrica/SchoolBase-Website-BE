@@ -89,11 +89,14 @@ export class ClassService {
       throw new BadRequestException(SESSION_NOT_FOUND);
     }
 
+    const normalizedName = name.trim().toLowerCase();
+    const normalizedStream = stream.trim().toLowerCase();
+
     // Check for existing class name/stream in session
     const { payload } = await this.classModelAction.find({
       findOptions: {
-        name,
-        stream,
+        normalized_name: normalizedName,
+        normalized_stream: normalizedStream,
         session_id,
       },
       transactionOptions: {
