@@ -16,6 +16,7 @@ import {
   SESSION_NOT_FOUND,
 } from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { Stream } from '../../stream/entities/stream.entity';
 import { CreateClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
@@ -62,19 +63,23 @@ export class ClassService {
       },
       relations: {
         teacher: { user: true },
-        class: true,
+        class: { streams: true },
       },
     });
 
     // 4. Map to DTO
-    return assignments.payload.map((assignment) => ({
-      teacher_id: assignment.teacher.id,
-      name: assignment.teacher.user
-        ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
-        : `Teacher ${assignment.teacher.employment_id}`,
-      assignment_date: assignment.assignment_date,
-      stream: assignment.class.stream,
-    }));
+    return assignments.payload.map((assignment) => {
+      const streamList: Stream[] = assignment.class.streams || [];
+      const streamNames = streamList.map((s) => s.name).join(', ');
+      return {
+        teacher_id: assignment.teacher.id,
+        name: assignment.teacher.user
+          ? `${assignment.teacher.user.first_name} ${assignment.teacher.user.last_name}`
+          : `Teacher ${assignment.teacher.employment_id}`,
+        assignment_date: assignment.assignment_date,
+        streams: streamNames,
+      };
+    });
   }
 
   async create(createClassDto: CreateClassDto) {

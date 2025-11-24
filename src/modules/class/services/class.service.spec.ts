@@ -20,7 +20,7 @@ const MOCK_ACTIVE_SESSION = '2024-2025';
 const mockClass = {
   id: MOCK_CLASS_ID,
   name: 'Grade 10',
-  stream: 'Science',
+  streams: [{ name: 'Science' }],
 } as unknown as Class;
 
 const mockTeacherAssignment = {
@@ -128,7 +128,7 @@ describe('ClassService', () => {
         teacher_id: 'teacher-uuid-101',
         name: 'John Doe',
         assignment_date: mockTeacherAssignment.assignment_date,
-        stream: 'Science',
+        streams: 'Science',
       });
     });
 
@@ -149,7 +149,7 @@ describe('ClassService', () => {
         },
         relations: {
           teacher: { user: true },
-          class: true,
+          class: { streams: true },
         },
       });
     });
