@@ -6,13 +6,6 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiBody,
-  ApiResponse,
-} from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -20,13 +13,18 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
+import {
+  ApiParentTags,
+  ApiParentBearerAuth,
+  ApiCreateParent,
+} from './docs/parent.swagger';
 import { CreateParentDto, ParentResponseDto } from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiTags('Parents')
-@ApiBearerAuth()
+@ApiParentTags()
+@ApiParentBearerAuth()
 export class ParentController {
   constructor(private readonly parentService: ParentService) {}
 
@@ -34,17 +32,7 @@ export class ParentController {
   @Post()
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new parent (ADMIN only)' })
-  @ApiBody({ type: CreateParentDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Parent created successfully',
-    type: ParentResponseDto,
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Email already exists',
-  })
+  @ApiCreateParent()
   async create(@Body() createDto: CreateParentDto): Promise<{
     message: string;
     status_code: number;

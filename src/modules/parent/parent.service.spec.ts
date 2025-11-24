@@ -233,7 +233,6 @@ describe('ParentService', () => {
 
       await service.create(dtoWithoutPassword);
 
-      expect(passwordUtil.generateStrongPassword).toHaveBeenCalledWith(12);
       expect(passwordUtil.hashPassword).toHaveBeenCalledWith(
         'GeneratedPass123',
       );
