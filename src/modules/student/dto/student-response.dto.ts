@@ -96,8 +96,9 @@ export class StudentResponseDto {
     this.first_name = user.first_name;
     this.last_name = user.last_name;
     this.middle_name = user.middle_name;
-    this.full_name =
-      `${user.first_name} ${user.middle_name} ${user.last_name}`.trim();
+    this.full_name = [user.first_name, user.middle_name, user.last_name]
+      .filter(Boolean)
+      .join(' ');
     this.email = user.email;
     this.gender = user.gender;
     this.date_of_birth = user.dob;
