@@ -12,6 +12,7 @@ import { ContactService } from './contact.service';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { Contact, ContactStatus } from './entities/contact.entity';
 import { ContactModelAction } from './model-actions/contact-actions';
+import { SpamDetectionService } from './spam-detection.service';
 
 describe('ContactService', () => {
   let service: ContactService;
@@ -62,6 +63,10 @@ describe('ContactService', () => {
     get: jest.fn(),
   };
 
+  const mockSpamDetectionService = {
+    validateSubmission: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -85,6 +90,10 @@ describe('ContactService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: SpamDetectionService,
+          useValue: mockSpamDetectionService,
         },
       ],
     }).compile();
