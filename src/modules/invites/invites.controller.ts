@@ -5,7 +5,11 @@ import {
   Body,
   HttpStatus,
   HttpCode,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import {
@@ -52,5 +56,22 @@ export class InvitesController {
   })
   async getPendingInvites(): Promise<PendingInvitesResponseDto> {
     return this.inviteService.getPendingInvites();
+  }
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadCsv(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException(
+        'No file uploaded. Please attach a CSV file.',
+      );
+    }
+
+    const key = await this.inviteService.uploadCsvToS3(file);
+    return {
+      status_code: HttpStatus.OK,
+      message: 'CSV uploaded successfully',
+      file_key: key,
+    };
   }
 }
