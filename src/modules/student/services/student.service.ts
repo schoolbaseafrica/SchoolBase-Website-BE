@@ -1,17 +1,132 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
-import { CreateStudentDto, UpdateStudentDto } from '../dto';
+import * as sysMsg from '../../../constants/system.messages';
+import { UserRole } from '../../shared/enums';
+import { FileService } from '../../shared/file/file.service';
+import {
+  generateStrongPassword,
+  hashPassword,
+} from '../../shared/utils/password.util';
+import { UserModelAction } from '../../user/model-actions/user-actions';
+import { CreateStudentDto, UpdateStudentDto, StudentResponseDto } from '../dto';
+import { StudentModelAction } from '../model-actions';
 
 @Injectable()
 export class StudentService {
   private readonly logger: Logger;
-  constructor(@Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger) {
+  constructor(
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
+    private readonly userModelAction: UserModelAction,
+    private readonly studentModelAction: StudentModelAction,
+    private readonly dataSource: DataSource,
+    private readonly fileService: FileService,
+  ) {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
-  create(createStudentDto: CreateStudentDto) {
-    return createStudentDto;
+
+  async create(createStudentDto: CreateStudentDto) {
+    const existingUser = await this.userModelAction.get({
+      identifierOptions: { email: createStudentDto.email },
+    });
+
+    if (existingUser) {
+      this.logger.warn(
+        `Attempt to create student with existing email: ${createStudentDto.email}`,
+      );
+      throw new ConflictException(
+        `User with email ${createStudentDto.email} already exists.`,
+      );
+    }
+    const registration_number =
+      createStudentDto.registration_number ||
+      (await this.studentModelAction.generateRegistrationNumber());
+
+    const existingStudent = await this.studentModelAction.get({
+      identifierOptions: { registration_number },
+    });
+
+    if (existingStudent) {
+      this.logger.warn(
+        `Attempt to create student with existing registration number: ${registration_number}`,
+      );
+      throw new ConflictException(
+        `Registration number ${registration_number} already exists.`,
+      );
+    }
+
+    // 3. Prepare User data
+    const rawPassword = createStudentDto.password || generateStrongPassword(12);
+    const hashedPassword = await hashPassword(rawPassword);
+
+    // 4. Validate Photo URL if provided
+    let photo_url: string | undefined = undefined;
+    if (createStudentDto.photo_url) {
+      photo_url = this.fileService.validatePhotoUrl(createStudentDto.photo_url);
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      const savedUser = await this.userModelAction.create({
+        createPayload: {
+          first_name: createStudentDto.first_name,
+          last_name: createStudentDto.last_name,
+          middle_name: createStudentDto.middle_name,
+          email: createStudentDto.email,
+          phone: createStudentDto.phone,
+          gender: createStudentDto.gender,
+          dob: new Date(createStudentDto.date_of_birth),
+          homeAddress: createStudentDto.home_address,
+          password: hashedPassword,
+          role: [UserRole.STUDENT],
+          is_active: createStudentDto.is_active ?? true,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      const savedStudent = await this.studentModelAction.create({
+        createPayload: {
+          user: { id: savedUser.id },
+          registration_number: registration_number,
+          photo_url: photo_url,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // 7. Return response (Transform User/Teacher entities into DTO)
+      // const response = {
+      //   ...savedTeacher,
+      //   first_name: savedUser.first_name,
+      //   last_name: savedUser.last_name,
+      //   middle_name: savedUser.middle_name,
+      //   email: savedUser.email,
+      //   phone: savedUser.phone,
+      //   gender: savedUser.gender,
+      //   date_of_birth: savedUser.dob,
+      //   home_address: savedUser.homeAddress,
+      //   is_active: savedTeacher.is_active,
+      //   employment_id: savedTeacher.employment_id,
+      //   photo_url: savedTeacher.photo_url,
+      //   created_at: savedTeacher.createdAt,
+      //   updated_at: savedTeacher.updatedAt,
+      // };
+
+      this.logger.info(sysMsg.RESOURCE_CREATED, {
+        teacherId: savedStudent.id,
+        registration_number: savedStudent.registration_number,
+        email: savedUser.email,
+      });
+
+      return new StudentResponseDto(savedStudent, savedUser);
+    });
+    // return createStudentDto;
   }
 
   findAll() {
