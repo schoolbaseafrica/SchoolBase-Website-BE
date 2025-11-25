@@ -162,3 +162,8 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
+// Student messages
+export const STUDENT_CREATED = 'Student created successfully';
+export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
+export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;

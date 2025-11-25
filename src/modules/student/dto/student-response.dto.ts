@@ -30,6 +30,12 @@ export class StudentResponseDto {
   middle_name: string | null;
 
   @ApiProperty({
+    description: 'Full name (computed)',
+    example: 'Favour Chinaza',
+  })
+  full_name: string;
+
+  @ApiProperty({
     description: 'Email address',
     example: 'favourchinaza110@gmail.com',
   })
@@ -64,12 +70,6 @@ export class StudentResponseDto {
     required: false,
   })
   photo_url?: string;
-
-  @ApiProperty({
-    description: 'Full name (computed)',
-    example: 'Favour Chinaza',
-  })
-  full_name: string;
 
   @ApiProperty({
     description: 'Created at timestamp',

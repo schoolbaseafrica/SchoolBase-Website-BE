@@ -6,38 +6,24 @@ import {
   Post,
   Body,
   Patch,
-  HttpCode,
-  HttpStatus,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 
-import { Roles } from '../../auth/decorators/roles.decorator';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../../auth/guards/roles.guard';
-import { UserRole } from '../../shared/enums';
+import { CreateStudentDecorator } from '../decorators';
+import { StudentSwagger } from '../docs/student.swagger';
 import { CreateStudentDto, StudentResponseDto, UpdateStudentDto } from '../dto';
 import { StudentService } from '../services';
 
+@ApiTags(StudentSwagger.tags[0])
 @Controller('students')
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
   @Post()
-  @Roles(UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new student (ADMIN only)' })
-  @ApiResponse({
-    status: 201,
-    description: 'Student created successfully',
-    type: StudentResponseDto,
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Email or Registration number already exists',
-  })
-  create(@Body() createStudentDto: CreateStudentDto) {
+  @CreateStudentDecorator()
+  create(
+    @Body() createStudentDto: CreateStudentDto,
+  ): Promise<StudentResponseDto> {
     return this.studentService.create(createStudentDto);
   }
 

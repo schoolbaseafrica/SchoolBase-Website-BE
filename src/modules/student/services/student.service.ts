@@ -36,9 +36,7 @@ export class StudentService {
       this.logger.warn(
         `Attempt to create student with existing email: ${createStudentDto.email}`,
       );
-      throw new ConflictException(
-        `User with email ${createStudentDto.email} already exists.`,
-      );
+      throw new ConflictException(sysMsg.STUDENT_EMAIL_CONFLICT);
     }
     const registration_number =
       createStudentDto.registration_number ||
@@ -52,16 +50,12 @@ export class StudentService {
       this.logger.warn(
         `Attempt to create student with existing registration number: ${registration_number}`,
       );
-      throw new ConflictException(
-        `Registration number ${registration_number} already exists.`,
-      );
+      throw new ConflictException(sysMsg.STUDENT_REGISTRATION_NUMBER_CONFLICT);
     }
 
-    // 3. Prepare User data
     const rawPassword = createStudentDto.password || generateStrongPassword(12);
     const hashedPassword = await hashPassword(rawPassword);
 
-    // 4. Validate Photo URL if provided
     let photo_url: string | undefined = undefined;
     if (createStudentDto.photo_url) {
       photo_url = this.fileService.validatePhotoUrl(createStudentDto.photo_url);
@@ -100,24 +94,6 @@ export class StudentService {
         },
       });
 
-      // 7. Return response (Transform User/Teacher entities into DTO)
-      // const response = {
-      //   ...savedTeacher,
-      //   first_name: savedUser.first_name,
-      //   last_name: savedUser.last_name,
-      //   middle_name: savedUser.middle_name,
-      //   email: savedUser.email,
-      //   phone: savedUser.phone,
-      //   gender: savedUser.gender,
-      //   date_of_birth: savedUser.dob,
-      //   home_address: savedUser.homeAddress,
-      //   is_active: savedTeacher.is_active,
-      //   employment_id: savedTeacher.employment_id,
-      //   photo_url: savedTeacher.photo_url,
-      //   created_at: savedTeacher.createdAt,
-      //   updated_at: savedTeacher.updatedAt,
-      // };
-
       this.logger.info(sysMsg.RESOURCE_CREATED, {
         teacherId: savedStudent.id,
         registration_number: savedStudent.registration_number,
@@ -126,7 +102,6 @@ export class StudentService {
 
       return new StudentResponseDto(savedStudent, savedUser);
     });
-    // return createStudentDto;
   }
 
   findAll() {
