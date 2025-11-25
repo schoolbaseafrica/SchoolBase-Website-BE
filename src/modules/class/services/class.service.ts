@@ -154,6 +154,8 @@ export class ClassService {
       filterRecordOptions: { status: SessionStatus.ACTIVE },
     });
     if (!payload.length) throw new NotFoundException('No active session found');
+    if (payload.length > 1)
+      throw new ConflictException('Multiple active sessions found');
     return payload[0];
   }
 }
