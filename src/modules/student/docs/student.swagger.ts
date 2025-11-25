@@ -2,9 +2,9 @@ import * as sysMsg from '../../../constants/system.messages';
 import { StudentResponseDto } from '../dto';
 
 /**
- * Swagger documentation for Class endpoints.
+ * Swagger documentation for Student endpoints.
  *
- * @module Class
+ * @module Student
  */
 
 export const StudentSwagger = {
@@ -51,7 +51,7 @@ export const StudentSwagger = {
           description: sysMsg.BAD_REQUEST,
         },
         conflict: {
-          description: `${sysMsg.STUDENT_EMAIL_CONFLICT} || ${sysMsg.STUDENT_REGISTRATION_NUMBER_CONFLICT}`,
+          description: sysMsg.STUDENT_EMAIL_CONFLICT,
         },
         notFound: {
           description: sysMsg.STUDENT_NOT_FOUND,

@@ -18,7 +18,7 @@ export class StudentResponseDto {
 
   @ApiProperty({
     description: 'Registration number',
-    example: 'REG-2025-014',
+    example: 'STU-2025-0014',
   })
   registration_number: string;
 
