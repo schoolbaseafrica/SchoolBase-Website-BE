@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -59,7 +58,6 @@ export class RoomService {
     });
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
       data: newRoom,
     };
