@@ -5,6 +5,12 @@ import { Student } from '../entities';
 
 export class StudentResponseDto {
   @ApiProperty({
+    description: 'Response message',
+    example: 'Student created successfully',
+  })
+  message: string;
+
+  @ApiProperty({
     description: 'Student ID (UUID)',
     example: '123e4567-e89b-12d3-a456-426614174000',
   })
@@ -83,7 +89,8 @@ export class StudentResponseDto {
   })
   updated_at: Date;
 
-  constructor(student: Student, user: User) {
+  constructor(message: string, student: Student, user: User) {
+    this.message = message;
     this.id = student.id;
     this.registration_number = student.registration_number;
     this.first_name = user.first_name;

@@ -100,7 +100,11 @@ export class StudentService {
         email: savedUser.email,
       });
 
-      return new StudentResponseDto(savedStudent, savedUser);
+      return new StudentResponseDto(
+        sysMsg.STUDENT_CREATED,
+        savedStudent,
+        savedUser,
+      );
     });
   }
 

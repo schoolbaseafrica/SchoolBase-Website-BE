@@ -9,6 +9,7 @@ import {
   ApiCreatedResponse,
   ApiBadRequestResponse,
   ApiConflictResponse,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 import { Roles } from '../../auth/decorators/roles.decorator';
@@ -25,6 +26,7 @@ export const CreateStudentDecorator = () => {
     ApiCreatedResponse(responses.created),
     ApiBadRequestResponse(responses.badRequest),
     ApiConflictResponse(responses.conflict),
+    ApiBearerAuth(),
     Roles(UserRole.ADMIN),
     UseGuards(JwtAuthGuard, RolesGuard),
     HttpCode(HttpStatus.CREATED),
