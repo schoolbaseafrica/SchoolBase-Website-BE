@@ -12,5 +12,6 @@ import { AcademicSessionModelAction } from './model-actions/academic-session-act
   imports: [TypeOrmModule.forFeature([AcademicSession]), AuthModule],
   controllers: [AcademicSessionController],
   providers: [AcademicSessionService, AcademicSessionModelAction],
+  exports: [AcademicSessionModelAction],
 })
 export class AcademicSessionModule {}
