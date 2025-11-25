@@ -6,17 +6,33 @@ import {
   Post,
   Body,
   Patch,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 
-import { CreateStudentDto, UpdateStudentDto } from '../dto';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from '../../shared/enums';
+import { StudentSwagger, CreateStudentDocs } from '../docs';
+import { CreateStudentDto, StudentResponseDto, UpdateStudentDto } from '../dto';
 import { StudentService } from '../services';
 
+@ApiTags(StudentSwagger.tags[0])
 @Controller('students')
 export class StudentController {
   constructor(private readonly studentService: StudentService) {}
 
   @Post()
-  create(@Body() createStudentDto: CreateStudentDto) {
+  @CreateStudentDocs()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.CREATED)
+  create(
+    @Body() createStudentDto: CreateStudentDto,
+  ): Promise<StudentResponseDto> {
     return this.studentService.create(createStudentDto);
   }
 

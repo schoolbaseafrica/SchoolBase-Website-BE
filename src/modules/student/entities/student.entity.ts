@@ -12,9 +12,6 @@ export class Student extends BaseEntity {
   @Column({ name: 'photo_url', nullable: true })
   photo_url: string;
 
-  @Column({ type: 'boolean', default: true, name: 'is_active' })
-  is_active: boolean;
-
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;

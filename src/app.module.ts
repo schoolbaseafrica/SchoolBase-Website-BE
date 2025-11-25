@@ -24,6 +24,7 @@ import { StudentModule } from './modules/student/student.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
 import { TermModule } from './modules/term/term.module';
+import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
 
@@ -63,6 +64,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     InviteModule,
     AcademicSessionModule,
     SubjectModule,
+    UploadModule,
     TermModule,
     StreamModule,
     ContactModule,

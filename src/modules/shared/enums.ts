@@ -11,3 +11,9 @@ export enum ClassLevel {
   JUNIOR_SECONDARY = 'Junior Secondary',
   SENIOR_SECONDARY = 'Senior Secondary',
 }
+
+export enum Gender {
+  MALE = 'Male',
+  FEMALE = 'Female',
+  OTHER = 'Other',
+}
