@@ -192,14 +192,19 @@ export class ParentService {
       throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
     }
 
-    // IMMUTABILITY CHECK: Email cannot be updated
+    // Check for email conflict if email is being updated
     if (updateDto.email && updateDto.email !== parent.user.email) {
-      this.logger.warn('Attempt to update email', {
-        parentId: id,
-        currentEmail: parent.user.email,
-        attemptedEmail: updateDto.email,
+      const existingUser = await this.userModelAction.get({
+        identifierOptions: { email: updateDto.email },
       });
-      throw new ConflictException('Email cannot be updated after creation.');
+      if (existingUser && existingUser.id !== parent.user_id) {
+        this.logger.warn(
+          `Attempt to update parent email to existing email: ${updateDto.email}`,
+        );
+        throw new ConflictException(
+          `User with email ${updateDto.email} already exists.`,
+        );
+      }
     }
 
     // Prepare update payloads
@@ -210,6 +215,8 @@ export class ParentService {
       userUpdatePayload.last_name = updateDto.last_name;
     if (updateDto.middle_name !== undefined)
       userUpdatePayload.middle_name = updateDto.middle_name;
+    if (updateDto.email !== undefined)
+      userUpdatePayload.email = updateDto.email;
     if (updateDto.phone !== undefined)
       userUpdatePayload.phone = updateDto.phone;
     if (updateDto.gender !== undefined)

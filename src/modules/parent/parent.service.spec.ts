@@ -486,6 +486,8 @@ describe('ParentService', () => {
 
     beforeEach(() => {
       parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      // Default: no email conflict (email doesn't exist for another user)
+      userModelAction.get.mockResolvedValue(null);
       userModelAction.update.mockResolvedValue({
         ...mockUser,
         ...updateDto,
@@ -516,29 +518,65 @@ describe('ParentService', () => {
       );
     });
 
-    it('should throw ConflictException if trying to update email', async () => {
+    it('should throw ConflictException if email already exists for another user', async () => {
       const updateWithEmail = {
         ...updateDto,
         email: 'newemail@example.com',
       };
+
+      const existingUser = {
+        id: 'different-user-id', // Different from mockUser.id which is 'user-uuid-123'
+        email: 'newemail@example.com',
+      };
+
+      // Reset the mock chain - first call is for email check, should return existing user
+      userModelAction.get.mockReset();
+      userModelAction.get.mockResolvedValue(existingUser as User);
 
       await expect(
         service.update(mockParentId, updateWithEmail),
       ).rejects.toThrow(ConflictException);
       await expect(
         service.update(mockParentId, updateWithEmail),
-      ).rejects.toThrow('Email cannot be updated after creation.');
+      ).rejects.toThrow('User with email newemail@example.com already exists.');
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        'Attempt to update email',
+        'Attempt to update parent email to existing email: newemail@example.com',
+      );
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { email: 'newemail@example.com' },
+      });
+    });
+
+    it('should allow updating email if new email does not exist', async () => {
+      const updateWithEmail = {
+        ...updateDto,
+        email: 'newemail@example.com',
+      };
+
+      // Override default mock: no existing user with this email
+      userModelAction.get.mockResolvedValueOnce(null);
+      userModelAction.update.mockResolvedValue({
+        ...mockUser,
+        email: 'newemail@example.com',
+      } as User);
+
+      const result = await service.update(mockParentId, updateWithEmail);
+
+      expect(result).toBeDefined();
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { email: 'newemail@example.com' },
+      });
+      expect(userModelAction.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          parentId: mockParentId,
-          currentEmail: mockUser.email,
-          attemptedEmail: 'newemail@example.com',
+          updatePayload: expect.objectContaining({
+            email: 'newemail@example.com',
+          }),
         }),
       );
     });
 
-    it('should not throw ConflictException if email is same as current', async () => {
+    it('should allow updating email if email is same as current', async () => {
       const updateWithSameEmail = {
         ...updateDto,
         email: mockUser.email,
@@ -582,11 +620,12 @@ describe('ParentService', () => {
       );
     });
 
-    it('should update user fields correctly', async () => {
+    it('should update user fields correctly including email', async () => {
       const updateWithUserFields: UpdateParentDto = {
         first_name: 'Jane',
         last_name: 'Smith',
         middle_name: 'Marie',
+        email: 'jane.smith@example.com',
         phone: '+234 999 888 7777',
         gender: 'Female',
         date_of_birth: '1990-01-01',
@@ -599,6 +638,7 @@ describe('ParentService', () => {
         first_name: 'Jane',
         last_name: 'Smith',
         middle_name: 'Marie',
+        email: 'jane.smith@example.com',
         phone: '+234 999 888 7777',
         gender: 'Female',
         dob: new Date('1990-01-01'),
@@ -606,10 +646,15 @@ describe('ParentService', () => {
         is_active: false,
       };
 
+      // Override default mock: no email conflict
+      userModelAction.get.mockResolvedValueOnce(null);
       userModelAction.update.mockResolvedValue(updatedUser as User);
 
       await service.update(mockParentId, updateWithUserFields);
 
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { email: 'jane.smith@example.com' },
+      });
       expect(userModelAction.update).toHaveBeenCalledWith(
         expect.objectContaining({
           identifierOptions: { id: mockUser.id },
@@ -617,6 +662,7 @@ describe('ParentService', () => {
             first_name: 'Jane',
             last_name: 'Smith',
             middle_name: 'Marie',
+            email: 'jane.smith@example.com',
             phone: '+234 999 888 7777',
             gender: 'Female',
             dob: expect.any(Date),

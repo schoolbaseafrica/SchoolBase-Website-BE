@@ -143,6 +143,6 @@ export const ApiUpdateParent = () =>
     ApiResponse({ status: 404, description: 'Parent not found' }),
     ApiResponse({
       status: 409,
-      description: 'Email cannot be updated after creation',
+      description: 'Email already exists for another user',
     }),
   );
