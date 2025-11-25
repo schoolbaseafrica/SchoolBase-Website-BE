@@ -181,3 +181,14 @@ export const INVALID_ROOM_ID = 'Invalid room ID provided.';
 export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
 export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+
+// Parent messages
+export const PARENT_CREATED = 'Parent created successfully';
+export const PARENT_UPDATED = 'Parent updated successfully';
+export const PARENT_NOT_FOUND = 'Parent not found';
+// Contact messages
+export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
+export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
+export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
+export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
+export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
