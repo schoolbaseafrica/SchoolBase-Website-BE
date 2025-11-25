@@ -28,4 +28,8 @@ export const ApiCreateContact = () =>
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       description: sysMsg.OPERATION_FAILED,
     }),
+    ApiResponse({
+      status: HttpStatus.TOO_MANY_REQUESTS,
+      description: sysMsg.TOO_MANY_REQUESTS,
+    }),
   );

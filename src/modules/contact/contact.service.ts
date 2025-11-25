@@ -12,7 +12,7 @@ import { EmailPayload } from '../email/email.types';
 import { CreateContactDto } from './dto/create-contact.dto';
 import { Contact, ContactStatus } from './entities/contact.entity';
 import { ContactModelAction } from './model-actions/contact-actions';
-
+import { SpamDetectionService } from './spam-detection.service';
 @Injectable()
 export class ContactService {
   private readonly logger: Logger;
@@ -23,11 +23,14 @@ export class ContactService {
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
     private readonly emailService: EmailService,
     private readonly configService: ConfigService,
+    private readonly spamDetectionService: SpamDetectionService,
   ) {
     this.logger = logger.child({ context: ContactService.name });
   }
 
   async create(createContactDto: CreateContactDto) {
+    this.spamDetectionService.validateSubmission(createContactDto);
+
     return this.dataSource.transaction(async (manager) => {
       // Create contact entry
       const savedContact = await this.contactModelAction.create({

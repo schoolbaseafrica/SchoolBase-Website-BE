@@ -1,7 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { CreateClassDto } from '../dto/create-class.dto';
+import { ClassResponseDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -43,7 +43,7 @@ export const ClassSwagger = {
       operation: {
         summary: 'Create a new class (Admin)',
         description:
-          'Creates a new class with a unique name within the school. Rejects names with special characters, empty strings, or whitespace-only values. Returns the newly created class including ID, name, stream, and session_id.',
+          'Creates a new class with a unique name and arm (A, B, C, etc.) optional in the current session.',
       },
       body: {
         name: {
@@ -51,21 +51,19 @@ export const ClassSwagger = {
           description:
             'The name of the class. Letters, numbers, and spaces only (e.g., "SSS 2").',
         },
-        stream: {
-          name: 'stream',
+        arm: {
+          name: 'arm',
           description:
-            'Optional stream for the class (e.g., "Science", "Arts", "Commerce").',
-        },
-        session_id: {
-          name: 'session_id',
-          description: 'The ID of the session this class belongs to.',
+            'The arm of the class (optional). If provided, must be one of: A, B, C, etc.',
+          enum: ['A', 'B', 'C'],
+          required: false,
         },
       },
       responses: {
         created: {
           status: HttpStatus.CREATED,
           description: sysMsg.CLASS_CREATED,
-          type: CreateClassDto,
+          type: ClassResponseDto,
         },
         badRequest: {
           status: HttpStatus.BAD_REQUEST,
@@ -78,7 +76,7 @@ export const ClassSwagger = {
         },
         conflict: {
           status: HttpStatus.CONFLICT,
-          description: sysMsg.CLASS_OR_CLASS_STREAM_ALREADY_EXIST,
+          description: sysMsg.CLASS_ALREADY_EXIST,
         },
       },
     },

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invite to {{ schoolName }}</title>
+  </head>
+
+  <body style="margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; background-color:#f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="padding:20px 0;">
+      <tr>
+        <td align="center">
+          <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:640px; background:#ffffff; border-radius:8px; overflow:hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            
+            <tr>
+              <td align="center" style="padding:25px 0 30px;">
+                <img src="{{ logoUrl }}" alt="{{ schoolName }} Logo" width="100" height="100" style="display:block; object-fit: contain;" />
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:0 30px 40px 30px;">
+                <img src="https://res.cloudinary.com/dfztkqaea/image/upload/v1764028296/SchoolFolio_20251121_143137_0000_km39df.png" alt="Dashboard Preview" width="640" style="display:block; width:100%; max-width:640px; height:auto !important; border-radius:10px; border:none; outline:none;" />
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:0 20px 10px;">
+                <h2 style="margin:0; font-size:22px; color:#333333; font-weight:700;">
+                  Welcome to {{ schoolName }}
+                </h2>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:0 30px 20px;">
+                <p style="margin:0; font-size:14px; line-height:24px; color:#555555;">
+                  Dear {{ firstName }},<br /><br />
+
+                  You have been invited to join <strong>{{ schoolName }}</strong> as a <strong>{{ role }}</strong>.
+                  This role gives you access to manage your designated activities within the school portal.<br /><br />
+
+                  Please click on the button below to accept your invitation and set up your account.<br />
+                  Welcome on board!
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:10px 0 30px;">
+                <a href="{{ inviteLink }}" style="background:#d9534f; color:#ffffff; padding:12px 25px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:600; display:inline-block;">
+                  Accept Invite
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:10px 40px;">
+                <hr style="border:none; border-top:1px solid #e0e0e0;" />
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:0 20px 20px;">
+                <p style="margin:0; font-size:12px; color:#777777; line-height:18px;">
+                  The Modern Way School Run In Nigeria. Manage attendance, results, <br /><br />
+                  timetables, fees, and NFC, all in one place <br /><br />
+                </p>
+
+                <p style="margin:15px 0 0 0; font-size:11px; color:#aaaaaa;">
+                  Copyright © {{ copyRightYear }} {{ schoolName }}. All rights reserved
+                </p>
+              </td>
+            </tr>
+
+            <tr>
+              <td align="center" style="padding:10px 40px;">
+                <hr style="border:none; border-top:1px solid #e0e0e0;" />
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      
+       <tr>
+          <td align="center" style="padding: 10px 0 20px">
+            <a href="#" style="margin: 0 10px; display: inline-block; text-decoration: none;">
+              <img src="https://img.icons8.com/?size=100&id=32292&format=png&color=000000" width="24" height="24" alt="Instagram" style="display: block" />
+            </a>
+            <a href="#" style="margin: 0 10px; display: inline-block; text-decoration: none;">
+              <img src="https://img.icons8.com/?size=100&id=85348&format=png&color=000000" width="24" height="24" alt="LinkedIn" style="display: block" />
+            </a>
+            <a href="#" style="margin: 0 10px; display: inline-block; text-decoration: none;">
+              <img src="https://img.icons8.com/?size=100&id=cMRBi0rI3iwb&format=png&color=000000" width="24" height="24" alt="X" style="display: block" />
+            </a>
+          </td>
+        </tr>
+    </table>
+  </body>
+</html>
