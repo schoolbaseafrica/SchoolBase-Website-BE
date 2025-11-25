@@ -1,8 +1,10 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
@@ -75,6 +77,16 @@ describe('ClassService', () => {
         {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: mockLogger,
+        },
+        {
+          provide: DataSource,
+          useValue: {},
+        },
+        {
+          provide: AcademicSessionModelAction,
+          useValue: {
+            getActive: jest.fn().mockResolvedValue({ id: MOCK_ACTIVE_SESSION }),
+          },
         },
       ],
     }).compile();

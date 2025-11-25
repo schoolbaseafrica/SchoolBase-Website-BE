@@ -167,6 +167,15 @@ export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
+// Classes
+export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
+  'class, teacher, or session not found';
+export const CLASS_ALREADY_HAS_TEACHER =
+  'class already has a teacher assigned for this session';
+export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
+export const CLASS_CREATED = 'Class successfully created.';
+export const CLASS_OR_CLASS_STREAM_ALREADY_EXIST =
+  'A class with the same name/stream already exists in this session.';
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
