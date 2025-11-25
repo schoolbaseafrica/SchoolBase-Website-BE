@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  HttpStatus,
-  NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { DataSource, In, Repository } from 'typeorm';
 
@@ -93,7 +89,6 @@ describe('RoomService', () => {
         identifierOptions: { name: 'main hall' },
       });
 
-      expect(result.status_code).toBe(HttpStatus.CREATED);
       expect(result.message).toBe(sysMsg.ROOM_CREATED_SUCCESSFULLY);
       expect(result.data).toEqual({ id: 'room-1', name: 'main hall' });
     });
@@ -140,7 +135,8 @@ describe('RoomService', () => {
         transactionOptions: { useTransaction: false },
       });
 
-      expect(result.status_code).toBe(HttpStatus.CREATED);
+      expect(result.message).toBe(sysMsg.ROOM_CREATED_SUCCESSFULLY);
+      expect(result.data).toEqual({ id: 'room-10', name: 'main hall' });
     });
   });
 });

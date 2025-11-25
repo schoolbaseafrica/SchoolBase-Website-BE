@@ -1,3 +1,11 @@
+import { applyDecorators } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
+
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { RoomType } from '../enums/room-enum';
@@ -201,11 +209,11 @@ export const RoomSwagger = {
           },
         },
       },
-      response: {
-        status: 201,
-        description: sysMsg.ROOM_CREATED_SUCCESSFULLY,
-      },
-      errorResponses: [
+      responses: [
+        {
+          status: 201,
+          description: sysMsg.ROOM_CREATED_SUCCESSFULLY,
+        },
         {
           status: 409,
           description: sysMsg.DUPLICATE_ROOM_NAME,
@@ -245,3 +253,11 @@ export const RoomSwagger = {
     },
   },
 };
+
+export const ApiCreateRoom = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation(RoomSwagger.decorators.create.operation),
+    ApiBody(RoomSwagger.decorators.create.body),
+    ...RoomSwagger.decorators.create.responses.map((res) => ApiResponse(res)),
+  );
