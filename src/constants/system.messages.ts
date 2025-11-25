@@ -167,3 +167,9 @@ export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
+// Contact messages
+export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
+export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
+export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
+export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
+export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
