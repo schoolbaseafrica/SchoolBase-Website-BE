@@ -76,6 +76,9 @@ export const StudentSwagger = {
         notFound: {
           description: sysMsg.STUDENT_NOT_FOUND,
         },
+        badRequest: {
+          description: sysMsg.BAD_REQUEST,
+        },
       },
     },
   },

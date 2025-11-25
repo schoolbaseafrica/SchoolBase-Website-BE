@@ -1,6 +1,7 @@
 import { applyDecorators } from '@nestjs/common';
 import {
   ApiOperation,
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -14,6 +15,7 @@ export const DeleteStudentDocs = () => {
   return applyDecorators(
     ApiOperation(operation),
     ApiOkResponse(responses.ok),
+    ApiBadRequestResponse(responses.badRequest),
     ApiNotFoundResponse(responses.notFound),
     ApiBearerAuth(),
   );

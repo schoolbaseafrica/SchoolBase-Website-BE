@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -65,7 +66,7 @@ export class StudentController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @HttpCode(HttpStatus.OK)
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.studentService.remove(id);
   }
 }
