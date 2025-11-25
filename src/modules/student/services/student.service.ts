@@ -95,7 +95,7 @@ export class StudentService {
       });
 
       this.logger.info(sysMsg.RESOURCE_CREATED, {
-        teacherId: savedStudent.id,
+        studentId: savedStudent.id,
         registration_number: savedStudent.registration_number,
         email: savedUser.email,
       });
