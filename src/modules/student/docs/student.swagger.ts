@@ -43,7 +43,7 @@ export const StudentSwagger = {
         },
       },
       responses: {
-        created: {
+        ok: {
           description: sysMsg.STUDENT_UPDATED,
           type: StudentResponseDto,
         },
