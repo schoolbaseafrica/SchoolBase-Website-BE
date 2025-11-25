@@ -1,6 +1,6 @@
 import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, Like } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -27,6 +27,41 @@ export class StudentService {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
 
+  /**
+   * Generate a unique Registration Number in the format REG-YYYY-XXX
+   * where YYYY is the current year and XXX is a sequential number (001, 002, etc.)
+   */
+  private async generateRegistrationNumber(): Promise<string> {
+    const currentYear = new Date().getFullYear();
+    const yearPrefix = `REG-${currentYear}-`;
+
+    // Query the highest existing sequential number for the current year
+    const lastStudent = await this.studentModelAction.find({
+      findOptions: {
+        registration_number: Like(`${yearPrefix}%`),
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+      paginationPayload: { limit: 1, page: 1 },
+      order: { registration_number: 'DESC' },
+    });
+
+    let nextSequence = 1;
+    if (lastStudent) {
+      // Extract the numeric part (e.g., '014' from 'REG-2025-014')
+      const parts = lastStudent.payload[0].registration_number.split('-');
+      if (parts.length === 3) {
+        const lastId = parts[2];
+        nextSequence = parseInt(lastId, 10) + 1;
+      }
+    }
+
+    // Format the sequence number to be 3 digits (e.g., 1 -> 001, 14 -> 014)
+    const sequenceStr = nextSequence.toString().padStart(3, '0');
+    return `${yearPrefix}${sequenceStr}`;
+  }
+
   async create(createStudentDto: CreateStudentDto) {
     const existingUser = await this.userModelAction.get({
       identifierOptions: { email: createStudentDto.email },
@@ -40,7 +75,7 @@ export class StudentService {
     }
     const registration_number =
       createStudentDto.registration_number ||
-      (await this.studentModelAction.generateRegistrationNumber());
+      (await this.generateRegistrationNumber());
 
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { registration_number },
