@@ -53,7 +53,7 @@ export class CreateStudentDto {
   @ApiProperty({
     description:
       'Registration number (format: REG-YYYY-XXX, e.g., REG-2025-014). Auto-generated if not provided.',
-    example: 'EMP-2025-014',
+    example: 'REG-2025-014',
     required: false,
   })
   @IsOptional()
@@ -121,7 +121,7 @@ export class CreateStudentDto {
 
   @ApiProperty({
     description: 'Photo URL (must be a valid HTTP/HTTPS URL to an image)',
-    example: 'https://example.com/photos/teacher123.jpg',
+    example: 'https://example.com/photos/student123.jpg',
     required: false,
   })
   @IsOptional()

@@ -23,15 +23,15 @@ export class StudentModelAction extends AbstractModelAction<Student> {
     const yearPrefix = `REG-${currentYear}-`;
 
     // Query the highest existing sequential number for the current year
-    const lastTeacher = await this.repository.findOne({
+    const lastStudent = await this.repository.findOne({
       where: { registration_number: Like(`${yearPrefix}%`) },
       order: { registration_number: 'DESC' },
     });
 
     let nextSequence = 1;
-    if (lastTeacher) {
+    if (lastStudent) {
       // Extract the numeric part (e.g., '014' from 'REG-2025-014')
-      const parts = lastTeacher.registration_number.split('-');
+      const parts = lastStudent.registration_number.split('-');
       if (parts.length === 3) {
         const lastId = parts[2];
         nextSequence = parseInt(lastId, 10) + 1;
