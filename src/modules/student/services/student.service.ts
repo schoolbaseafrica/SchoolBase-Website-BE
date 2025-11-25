@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
@@ -112,8 +117,56 @@ export class StudentService {
     return `This action returns a #${id} term`;
   }
 
-  update(id: string, updateStudentDto: UpdateStudentDto) {
-    return `#${id}: ${updateStudentDto}`;
+  async update(id: string, updateStudentDto: UpdateStudentDto) {
+    const existingStudent = await this.studentModelAction.get({
+      identifierOptions: { id },
+    });
+    if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    return this.dataSource.transaction(async (manager) => {
+      const updatedUser = await this.userModelAction.update({
+        identifierOptions: { id: existingStudent.user.id },
+        updatePayload: {
+          first_name: updateStudentDto.first_name,
+          last_name: updateStudentDto.last_name,
+          middle_name: updateStudentDto.middle_name,
+          email: updateStudentDto.email,
+          phone: updateStudentDto.phone,
+          gender: updateStudentDto.gender,
+          dob: new Date(updateStudentDto.date_of_birth),
+          homeAddress: updateStudentDto.home_address,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      let student = existingStudent;
+
+      if (updateStudentDto.photo_url) {
+        const photo_url = this.fileService.validatePhotoUrl(
+          updateStudentDto.photo_url,
+        );
+        student = await this.studentModelAction.update({
+          identifierOptions: { id },
+          updatePayload: {
+            photo_url: photo_url,
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+      }
+
+      this.logger.info(sysMsg.RESOURCE_UPDATED, {
+        studentId: id,
+        registration_number: student.registration_number,
+        email: updatedUser.email,
+      });
+
+      return new StudentResponseDto(student, updatedUser);
+    });
   }
 
   remove(id: string) {
