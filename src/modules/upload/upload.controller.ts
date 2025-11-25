@@ -13,9 +13,9 @@ import * as sysMsg from '../../constants/system.messages';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 import {
-  UploadControllerDecorators,
+  UploadControllerDocs,
   UploadPictureDecorators,
-} from './decorators/upload.decorators';
+} from './decorators/upload.docs';
 import { UploadPictureResponseDto } from './dto';
 import { UploadService } from './upload.service';
 
@@ -29,7 +29,7 @@ interface IRequestWithUser extends Request {
 
 @Controller('upload')
 @UseGuards(JwtAuthGuard)
-@UploadControllerDecorators()
+@UploadControllerDocs()
 export class UploadController {
   constructor(private readonly uploadService: UploadService) {}
 

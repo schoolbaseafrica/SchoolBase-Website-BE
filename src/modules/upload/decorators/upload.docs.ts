@@ -20,7 +20,7 @@ import {
 /**
  * Controller-level decorators for Upload endpoints
  */
-export const UploadControllerDecorators = () =>
+export const UploadControllerDocs = () =>
   applyDecorators(ApiUploadTags(), ApiUploadBearerAuth());
 
 /**
