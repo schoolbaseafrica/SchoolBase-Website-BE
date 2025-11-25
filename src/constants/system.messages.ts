@@ -163,6 +163,17 @@ export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
+// Parent messages
+export const PARENT_CREATED = 'Parent created successfully';
+export const PARENT_UPDATED = 'Parent updated successfully';
+export const PARENT_NOT_FOUND = 'Parent not found';
+// Contact messages
+export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
+export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
+export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
+export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
+export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
+
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
