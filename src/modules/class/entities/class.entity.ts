@@ -1,11 +1,11 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { Stream } from '../../stream/entities/stream.entity';
 
 import { ClassTeacher } from './class-teacher.entity';
 
-@Entity()
+@Entity('classes')
 export class Class extends BaseEntity {
   @Column()
   name: string;
