@@ -1,8 +1,13 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, QueryRunner, Repository } from 'typeorm';
+import {
+  DataSource,
+  QueryRunner,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { Logger } from 'winston';
 
 import { UserRole } from '../shared/enums';
@@ -21,6 +26,17 @@ jest.mock('../shared/utils/password.util', () => ({
   hashPassword: jest.fn().mockResolvedValue('hashed_password'),
   generateStrongPassword: jest.fn().mockReturnValue('GeneratedPass123'),
 }));
+
+// Create a type for our mock query builder
+type MockQueryBuilder = {
+  leftJoinAndSelect: jest.Mock;
+  orderBy: jest.Mock;
+  where: jest.Mock;
+  getCount: jest.Mock;
+  skip: jest.Mock;
+  take: jest.Mock;
+  getMany: jest.Mock;
+};
 
 describe('ParentService', () => {
   let service: ParentService;
@@ -73,12 +89,25 @@ describe('ParentService', () => {
       },
     } as unknown as jest.Mocked<QueryRunner>;
 
+    // Create a simple mock query builder with only the methods we need
+    const mockQueryBuilder: MockQueryBuilder = {
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      getCount: jest.fn(),
+      skip: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      getMany: jest.fn(),
+    };
+
     // Mock repositories
     parentRepository = {
       create: jest.fn(),
       save: jest.fn(),
       findOne: jest.fn(),
-      createQueryBuilder: jest.fn(),
+      createQueryBuilder: jest.fn(
+        () => mockQueryBuilder as unknown as SelectQueryBuilder<Parent>,
+      ),
     } as unknown as jest.Mocked<Repository<Parent>>;
 
     // Mock DataSource
@@ -101,6 +130,7 @@ describe('ParentService', () => {
       create: jest.fn(),
       update: jest.fn(),
       list: jest.fn(),
+      repository: parentRepository,
     } as unknown as jest.Mocked<ParentModelAction>;
 
     userModelAction = {
@@ -213,8 +243,9 @@ describe('ParentService', () => {
     });
 
     it('should create user with is_active set to true by default', async () => {
-      const dtoWithoutActive = { ...createDto };
-      delete dtoWithoutActive.is_active;
+      // Use object destructuring with eslint disable for unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { is_active, ...dtoWithoutActive } = createDto;
 
       await service.create(dtoWithoutActive);
 
@@ -228,8 +259,9 @@ describe('ParentService', () => {
     });
 
     it('should auto-generate password if not provided', async () => {
-      const dtoWithoutPassword = { ...createDto };
-      delete dtoWithoutPassword.password;
+      // Use object destructuring with eslint disable for unused variables
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...dtoWithoutPassword } = createDto;
 
       await service.create(dtoWithoutPassword);
 
@@ -308,6 +340,141 @@ describe('ParentService', () => {
       await service.create(createDto);
 
       expect(mockLogger.info).toHaveBeenCalled();
+    });
+  });
+
+  describe('findOne', () => {
+    it('should return a parent by id', async () => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+
+      const result = await service.findOne(mockParentId);
+
+      expect(result).toBeDefined();
+      expect(result.id).toBe(mockParentId);
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+        relations: { user: true },
+      });
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(service.findOne('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('findAll', () => {
+    it('should return paginated parents without search', async () => {
+      const mockParents = [mockParent as Parent];
+      const mockPaginationMeta = {
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
+
+      parentModelAction.list.mockResolvedValue({
+        payload: mockParents,
+        paginationMeta: mockPaginationMeta,
+      });
+
+      const result = await service.findAll({ page: 1, limit: 10 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.paginationMeta).toEqual(mockPaginationMeta);
+      expect(parentModelAction.list).toHaveBeenCalledWith({
+        relations: { user: true },
+        paginationPayload: { page: 1, limit: 10 },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('should use query builder for search when search term is provided', async () => {
+      const mockParents = [mockParent as Parent];
+
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
+
+      const result = await service.findAll({
+        page: 1,
+        limit: 10,
+        search: 'John',
+      });
+
+      expect(result.data).toHaveLength(1);
+
+      // Verify query builder was used for search
+      expect(parentRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'parent.user',
+        'user',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'parent.createdAt',
+        'DESC',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
+        { search: '%John%' },
+      );
+
+      // Regular list should not be called when search is provided
+      expect(parentModelAction.list).not.toHaveBeenCalled();
+    });
+
+    it('should log search information without search term', async () => {
+      const mockParents = [mockParent as Parent];
+      const mockPaginationMeta = {
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      };
+
+      parentModelAction.list.mockResolvedValue({
+        payload: mockParents,
+        paginationMeta: mockPaginationMeta,
+      });
+
+      await service.findAll({ page: 1, limit: 10 });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Fetched ${mockParents.length} parents`,
+        {
+          searchTerm: undefined,
+          page: 1,
+          limit: 10,
+          total: mockPaginationMeta.total,
+        },
+      );
+    });
+
+    it('should log search information with search term', async () => {
+      const mockParents = [mockParent as Parent];
+
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
+
+      await service.findAll({ page: 1, limit: 10, search: 'test' });
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        `Fetched ${mockParents.length} parents`,
+        {
+          searchTerm: 'test',
+          page: 1,
+          limit: 10,
+          total: 1, // From getCount mock
+        },
+      );
     });
   });
 });

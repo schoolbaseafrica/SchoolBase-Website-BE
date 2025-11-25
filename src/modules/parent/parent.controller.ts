@@ -1,7 +1,11 @@
+import { PaginationMeta } from '@hng-sdk/orm';
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -17,6 +21,8 @@ import {
   ApiParentTags,
   ApiParentBearerAuth,
   ApiCreateParent,
+  ApiGetParent,
+  ApiListParents,
 } from './docs/parent.swagger';
 import { CreateParentDto, ParentResponseDto } from './dto';
 import { ParentService } from './parent.service';
@@ -43,6 +49,51 @@ export class ParentController {
       message: sysMsg.PARENT_CREATED,
       status_code: HttpStatus.CREATED,
       data,
+    };
+  }
+
+  // --- GET: GET SINGLE PARENT BY ID (ADMIN OR PARENT THEMSELVES) ---
+  @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.PARENT)
+  @ApiGetParent()
+  async getParent(@Param('id') id: string): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentResponseDto;
+  }> {
+    const data = await this.parentService.findOne(id);
+    return {
+      message: sysMsg.PARENTS_FETCHED,
+      status_code: HttpStatus.OK,
+      data,
+    };
+  }
+
+  // --- GET: LIST ALL PARENTS (ADMIN ONLY) ---
+  @Get()
+  @Roles(UserRole.ADMIN)
+  @ApiListParents()
+  async listParents(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+    @Query('search') search?: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentResponseDto[];
+    meta: Partial<PaginationMeta>; // Fixed: no more 'any'
+  }> {
+    const { data, paginationMeta } = await this.parentService.findAll({
+      page,
+      limit,
+      search,
+    });
+
+    return {
+      message: sysMsg.PARENTS_FETCHED,
+      status_code: HttpStatus.OK,
+      data,
+      meta: paginationMeta,
     };
   }
 }
