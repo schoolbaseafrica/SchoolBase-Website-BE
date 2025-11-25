@@ -17,9 +17,15 @@ import {
   generateStrongPassword,
   hashPassword,
 } from '../shared/utils/password.util';
+import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateParentDto, ListParentsDto, ParentResponseDto } from './dto';
+import {
+  CreateParentDto,
+  ListParentsDto,
+  ParentResponseDto,
+  UpdateParentDto,
+} from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
 
@@ -169,6 +175,110 @@ export class ParentService {
     }
 
     return this.transformToParentResponseDto(parent);
+  }
+
+  // --- UPDATE ---
+  async update(
+    id: string,
+    updateDto: UpdateParentDto,
+  ): Promise<ParentResponseDto> {
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
+    });
+
+    if (!parent) {
+      this.logger.warn(`Parent not found with ID: ${id}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // IMMUTABILITY CHECK: Email cannot be updated
+    if (updateDto.email && updateDto.email !== parent.user.email) {
+      this.logger.warn('Attempt to update email', {
+        parentId: id,
+        currentEmail: parent.user.email,
+        attemptedEmail: updateDto.email,
+      });
+      throw new ConflictException('Email cannot be updated after creation.');
+    }
+
+    // Prepare update payloads
+    const userUpdatePayload: Partial<User> = {};
+    if (updateDto.first_name !== undefined)
+      userUpdatePayload.first_name = updateDto.first_name;
+    if (updateDto.last_name !== undefined)
+      userUpdatePayload.last_name = updateDto.last_name;
+    if (updateDto.middle_name !== undefined)
+      userUpdatePayload.middle_name = updateDto.middle_name;
+    if (updateDto.phone !== undefined)
+      userUpdatePayload.phone = updateDto.phone;
+    if (updateDto.gender !== undefined)
+      userUpdatePayload.gender = updateDto.gender;
+    if (updateDto.date_of_birth !== undefined)
+      userUpdatePayload.dob = new Date(updateDto.date_of_birth);
+    if (updateDto.home_address !== undefined)
+      userUpdatePayload.homeAddress = updateDto.home_address;
+    if (updateDto.is_active !== undefined)
+      userUpdatePayload.is_active = updateDto.is_active;
+
+    const parentUpdatePayload: Partial<Parent> = {};
+    if (updateDto.is_active !== undefined)
+      parentUpdatePayload.is_active = updateDto.is_active;
+
+    // Handle Photo URL Update
+    if (updateDto.photo_url !== undefined) {
+      parentUpdatePayload.photo_url = updateDto.photo_url
+        ? this.fileService.validatePhotoUrl(updateDto.photo_url)
+        : null;
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      // Update User Data using model action within transaction
+      const updatedUser = await this.userModelAction.update({
+        identifierOptions: { id: parent.user_id },
+        updatePayload: userUpdatePayload,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Update Parent Data using model action within transaction
+      const updatedParent = await this.parentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: parentUpdatePayload,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Return response
+      const response = {
+        ...updatedParent,
+        first_name: updatedUser.first_name,
+        last_name: updatedUser.last_name,
+        middle_name: updatedUser.middle_name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        gender: updatedUser.gender,
+        date_of_birth: updatedUser.dob,
+        home_address: updatedUser.homeAddress,
+        is_active: updatedParent.is_active,
+        photo_url: updatedParent.photo_url,
+        created_at: updatedParent.createdAt,
+        updated_at: updatedParent.updatedAt,
+      };
+
+      this.logger.info(sysMsg.PARENT_UPDATED, {
+        parentId: id,
+        email: updatedUser.email,
+      });
+
+      return plainToInstance(ParentResponseDto, response, {
+        excludeExtraneousValues: true,
+      });
+    });
   }
 
   // --- HELPER METHOD TO TRANSFORM ENTITY TO DTO ---

@@ -16,7 +16,7 @@ import * as passwordUtil from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateParentDto } from './dto';
+import { CreateParentDto, UpdateParentDto } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
 import { ParentService } from './parent.service';
@@ -475,6 +475,233 @@ describe('ParentService', () => {
           total: 1, // From getCount mock
         },
       );
+    });
+  });
+
+  describe('update', () => {
+    const updateDto: UpdateParentDto = {
+      first_name: 'Updated',
+      last_name: 'Name',
+    };
+
+    beforeEach(() => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      userModelAction.update.mockResolvedValue({
+        ...mockUser,
+        ...updateDto,
+      } as User);
+      parentModelAction.update.mockResolvedValue(mockParent as Parent);
+    });
+
+    it('should update parent successfully', async () => {
+      const result = await service.update(mockParentId, updateDto);
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('id', mockParentId);
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+        relations: { user: true },
+      });
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.update('non-existent-uuid', updateDto),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Parent not found with ID: non-existent-uuid',
+      );
+    });
+
+    it('should throw ConflictException if trying to update email', async () => {
+      const updateWithEmail = {
+        ...updateDto,
+        email: 'newemail@example.com',
+      };
+
+      await expect(
+        service.update(mockParentId, updateWithEmail),
+      ).rejects.toThrow(ConflictException);
+      await expect(
+        service.update(mockParentId, updateWithEmail),
+      ).rejects.toThrow('Email cannot be updated after creation.');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Attempt to update email',
+        expect.objectContaining({
+          parentId: mockParentId,
+          currentEmail: mockUser.email,
+          attemptedEmail: 'newemail@example.com',
+        }),
+      );
+    });
+
+    it('should not throw ConflictException if email is same as current', async () => {
+      const updateWithSameEmail = {
+        ...updateDto,
+        email: mockUser.email,
+      };
+
+      const result = await service.update(mockParentId, updateWithSameEmail);
+
+      expect(result).toBeDefined();
+      expect(dataSource.transaction).toHaveBeenCalled();
+    });
+
+    it('should validate photo URL when updating', async () => {
+      const updateWithPhoto = {
+        ...updateDto,
+        photo_url: 'https://example.com/photos/new-parent123.jpg',
+      };
+
+      await service.update(mockParentId, updateWithPhoto);
+
+      expect(fileService.validatePhotoUrl).toHaveBeenCalledWith(
+        'https://example.com/photos/new-parent123.jpg',
+      );
+    });
+
+    it('should allow setting photo_url to null when updating', async () => {
+      const updateWithNullPhoto = {
+        ...updateDto,
+        photo_url: null,
+      };
+
+      await service.update(mockParentId, updateWithNullPhoto);
+
+      // Should not throw and should complete successfully
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(parentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            photo_url: null,
+          }),
+        }),
+      );
+    });
+
+    it('should update user fields correctly', async () => {
+      const updateWithUserFields: UpdateParentDto = {
+        first_name: 'Jane',
+        last_name: 'Smith',
+        middle_name: 'Marie',
+        phone: '+234 999 888 7777',
+        gender: 'Female',
+        date_of_birth: '1990-01-01',
+        home_address: '456 New Street',
+        is_active: false,
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        first_name: 'Jane',
+        last_name: 'Smith',
+        middle_name: 'Marie',
+        phone: '+234 999 888 7777',
+        gender: 'Female',
+        dob: new Date('1990-01-01'),
+        homeAddress: '456 New Street',
+        is_active: false,
+      };
+
+      userModelAction.update.mockResolvedValue(updatedUser as User);
+
+      await service.update(mockParentId, updateWithUserFields);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockUser.id },
+          updatePayload: expect.objectContaining({
+            first_name: 'Jane',
+            last_name: 'Smith',
+            middle_name: 'Marie',
+            phone: '+234 999 888 7777',
+            gender: 'Female',
+            dob: expect.any(Date),
+            homeAddress: '456 New Street',
+            is_active: false,
+          }),
+        }),
+      );
+    });
+
+    it('should update parent fields correctly', async () => {
+      const updateWithParentFields: UpdateParentDto = {
+        is_active: false,
+        photo_url: 'https://example.com/new-photo.jpg',
+      };
+
+      await service.update(mockParentId, updateWithParentFields);
+
+      expect(parentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockParentId },
+          updatePayload: expect.objectContaining({
+            is_active: false,
+            photo_url: 'https://example.com/new-photo.jpg',
+          }),
+        }),
+      );
+    });
+
+    it('should update both user and parent in a transaction', async () => {
+      await service.update(mockParentId, updateDto);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(userModelAction.update).toHaveBeenCalled();
+      expect(parentModelAction.update).toHaveBeenCalled();
+    });
+
+    it('should log successful update', async () => {
+      await service.update(mockParentId, updateDto);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.any(String), // system message
+        expect.objectContaining({
+          parentId: mockParentId,
+          email: mockUser.email,
+        }),
+      );
+    });
+
+    it('should handle partial updates (only some fields)', async () => {
+      const partialUpdate: UpdateParentDto = {
+        first_name: 'Partial',
+      };
+
+      await service.update(mockParentId, partialUpdate);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            first_name: 'Partial',
+          }),
+        }),
+      );
+      // Other fields should not be in the update payload
+      const updateCall = userModelAction.update.mock.calls[0][0];
+      expect(updateCall.updatePayload).not.toHaveProperty('last_name');
+    });
+
+    it('should convert date_of_birth string to Date object', async () => {
+      const updateWithDate: UpdateParentDto = {
+        date_of_birth: '1990-01-15',
+      };
+
+      await service.update(mockParentId, updateWithDate);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            dob: expect.any(Date),
+          }),
+        }),
+      );
+      const updateCall = userModelAction.update.mock.calls[0][0];
+      const dob = updateCall.updatePayload.dob as Date;
+      expect(dob.toISOString()).toContain('1990-01-15');
     });
   });
 });

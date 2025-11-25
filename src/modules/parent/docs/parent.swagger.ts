@@ -9,7 +9,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-import { CreateParentDto, ParentResponseDto } from '../dto';
+import { CreateParentDto, ParentResponseDto, UpdateParentDto } from '../dto';
 
 /**
  * Swagger decorators for Parent endpoints
@@ -119,5 +119,30 @@ export const ApiListParents = () =>
           },
         },
       },
+    }),
+  );
+
+/**
+ * Swagger decorators for Update Parent endpoint
+ */
+export const ApiUpdateParent = () =>
+  applyDecorators(
+    ApiOperation({ summary: 'Update parent (partial, ADMIN only)' }),
+    ApiParam({
+      name: 'id',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiBody({ type: UpdateParentDto }),
+    ApiResponse({
+      status: 200,
+      description: 'Parent updated successfully',
+      type: ParentResponseDto,
+    }),
+    ApiResponse({ status: 404, description: 'Parent not found' }),
+    ApiResponse({
+      status: 409,
+      description: 'Email cannot be updated after creation',
     }),
   );
