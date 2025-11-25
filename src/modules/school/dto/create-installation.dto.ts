@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, ValidateIf } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  ValidateIf,
+} from 'class-validator';
 
 export class CreateInstallationDto {
   @ApiProperty({
@@ -18,6 +25,31 @@ export class CreateInstallationDto {
   @IsOptional()
   @ValidateIf(() => false) // Skip validation for file field
   logo?: unknown;
+
+  @ApiProperty({
+    description: 'School address',
+    example: '123 Main Street, Springfield',
+  })
+  @IsString()
+  @Length(5, 255)
+  address: string;
+
+  @ApiProperty({
+    description: 'School email address',
+    example: 'contact@greenvalleys.edu',
+  })
+  @IsEmail()
+  email: string;
+
+  @ApiProperty({
+    description: 'School phone number',
+    example: '+1234567890',
+  })
+  @IsString()
+  @Matches(/^[0-9+\-()\s]*$/, {
+    message: 'phone must contain only numbers and valid phone characters',
+  })
+  phone: string;
 
   @ApiProperty({
     description: 'Primary color for school branding',

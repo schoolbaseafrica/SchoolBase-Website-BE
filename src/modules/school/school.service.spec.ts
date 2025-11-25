@@ -59,6 +59,9 @@ describe('SchoolService', () => {
   describe('processInstallation', () => {
     const validDto: CreateInstallationDto = {
       name: 'Test School',
+      address: '123 Main Street, Springfield',
+      email: 'contact@testschool.edu',
+      phone: '+1234567890',
       primary_color: '#1E40AF',
       secondary_color: '#3B82F6',
       accent_color: '#60A5FA',
@@ -68,6 +71,9 @@ describe('SchoolService', () => {
       const mockSchool: Partial<School> = {
         id: 'uuid-123',
         name: 'Test School',
+        address: '123 Main Street, Springfield',
+        email: 'contact@testschool.edu',
+        phone: '+1234567890',
         logo_url: null,
         primary_color: '#1E40AF',
         secondary_color: '#3B82F6',
@@ -88,6 +94,9 @@ describe('SchoolService', () => {
       expect(result).toEqual({
         id: 'uuid-123',
         name: 'Test School',
+        address: '123 Main Street, Springfield',
+        email: 'contact@testschool.edu',
+        phone: '+1234567890',
         logo_url: null,
         primary_color: '#1E40AF',
         secondary_color: '#3B82F6',
@@ -134,11 +143,17 @@ describe('SchoolService', () => {
     it('should handle installation without optional colors', async () => {
       const minimalDto: CreateInstallationDto = {
         name: 'Minimal School',
+        address: '456 Oak Avenue',
+        email: 'info@minimalschool.edu',
+        phone: '+0987654321',
       };
 
       const mockSchool: Partial<School> = {
         id: 'uuid-456',
         name: 'Minimal School',
+        address: '456 Oak Avenue',
+        email: 'info@minimalschool.edu',
+        phone: '+0987654321',
         logo_url: null,
         primary_color: null,
         secondary_color: null,
@@ -171,6 +186,9 @@ describe('SchoolService', () => {
       const mockSchool: Partial<School> = {
         id: 'uuid-789',
         name: 'Test School',
+        address: '123 Main Street, Springfield',
+        email: 'contact@testschool.edu',
+        phone: '+1234567890',
         logo_url: '/uploads/logos/logo-abc123.png',
         primary_color: '#1E40AF',
         secondary_color: '#3B82F6',

@@ -57,6 +57,9 @@ export class SchoolService {
     const school = await this.schoolModelAction.create({
       createPayload: {
         name: createInstallationDto.name,
+        address: createInstallationDto.address,
+        email: createInstallationDto.email,
+        phone: createInstallationDto.phone,
         logo_url: logoUrl,
         primary_color: createInstallationDto.primary_color,
         secondary_color: createInstallationDto.secondary_color,
@@ -69,6 +72,9 @@ export class SchoolService {
     return {
       id: school.id,
       name: school.name,
+      address: school.address,
+      email: school.email,
+      phone: school.phone,
       logo_url: school.logo_url,
       primary_color: school.primary_color,
       secondary_color: school.secondary_color,
