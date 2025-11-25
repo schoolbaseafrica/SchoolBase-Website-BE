@@ -125,6 +125,18 @@ export class StudentService {
       },
     });
     if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    if (updateStudentDto.email) {
+      const existingUser = await this.userModelAction.get({
+        identifierOptions: { email: updateStudentDto.email },
+      });
+
+      if (existingUser && existingUser.id !== existingStudent.user.id) {
+        this.logger.warn(
+          `Attempt to update student with existing email: ${updateStudentDto.email}`,
+        );
+        throw new ConflictException(sysMsg.STUDENT_EMAIL_CONFLICT);
+      }
+    }
     return this.dataSource.transaction(async (manager) => {
       const updatedUser = await this.userModelAction.update({
         identifierOptions: { id: existingStudent.user.id },
