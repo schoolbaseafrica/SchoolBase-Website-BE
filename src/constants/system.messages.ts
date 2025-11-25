@@ -112,6 +112,10 @@ export const RATE_LIMIT_EXCEEDED = 'rate limit exceeded';
 export const FILE_TOO_LARGE = 'file too large';
 export const UNSUPPORTED_FILE_TYPE = 'unsupported file type';
 export const FILE_UPLOAD_FAILED = 'file upload failed';
+export const FILE_UPLOAD_SUCCESS = 'file uploaded successfully';
+export const FILE_REQUIRED = 'file is required';
+export const IMAGE_UPLOAD_SUCCESS = 'image uploaded successfully';
+export const IMAGE_UPLOAD_FAILED = 'image upload failed';
 
 // Payment / Billing
 export const PAYMENT_SUCCESS = 'payment success';
