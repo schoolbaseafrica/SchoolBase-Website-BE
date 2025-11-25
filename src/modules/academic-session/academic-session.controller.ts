@@ -15,6 +15,7 @@ import {
   ApiBody,
   ApiBearerAuth,
   ApiOperation,
+  ApiParam,
   ApiQuery,
   ApiResponse,
   ApiTags,
@@ -56,6 +57,18 @@ export class AcademicSessionController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation(AcademicSessionSwagger.decorators.activeSession.operation)
   @ApiResponse(AcademicSessionSwagger.decorators.activeSession.response)
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activeSession.errorResponses[0],
+  )
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activeSession.errorResponses[1],
+  )
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activeSession.errorResponses[2],
+  )
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activeSession.errorResponses[3],
+  )
   async activeSession() {
     const session = await this.academicSessionService.activeSessions();
 
@@ -95,6 +108,29 @@ export class AcademicSessionController {
       page: Number.isNaN(parsedPage) ? undefined : parsedPage,
       limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
     });
+  }
+
+  @Patch('activate/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation(AcademicSessionSwagger.decorators.activateSession.operation)
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'The ID of the academic session to activate',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse(AcademicSessionSwagger.decorators.activateSession.response)
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activateSession.errorResponses[0],
+  )
+  @ApiResponse(
+    AcademicSessionSwagger.decorators.activateSession.errorResponses[1],
+  )
+  async activateSession(@Param('id') id: string) {
+    return this.academicSessionService.activateSession(id);
   }
 
   @Get(':id')

@@ -21,6 +21,7 @@ import * as sysMsg from '../../constants/system.messages';
 import { AuthService } from './auth.service';
 import {
   LoginResponseDto,
+  LogoutResponseDto,
   RefreshTokenResponseDto,
   SignupResponseDto,
 } from './dto/auth-response.dto';
@@ -28,6 +29,7 @@ import {
   AuthDto,
   AuthMeResponseDto,
   ForgotPasswordDto,
+  LogoutDto,
   RefreshTokenDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
@@ -133,6 +135,7 @@ export class AuthController {
       message,
     };
   }
+
   @Get('me')
   @HttpCode(HttpStatus.OK)
   @ApiBearerAuth()
@@ -148,5 +151,21 @@ export class AuthController {
   })
   async getProfile(@Headers('authorization') authorization: string) {
     return this.authService.getProfile(authorization);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Logout user and revoke session' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.LOGOUT_SUCCESS,
+    type: LogoutResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.TOKEN_INVALID,
+  })
+  async logout(@Body() logoutDto: LogoutDto) {
+    return this.authService.logout(logoutDto);
   }
 }

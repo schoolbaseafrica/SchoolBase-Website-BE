@@ -16,6 +16,7 @@ export const INVALID_CREDENTIALS = 'invalid credentials';
 export const TOKEN_EXPIRED = 'token expired';
 export const TOKEN_INVALID = 'token invalid';
 export const TOKEN_REFRESH_SUCCESS = 'Tokens refresh successful';
+export const LOGOUT_SUCCESS = 'logout success';
 
 export const ACTIVATE_ACCOUNT = 'Activate a user account';
 export const USER_IS_ACTIVATED = 'user already activated';
@@ -124,6 +125,9 @@ export const SUBSCRIPTION_ACTIVE = 'subscription active';
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
+// Streams
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
@@ -146,15 +150,34 @@ export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =
   'Academic session list retrieved successfully.';
-
+export const INVALID_SESSION_ID = 'Invalid session ID provided.';
+export const SESSION_ACTIVATED_SUCCESSFULLY =
+  'Academic session activated successfully.';
+export const SESSION_ACTIVATION_FAILED =
+  'Failed to activate academic session. Please try again.';
+export const ACADEMY_SESSION_ACTIVATED =
+  'Academic session activated successfully.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
+
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
+
+// Parent messages
+export const PARENT_CREATED = 'Parent created successfully';
+export const PARENT_UPDATED = 'Parent updated successfully';
+export const PARENT_NOT_FOUND = 'Parent not found';
+// Contact messages
+export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
+export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
+export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
+export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
+export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
+

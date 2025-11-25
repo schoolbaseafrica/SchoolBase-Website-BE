@@ -17,6 +17,7 @@ describe('AuthController', () => {
   const mockAuthService = {
     activateUserAccount: jest.fn(),
     getProfile: jest.fn(),
+    logout: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -32,6 +33,7 @@ describe('AuthController', () => {
 
     controller = module.get<AuthController>(AuthController);
     authService = module.get<AuthService>(AuthService);
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -154,6 +156,42 @@ describe('AuthController', () => {
         sysMsg.USER_NOT_FOUND,
       );
       expect(authService.getProfile).toHaveBeenCalledWith(mockAuthorization);
+    });
+  });
+
+  describe('logout', () => {
+    it('should successfully logout user and return success message', async () => {
+      const logoutDto = {
+        user_id: 'user-id-123',
+        session_id: 'session-id-456',
+      };
+      const successResponse = {
+        message: sysMsg.LOGOUT_SUCCESS,
+      };
+
+      mockAuthService.logout.mockResolvedValue(successResponse);
+
+      const result = await controller.logout(logoutDto);
+
+      expect(authService.logout).toHaveBeenCalledWith(logoutDto);
+      expect(result).toEqual(successResponse);
+      expect(result.message).toEqual(sysMsg.LOGOUT_SUCCESS);
+    });
+
+    it('should pass correct user_id and session_id to service', async () => {
+      const logoutDto = {
+        user_id: 'different-user-id',
+        session_id: 'different-session-id',
+      };
+
+      mockAuthService.logout.mockResolvedValue({
+        message: sysMsg.LOGOUT_SUCCESS,
+      });
+
+      await controller.logout(logoutDto);
+
+      expect(authService.logout).toHaveBeenCalledWith(logoutDto);
+      expect(authService.logout).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -102,3 +102,16 @@ export class RefreshTokenResponseDto extends TokensDto {
   })
   message?: string;
 }
+export class LogoutResponseDto {
+  @ApiProperty({
+    example: '200',
+    nullable: true,
+  })
+  status_code?: number;
+
+  @ApiProperty({
+    example: 'logout success',
+    nullable: true,
+  })
+  message?: string;
+}

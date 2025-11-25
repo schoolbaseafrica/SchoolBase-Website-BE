@@ -1,7 +1,15 @@
-import { Entity, Column, Unique, OneToMany, OneToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  Unique,
+  OneToMany,
+  OneToOne,
+  ManyToOne,
+} from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { Session } from '../../session/entities/session.entity';
+import { Stream } from '../../stream/entities/stream.entity';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -74,4 +82,7 @@ export class User extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true, default: null })
   deleted_at: Date | null;
+
+  @ManyToOne(() => Stream, (stream) => stream.students)
+  stream: Stream;
 }
