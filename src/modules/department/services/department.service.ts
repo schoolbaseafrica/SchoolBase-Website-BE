@@ -1,30 +1,13 @@
-import {
-  ConflictException,
-  HttpStatus,
-  Inject,
-  Injectable,
-} from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { FindOptionsOrder } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { DepartmentResponseDto } from '../dto/department-response.dto';
 import { Department } from '../entities/department.entity';
+import { IBaseResponse } from '../interface/types';
 import { DepartmentModelAction } from '../model-actions/department.actions';
-
-export interface IListDepartmentsOptions {
-  page?: number;
-  limit?: number;
-  order?: FindOptionsOrder<Department>;
-}
-
-export interface IBaseResponse<T> {
-  status_code: number;
-  message: string;
-  data: T;
-}
 
 @Injectable()
 export class DepartmentService {
@@ -60,7 +43,6 @@ export class DepartmentService {
     });
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.DEPARTMENT_CREATED,
       data: this.mapToResponseDto(newDepartment),
     };
