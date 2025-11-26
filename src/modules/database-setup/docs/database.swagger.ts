@@ -7,10 +7,7 @@ import {
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
-import {
-  CreateDatabaseSuccessResponseDto,
-  ConfigureDatabaseDto,
-} from '../dto/configure-database.dto';
+import { ConfigureDatabaseDto } from '../dto/configure-database.dto';
 
 export const CreateDatabaseDocs = () =>
   applyDecorators(
@@ -24,7 +21,6 @@ export const CreateDatabaseDocs = () =>
     ApiResponse({
       status: HttpStatus.OK,
       description: sysMsg.DATABASE_CREATED,
-      type: CreateDatabaseSuccessResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.BAD_REQUEST,

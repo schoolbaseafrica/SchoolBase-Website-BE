@@ -1,10 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose } from 'class-transformer';
 import {
   IsEnum,
+  IsInt,
   IsNotEmpty,
-  IsNumber,
+  IsPort,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -24,53 +25,64 @@ export class ConfigureDatabaseDto {
   @ApiProperty({
     description: 'Database name',
     example: 'open_school_portal_db',
-    required: true,
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
+  @Matches(/^[a-zA-Z_][a-zA-Z0-9_]*$/, {
+    message:
+      'Database name can only contain letters, numbers, and underscores, and cannot start with a number',
+  })
   database_name: string;
 
   @ApiProperty({
     description: 'Database type (postgres, mysql, mariadb, etc.)',
     example: 'postgres',
     enum: DatabaseType,
-    required: true,
   })
   @IsEnum(DatabaseType)
   @IsNotEmpty()
   database_type: DatabaseType;
 
   @ApiProperty({
-    description: 'Database host',
+    description: 'Database host (hostname or IP address)',
     example: 'localhost',
-    required: true,
+  })
+  @IsString()
+  @IsNotEmpty()
+  @Matches(
+    /^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$|^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/,
+    {
+      message: 'Database host must be a valid hostname or IP address',
+    },
+  )
+  @MaxLength(255)
+  database_host: string;
+
+  @ApiProperty({
+    description: 'Database username (alphanumeric, underscores, hyphens only)',
+    example: 'root',
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
-  database_host: string;
-
-  @ApiProperty({
-    description: 'Database username',
-    example: 'root',
+  @Matches(/^[a-zA-Z0-9_-]+$/, {
+    message:
+      'Database username can only contain letters, numbers, underscores, and hyphens',
   })
-  @IsString()
-  @IsNotEmpty()
-  @MinLength(4)
-  @MaxLength(50)
   database_username: string;
 
   @ApiProperty({
-    description: 'Database port',
+    description: 'Database port (1-65535)',
     example: 5432,
   })
-  @IsNumber()
+  @IsInt()
   @IsNotEmpty()
-  @Min(2)
+  @Min(1)
   @Max(65535)
+  @IsPort()
   database_port: number;
 
   @ApiProperty({
@@ -81,56 +93,6 @@ export class ConfigureDatabaseDto {
   @IsString()
   @IsNotEmpty()
   @MinLength(6)
-  @MaxLength(50)
+  @MaxLength(128)
   database_password: string;
-}
-export class CreateDatabaseSuccessResponseDto {
-  @ApiProperty({
-    description: 'Database ID (UUID)',
-    example: '123e4567-e89b-12d3-a456-426614174000',
-  })
-  @Expose()
-  id: string;
-
-  @ApiProperty({
-    description: 'Database name',
-    example: 'school_database',
-  })
-  @Expose()
-  database_name: string;
-
-  @ApiProperty({
-    description: 'Database host',
-    example: 'localhost',
-  })
-  @Expose()
-  database_host: string;
-
-  @ApiProperty({
-    description: 'Database username',
-    example: 'root',
-  })
-  @Expose()
-  database_username: string;
-
-  @ApiProperty({
-    description: 'Database port',
-    example: 5432,
-  })
-  @Expose()
-  database_port: number;
-
-  @ApiProperty({
-    description: 'Created at timestamp',
-    type: Date,
-  })
-  @Expose({ name: 'createdAt' })
-  created_at: Date;
-
-  @ApiProperty({
-    description: 'Updated at timestamp',
-    type: Date,
-  })
-  @Expose({ name: 'updatedAt' })
-  updated_at: Date;
 }

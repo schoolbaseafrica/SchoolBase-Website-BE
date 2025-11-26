@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import { join } from 'path';
 
 import {
-  HttpStatus,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -14,7 +13,6 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../constants/system.messages';
 
 import { ConfigureDatabaseDto } from './dto/configure-database.dto';
-import { UpdateDatabaseDto } from './dto/update-database.dto';
 import { DatabaseModelAction } from './model-actions/database-actions';
 
 @Injectable()
@@ -47,25 +45,8 @@ export class DatabaseService {
     }
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.DATABASE_CONFIGURATION_SUCCESS,
     };
-  }
-
-  findAll() {
-    return `This action returns all database`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} database`;
-  }
-
-  update(id: number, updateDatabaseDto: UpdateDatabaseDto) {
-    return `This action updates a #${updateDatabaseDto.database_name} database`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} database`;
   }
 
   private async testConnectionAndCreateTables(
