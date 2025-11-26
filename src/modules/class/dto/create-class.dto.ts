@@ -50,3 +50,23 @@ export class ClassResponseDto {
   @ApiProperty({ type: () => AcademicSessionDto, required: false })
   academicSession?: AcademicSessionDto;
 }
+
+export class GroupedClassDto {
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty({ type: () => AcademicSessionDto })
+  academicSession: AcademicSessionDto;
+
+  @ApiProperty({
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        arm: { type: 'string', nullable: true },
+      },
+    },
+  })
+  classes: { id: string; arm?: string }[];
+}

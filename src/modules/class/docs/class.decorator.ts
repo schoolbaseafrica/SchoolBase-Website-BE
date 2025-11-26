@@ -33,3 +33,8 @@ export const DocsCreateClass = () => {
     ApiResponse(responses.conflict),
   );
 };
+
+export const DocsGetGroupedClasses = () => {
+  const { operation, responses } = ClassSwagger.endpoints.getGroupedClasses;
+  return applyDecorators(ApiOperation(operation), ApiOkResponse(responses.ok));
+};

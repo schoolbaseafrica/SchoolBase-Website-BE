@@ -1,7 +1,7 @@
 import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { ClassResponseDto } from '../dto/create-class.dto';
+import { ClassResponseDto, GroupedClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -77,6 +77,23 @@ export const ClassSwagger = {
         conflict: {
           status: HttpStatus.CONFLICT,
           description: sysMsg.CLASS_ALREADY_EXIST,
+        },
+      },
+    },
+    getGroupedClasses: {
+      operation: {
+        summary: 'Get all classes grouped by name',
+        description:
+          'Returns all classes grouped by name, including their IDs, arms, and academic session. Returns an empty array if no classes exist.',
+      },
+      responses: {
+        ok: {
+          description: 'Grouped classes list',
+          type: GroupedClassDto,
+          isArray: true,
+        },
+        notFound: {
+          description: 'No classes found',
         },
       },
     },

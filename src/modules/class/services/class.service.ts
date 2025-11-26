@@ -158,4 +158,16 @@ export class ClassService {
       throw new ConflictException('Multiple active sessions found');
     return payload[0];
   }
+
+  /**
+   * Fetches all classes grouped by name and academic session, including arm.
+   */
+  async getGroupedClasses() {
+    const grouped = await this.classModelAction.findAllWithSession();
+    return {
+      status_code: HttpStatus.OK,
+      message: grouped.length ? sysMsg.CLASS_FETCHED : sysMsg.NO_CLASS_FOUND,
+      data: grouped,
+    };
+  }
 }

@@ -8,6 +8,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -64,6 +65,7 @@ describe('ClassService', () => {
     get: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
+    findAllWithSession: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -284,6 +286,45 @@ describe('ClassService', () => {
       await expect(service.create(createClassDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('getGroupedClasses', () => {
+    it('should return grouped classes with status_code 200 and message', async () => {
+      // Mock grouped data
+      const mockGrouped = [
+        {
+          name: 'JSS1',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+          classes: [
+            { id: 'class-id-1', arm: 'A' },
+            { id: 'class-id-2', arm: 'B' },
+          ],
+        },
+      ];
+      (mockClassModelAction.findAllWithSession as jest.Mock).mockResolvedValue(
+        mockGrouped,
+      );
+
+      const result = await service.getGroupedClasses();
+
+      expect(result.status_code).toBe(200);
+      expect(result.message).toBe(sysMsg.CLASS_FETCHED);
+      expect(result.data).toEqual(mockGrouped);
+      expect(mockClassModelAction.findAllWithSession).toHaveBeenCalled();
+    });
+
+    it('should return status_code 200 and message for empty grouped classes', async () => {
+      (mockClassModelAction.findAllWithSession as jest.Mock).mockResolvedValue(
+        [],
+      );
+
+      const result = await service.getGroupedClasses();
+
+      expect(result.status_code).toBe(200);
+      expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
+      expect(result.data).toEqual([]);
+      expect(mockClassModelAction.findAllWithSession).toHaveBeenCalled();
     });
   });
 });
