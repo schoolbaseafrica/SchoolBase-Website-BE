@@ -47,6 +47,7 @@ export const PASSWORD_RESET_SUCCESS = 'password reset success';
 export const PASSWORD_RESET_FAILED = 'password reset failed';
 export const PASSWORD_RESET_TOKEN_INVALID = 'password reset token invalid';
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'password reset token expired';
+export const PASSWORD_RESET_TOKEN_SENT = 'password reset token has been sent';
 export const PASSWORD_SAME_AS_OLD =
   'new password cannot be same as old password';
 

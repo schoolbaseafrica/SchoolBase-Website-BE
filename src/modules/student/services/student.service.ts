@@ -16,13 +16,11 @@ import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import {
   CreateStudentDto,
-  UpdateStudentDto,
   StudentResponseDto,
   ListStudentsDto,
-  PatchStudentDto
+  PatchStudentDto,
 } from '../dto';
 import { Student } from '../entities';
-
 import { StudentModelAction } from '../model-actions';
 
 @Injectable()

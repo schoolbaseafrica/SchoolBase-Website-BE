@@ -23,15 +23,14 @@ import {
   CreateStudentDocs,
   ListStudentsDocs,
   GetStudentDocs,
+  UpdateStudentDocs,
 } from '../docs';
 import {
   CreateStudentDto,
   ListStudentsDto,
   StudentResponseDto,
-  UpdateStudentDto,
+  PatchStudentDto,
 } from '../dto';
-import {  UpdateStudentDocs } from '../docs';
-import {  PatchStudentDto } from '../dto';
 import { StudentService } from '../services';
 
 @ApiTags(StudentSwagger.tags[0])
