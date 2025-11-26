@@ -52,14 +52,14 @@ export class CreateStudentDto {
 
   @ApiProperty({
     description:
-      'Registration number (format: REG-YYYY-XXX, e.g., REG-2025-014). Auto-generated if not provided.',
-    example: 'REG-2025-014',
+      'Registration number (format: STU-YYYY-XXXX, e.g., STU-2025-0014). Auto-generated if not provided.',
+    example: 'STU-2025-0014',
     required: false,
   })
   @IsOptional()
   @IsString()
-  @Matches(/^REG-\d{4}-\d{3}$/, {
-    message: 'Registration number must be in format REG-YYYY-XXX',
+  @Matches(/^STU-\d{4}-\d{4}$/, {
+    message: 'Registration number must be in format STU-YYYY-XXXX',
   })
   registration_number?: string;
 
