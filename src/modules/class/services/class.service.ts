@@ -16,16 +16,11 @@ import {
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Stream } from '../../stream/entities/stream.entity';
-import { CreateClassDto, ClassResponseDto } from '../dto/create-class.dto';
+import { CreateClassDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
-
-export interface ICreateClassResponse {
-  status_code: number;
-  message: string;
-  data: ClassResponseDto;
-}
+import { ICreateClassResponse } from '../types/base-response.interface';
 
 @Injectable()
 export class ClassService {
@@ -163,10 +158,9 @@ export class ClassService {
    * Fetches all classes grouped by name and academic session, including arm.
    */
   async getGroupedClasses(page = 1, limit = 20) {
-    const classes = await this.classModelAction.findAllWithSessionRaw(
-      page,
-      limit,
-    );
+    const { payload: classesRaw, paginationMeta } =
+      await this.classModelAction.findAllWithSessionRaw(page, limit);
+    const classes = Array.isArray(classesRaw) ? classesRaw : [];
 
     const grouped: Record<
       string,
@@ -197,7 +191,10 @@ export class ClassService {
       message: Object.values(grouped).length
         ? sysMsg.CLASS_FETCHED
         : sysMsg.NO_CLASS_FOUND,
-      data: Object.values(grouped),
+      data: {
+        items: Object.values(grouped),
+        pagination: paginationMeta,
+      },
     };
   }
 }

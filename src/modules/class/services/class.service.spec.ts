@@ -310,7 +310,10 @@ describe('ClassService', () => {
 
       (
         mockClassModelAction.findAllWithSessionRaw as jest.Mock
-      ).mockResolvedValue(mockRawClasses);
+      ).mockResolvedValue({
+        payload: mockRawClasses,
+        paginationMeta: { total: 1, page: 1, limit: 20 },
+      });
 
       const expectedGrouped = [
         {
@@ -326,20 +329,25 @@ describe('ClassService', () => {
       const result = await service.getGroupedClasses();
       expect(result.status_code).toBe(200);
       expect(result.message).toBe(sysMsg.CLASS_FETCHED);
-      expect(result.data).toEqual(expectedGrouped);
+      expect(result.data.items).toEqual(expectedGrouped);
+      expect(result.data.pagination).toBeDefined();
       expect(mockClassModelAction.findAllWithSessionRaw).toHaveBeenCalled();
     });
 
     it('should return status_code 200 and message for empty grouped classes', async () => {
       (
         mockClassModelAction.findAllWithSessionRaw as jest.Mock
-      ).mockResolvedValue([]);
+      ).mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page: 1, limit: 20 },
+      });
 
       const result = await service.getGroupedClasses();
 
       expect(result.status_code).toBe(200);
       expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
-      expect(result.data).toEqual([]);
+      expect(result.data.items).toEqual([]);
+      expect(result.data.pagination).toBeDefined();
       expect(mockClassModelAction.findAllWithSessionRaw).toHaveBeenCalled();
     });
   });
