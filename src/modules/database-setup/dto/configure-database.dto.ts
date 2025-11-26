@@ -3,7 +3,6 @@ import {
   IsEnum,
   IsInt,
   IsNotEmpty,
-  IsPort,
   IsString,
   Matches,
   Max,
@@ -82,7 +81,6 @@ export class ConfigureDatabaseDto {
   @IsNotEmpty()
   @Min(1)
   @Max(65535)
-  @IsPort()
   database_port: number;
 
   @ApiProperty({
