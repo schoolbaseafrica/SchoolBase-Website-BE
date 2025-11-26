@@ -2,6 +2,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpStatus,
   InternalServerErrorException,
 } from '@nestjs/common';
@@ -321,14 +322,19 @@ describe('AcademicSessionService', () => {
   });
 
   describe('update - implementation tests', () => {
-    const existingSession: AcademicSession = {
+    const existingActiveSession: AcademicSession = {
       id: 'uuid-123',
       name: '2024/2025',
       startDate: new Date('2024-09-01'),
       endDate: new Date('2025-08-31'),
-      status: SessionStatus.INACTIVE,
+      status: SessionStatus.ACTIVE, // Changed to ACTIVE
       createdAt: new Date(),
       updatedAt: new Date(),
+    };
+
+    const existingInactiveSession: AcademicSession = {
+      ...existingActiveSession,
+      status: SessionStatus.INACTIVE,
     };
 
     const updateDto = {
@@ -337,18 +343,18 @@ describe('AcademicSessionService', () => {
       endDate: new Date(Date.now() + 172800000).toISOString(),
     };
 
-    it('should update an academic session successfully', async () => {
+    it('should update an ACTIVE academic session successfully', async () => {
       const updatedSession = {
-        ...existingSession,
+        ...existingActiveSession,
         name: updateDto.name,
         startDate: new Date(updateDto.startDate),
         endDate: new Date(updateDto.endDate),
       };
 
       mockSessionModelAction.get
-        .mockResolvedValueOnce(existingSession)
-        .mockResolvedValueOnce(null)
-        .mockResolvedValueOnce(updatedSession);
+        .mockResolvedValueOnce(existingActiveSession) // Get session to update
+        .mockResolvedValueOnce(null) // Check for duplicate name (none)
+        .mockResolvedValueOnce(updatedSession); // Get updated session
 
       mockSessionModelAction.update.mockResolvedValue(true as any);
 
@@ -369,13 +375,31 @@ describe('AcademicSessionService', () => {
       ).rejects.toThrow(new BadRequestException(sysMsg.SESSION_NOT_FOUND));
     });
 
+    it('should throw ForbiddenException if trying to update INACTIVE session', async () => {
+      mockSessionModelAction.get.mockResolvedValueOnce(existingInactiveSession);
+
+      await expect(service.update('uuid-123', updateDto)).rejects.toThrow(
+        ForbiddenException,
+      );
+
+      expect(mockSessionModelAction.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw correct error message when updating INACTIVE session', async () => {
+      mockSessionModelAction.get.mockResolvedValueOnce(existingInactiveSession);
+
+      await expect(service.update('uuid-123', updateDto)).rejects.toThrow(
+        /Cannot modify an inactive academic session.*historical data integrity/i,
+      );
+    });
+
     it('should throw BadRequestException if end date is before start date', async () => {
       const invalidDto = {
         startDate: new Date(Date.now() + 172800000).toISOString(),
         endDate: new Date(Date.now() + 86400000).toISOString(),
       };
 
-      mockSessionModelAction.get.mockResolvedValue(existingSession);
+      mockSessionModelAction.get.mockResolvedValue(existingActiveSession);
 
       await expect(service.update('uuid-123', invalidDto)).rejects.toThrow(
         new BadRequestException(sysMsg.INVALID_DATE_RANGE),
@@ -386,8 +410,8 @@ describe('AcademicSessionService', () => {
       const duplicateDto = { name: 'Existing Session' };
 
       mockSessionModelAction.get
-        .mockResolvedValueOnce(existingSession)
-        .mockResolvedValueOnce({} as AcademicSession);
+        .mockResolvedValueOnce(existingActiveSession) // Get session to update
+        .mockResolvedValueOnce({} as AcademicSession); // Check for duplicate (found)
 
       await expect(service.update('uuid-123', duplicateDto)).rejects.toThrow(
         new ConflictException(sysMsg.DUPLICATE_SESSION_NAME),
@@ -396,7 +420,7 @@ describe('AcademicSessionService', () => {
   });
 
   describe('remove - implementation tests', () => {
-    const mockSession: AcademicSession = {
+    const mockInactiveSession: AcademicSession = {
       id: 'uuid-123',
       name: '2024/2025',
       startDate: new Date('2024-09-01'),
@@ -406,8 +430,13 @@ describe('AcademicSessionService', () => {
       updatedAt: new Date(),
     };
 
-    it('should delete an inactive academic session successfully', async () => {
-      mockSessionModelAction.get.mockResolvedValue(mockSession);
+    const mockActiveSession: AcademicSession = {
+      ...mockInactiveSession,
+      status: SessionStatus.ACTIVE,
+    };
+
+    it('should delete an ACTIVE academic session successfully', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockActiveSession);
       mockSessionModelAction.delete.mockResolvedValue(true as any);
 
       const result = await service.remove('uuid-123');
@@ -431,14 +460,21 @@ describe('AcademicSessionService', () => {
       );
     });
 
-    it('should throw BadRequestException if trying to delete active session', async () => {
-      const activeSession = { ...mockSession, status: SessionStatus.ACTIVE };
-      mockSessionModelAction.get.mockResolvedValue(activeSession);
+    it('should throw ForbiddenException if trying to delete INACTIVE session', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
 
       await expect(service.remove('uuid-123')).rejects.toThrow(
-        new BadRequestException(
-          'Cannot delete an active academic session. Please deactivate it first.',
-        ),
+        new ForbiddenException(sysMsg.INACTIVE_SESSION_LOCKED),
+      );
+
+      expect(mockSessionModelAction.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw correct error message when deleting INACTIVE session', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockInactiveSession);
+
+      await expect(service.remove('uuid-123')).rejects.toThrow(
+        sysMsg.INACTIVE_SESSION_LOCKED,
       );
     });
   });
