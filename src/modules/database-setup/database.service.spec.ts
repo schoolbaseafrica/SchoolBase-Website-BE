@@ -1,7 +1,6 @@
 import * as fs from 'fs';
 import { join } from 'path';
 
-import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
@@ -134,7 +133,6 @@ describe('DatabaseService', () => {
 
       // Verify response
       expect(result).toEqual({
-        status_code: HttpStatus.CREATED,
         message: sysMsg.DATABASE_CONFIGURATION_SUCCESS,
       });
     });
