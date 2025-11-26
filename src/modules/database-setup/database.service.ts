@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import { join } from 'path';
 
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -78,7 +79,38 @@ export class DatabaseService {
       return true;
     } catch (error) {
       this.logger.error('Database connection failed', { error });
-      throw error;
+      // throw error;
+      // Transform database errors to client-friendly messages
+      const errorCode = error?.code;
+      const errorMessage = error?.message || '';
+
+      if (errorCode === '28P01' || errorCode === '28000') {
+        // auth failed or invalid credentials
+        throw new BadRequestException(
+          'Invalid database credentials. Please check username and password.',
+        );
+      } else if (errorCode === '3D000') {
+        // db does not exist
+        throw new BadRequestException(
+          `Database "${configureDatabaseDto.database_name}" does not exist. Please create it first.`,
+        );
+      } else if (errorCode === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
+        // connection refused or host not found
+        throw new BadRequestException(
+          `Cannot connect to database host "${configureDatabaseDto.database_host}:${configureDatabaseDto.database_port}". Please verify the host and port.`,
+        );
+      } else if (errorCode === 'ETIMEDOUT') {
+        throw new BadRequestException(
+          'Database connection timeout. Please check your network or firewall settings.',
+        );
+      } else if (errorMessage.includes('does not exist')) {
+        throw new BadRequestException(errorMessage.replace('error: ', ''));
+      } else {
+        // Unknown error
+        throw new InternalServerErrorException(
+          'Failed to connect to database. Please check your configuration.',
+        );
+      }
     } finally {
       if (tempDataSource?.isInitialized) {
         await tempDataSource.destroy();
