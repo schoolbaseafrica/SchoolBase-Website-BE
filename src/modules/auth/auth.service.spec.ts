@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -44,6 +45,10 @@ describe('AuthService', () => {
     revokeSession: jest.fn(),
   };
 
+  const mockConfigService = {
+    get: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,6 +72,10 @@ describe('AuthService', () => {
         {
           provide: SessionService,
           useValue: mockSessionService,
+        },
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
         },
       ],
     }).compile();
@@ -130,6 +139,10 @@ describe('AuthService', () => {
             {
               provide: SessionService,
               useValue: null,
+            },
+            {
+              provide: ConfigService,
+              useValue: mockConfigService,
             },
           ],
         }).compile();

@@ -14,6 +14,14 @@ export class Parent extends BaseEntity {
   @Column({ type: 'boolean', default: true, name: 'is_active' })
   is_active: boolean;
 
+  @Column({
+    type: 'timestamp',
+    nullable: true,
+    default: null,
+    name: 'deleted_at',
+  })
+  deleted_at: Date | null;
+
   // --- Relationships ---
   @OneToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id', referencedColumnName: 'id' })

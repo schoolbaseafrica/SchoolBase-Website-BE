@@ -135,20 +135,12 @@ export class ParentService {
   }> {
     const { page = 1, limit = 10, search } = listParentsDto;
 
-    let result: { payload: Parent[]; paginationMeta: Partial<PaginationMeta> };
-
-    if (search) {
-      // For complex searches, we need to use a different approach
-      // since the list method might not support OR conditions across relations
-      result = await this.searchParentsWithModelAction(search, page, limit);
-    } else {
-      // No search - use regular list
-      result = await this.parentModelAction.list({
-        relations: { user: true },
-        paginationPayload: { page, limit },
-        order: { createdAt: 'DESC' },
-      });
-    }
+    // Using query builder to ensure deleted_at filtering works correctly
+    const result = await this.searchParentsWithModelAction(
+      search || '',
+      page,
+      limit,
+    );
 
     const data = result.payload.map((parent) =>
       this.transformToParentResponseDto(parent),
@@ -169,7 +161,7 @@ export class ParentService {
       relations: { user: true },
     });
 
-    if (!parent) {
+    if (!parent || parent.deleted_at) {
       this.logger.warn(`Parent not found with ID: ${id}`);
       throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
     }
@@ -187,7 +179,7 @@ export class ParentService {
       relations: { user: true },
     });
 
-    if (!parent) {
+    if (!parent || parent.deleted_at) {
       this.logger.warn(`Parent not found with ID: ${id}`);
       throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
     }
@@ -288,6 +280,49 @@ export class ParentService {
     });
   }
 
+  // --- DELETE (Soft Delete) ---
+  async remove(id: string): Promise<void> {
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${id}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      // Set deleted_at and is_active to false within transaction
+      await this.parentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          deleted_at: new Date(),
+          is_active: false,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Also deactivate the associated user account within transaction
+      await this.userModelAction.update({
+        identifierOptions: { id: parent.user_id },
+        updatePayload: { is_active: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(sysMsg.PARENT_DELETED, {
+        parentId: id,
+        userId: parent.user_id,
+      });
+    });
+  }
+
   // --- HELPER METHOD TO TRANSFORM ENTITY TO DTO ---
   private transformToParentResponseDto(parent: Parent): ParentResponseDto {
     const { user } = parent;
@@ -317,24 +352,23 @@ export class ParentService {
     });
   }
   private async searchParentsWithModelAction(
-    search: string,
+    search: string | undefined,
     page: number = 1,
     limit: number = 10,
   ): Promise<{
     payload: Parent[];
     paginationMeta: Partial<PaginationMeta>;
   }> {
-    // Since the model action's list method might not support complex OR conditions
-    // across relations, we'll use the repository from the model action
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.parentModelAction['repository']
       .createQueryBuilder('parent')
       .leftJoinAndSelect('parent.user', 'user')
+      .where('parent.deleted_at IS NULL')
       .orderBy('parent.createdAt', 'DESC');
 
-    if (search) {
-      queryBuilder.where(
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
         { search: `%${search}%` },
       );
