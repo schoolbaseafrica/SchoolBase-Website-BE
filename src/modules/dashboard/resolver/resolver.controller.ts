@@ -25,7 +25,6 @@ import { ResolverService } from './resolver.service';
 export class ResolverController {
   constructor(private readonly resolverService: ResolverService) {}
 
-  // --- GET: RESOLVE DASHBOARD FOR AUTHENTICATED USER ---
   @Get('resolve')
   @ApiResolveDashboard()
   async resolveDashboard(@Request() req): Promise<{
@@ -34,7 +33,7 @@ export class ResolverController {
     data: DashboardResolvedDataDto;
   }> {
     const userId: string = req.user?.id || req.user?.userId;
-    const tokenRole: string = req.user?.role;
+    const tokenRole: string = req.user?.roles;
 
     const data = await this.resolverService.resolveDashboard(userId, tokenRole);
 

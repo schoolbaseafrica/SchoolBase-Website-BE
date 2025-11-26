@@ -37,7 +37,6 @@ import {
 import { GeneratePasswordResponseDto } from './dto/generate-password-response.dto';
 import { TeacherService } from './teacher.service';
 
-
 @Controller('teachers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiTags('Teachers')

@@ -1,15 +1,17 @@
 import { Injectable, ForbiddenException, Inject } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { Logger } from 'winston';
 import { ArrayContains } from 'typeorm';
+import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { UserRole } from '../../shared/enums';
-import { UserService } from '../../user/user.service';
-import { UserModelAction } from '../../user/model-actions/user-actions';
-import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
-import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { ParentModelAction } from '../../parent/model-actions/parent-actions';
+import { UserRole } from '../../shared/enums';
+import { StudentModelAction } from '../../student/model-actions/student-actions';
+import { TeacherModelAction } from '../../teacher/model-actions/teacher-actions';
+import { UserModelAction } from '../../user/model-actions/user-actions';
+import { UserService } from '../../user/user.service';
+
+import { DASHBOARD_MODULES } from './dashboard-module';
 import {
   DashboardResolvedDataDto,
   DashboardMetadataAdmin,
@@ -18,8 +20,7 @@ import {
   DashboardMetadataParent,
   StudentChildDto,
 } from './dto/dashboard-resolver-response.dto';
-import { ModuleDescriptor } from './interface/module-descriptor-interface';
-import { User } from 'src/modules/user/entities/user.entity';
+import { IModuleDescriptor } from './interface/module-descriptor-interface';
 
 @Injectable()
 export class ResolverService {
@@ -40,7 +41,6 @@ export class ResolverService {
     userId: string,
     tokenRole: string,
   ): Promise<DashboardResolvedDataDto> {
-    // 1. Fetch user from DB
     const user = await this.userService.findOne(userId);
 
     if (!user || !user.role || user.role.length === 0) {
@@ -48,38 +48,22 @@ export class ResolverService {
       throw new ForbiddenException(sysMsg.FORBIDDEN);
     }
 
-    // 2. Extract DB role
     const dbRole: UserRole = Array.isArray(user.role)
       ? user.role[0]
       : user.role;
 
-    // 3. Validate token role matches DB role
-    // 3. Validate token role matches DB role
+    const tokenRoles = Array.isArray(tokenRole) ? tokenRole : [tokenRole];
+    const roleMatch = tokenRoles.includes(dbRole);
 
-console.log({
-  dbRole,
-  tokenRole,
-  rawUser: user.role,
-});
-
-
-if (dbRole !== tokenRole) {
-  this.logger.warn(
-    `Role mismatch for user ${userId}: token=${tokenRole}, db=${dbRole}`,
-  );
-  throw new ForbiddenException(sysMsg.FORBIDDEN);
-}
-
-    if (dbRole !== tokenRole) {
+    if (!roleMatch) {
       this.logger.warn(
-        `Role mismatch for user ${userId}: token=${tokenRole}, db=${dbRole}`,
+        `Role mismatch for user ${userId}: token=${tokenRoles}, db=${dbRole}`,
       );
       throw new ForbiddenException(sysMsg.FORBIDDEN);
     }
 
-    // 4. Resolve dashboard based on role
     let dashboard: UserRole;
-    let modules: ModuleDescriptor[];
+    let modules: IModuleDescriptor[];
     let metadata:
       | DashboardMetadataAdmin
       | DashboardMetadataTeacher
@@ -89,25 +73,25 @@ if (dbRole !== tokenRole) {
     switch (dbRole) {
       case UserRole.ADMIN:
         dashboard = UserRole.ADMIN;
-        modules = this.getAdminModules();
+        modules = DASHBOARD_MODULES[UserRole.ADMIN];
         metadata = await this.getAdminMetadata();
         break;
 
       case UserRole.TEACHER:
         dashboard = UserRole.TEACHER;
-        modules = this.getTeacherModules();
+        modules = DASHBOARD_MODULES[UserRole.TEACHER];
         metadata = await this.getTeacherMetadata(userId);
         break;
 
       case UserRole.STUDENT:
         dashboard = UserRole.STUDENT;
-        modules = this.getStudentModules();
+        modules = DASHBOARD_MODULES[UserRole.STUDENT];
         metadata = await this.getStudentMetadata(userId);
         break;
 
       case UserRole.PARENT:
         dashboard = UserRole.PARENT;
-        modules = this.getParentModules();
+        modules = DASHBOARD_MODULES[UserRole.PARENT];
         metadata = await this.getParentMetadata(userId);
         break;
 
@@ -125,43 +109,7 @@ if (dbRole !== tokenRole) {
     };
   }
 
-  // --- HELPER METHODS: MODULE DEFINITIONS ---
-
-  private getAdminModules(): ModuleDescriptor[] {
-    return [
-      { key: 'users', label: 'User Management', icon: 'users' },
-      { key: 'reports', label: 'Reports', icon: 'bar_chart' },
-      { key: 'settings', label: 'Settings', icon: 'settings' },
-    ];
-  }
-
-  private getTeacherModules(): ModuleDescriptor[] {
-    return [
-      { key: 'classes', label: 'My Classes', icon: 'class' },
-      { key: 'timetable', label: 'Timetable', icon: 'calendar_today' },
-      { key: 'students', label: 'Students', icon: 'people' },
-    ];
-  }
-
-  private getStudentModules(): ModuleDescriptor[] {
-    return [
-      { key: 'courses', label: 'Courses', icon: 'book' },
-      { key: 'grades', label: 'Grades', icon: 'grade' },
-      { key: 'enrollment', label: 'Enrollment', icon: 'assignment' },
-    ];
-  }
-
-  private getParentModules(): ModuleDescriptor[] {
-    return [
-      { key: 'children', label: 'My Children', icon: 'child_care' },
-      { key: 'results', label: 'Results', icon: 'assessment' },
-    ];
-  }
-
-  // --- HELPER METHODS: METADATA FETCHING ---
-
   private async getAdminMetadata(): Promise<DashboardMetadataAdmin> {
-    // Use list() with filterRecordOptions for counting
     const { payload: students } = await this.userModelAction.list({
       filterRecordOptions: {
         role: ArrayContains([UserRole.STUDENT]),
@@ -193,16 +141,11 @@ if (dbRole !== tokenRole) {
   private async getTeacherMetadata(
     userId: string,
   ): Promise<DashboardMetadataTeacher> {
-    // Use list() with relations support
-    const { payload: teachers } = await this.teacherModelAction.list({
+    await this.teacherModelAction.list({
       filterRecordOptions: { user_id: userId },
       relations: { class_assignments: true },
     });
 
-    const teacher = teachers.length > 0 ? teachers[0] : null;
-
-    // Since there's no timetable relation yet, return null
-    // This will be updated when timetable feature is implemented
     return {
       timetable: null,
     };
@@ -211,7 +154,6 @@ if (dbRole !== tokenRole) {
   private async getStudentMetadata(
     userId: string,
   ): Promise<DashboardMetadataStudent> {
-    // Use list() with relations support
     const { payload: students } = await this.studentModelAction.list({
       filterRecordOptions: { user: { id: userId } },
       relations: { stream: true, user: true },
@@ -219,8 +161,6 @@ if (dbRole !== tokenRole) {
 
     const student = students.length > 0 ? students[0] : null;
 
-    // Since there's no enrollment_status field, return default
-    // This will be updated when enrollment feature is implemented
     return {
       class: student?.stream?.name || 'Not Assigned',
       enrollment_status: student ? 'Active' : 'Pending',
@@ -230,20 +170,15 @@ if (dbRole !== tokenRole) {
   private async getParentMetadata(
     userId: string,
   ): Promise<DashboardMetadataParent> {
-    // Use list() for querying
     const { payload: parents } = await this.parentModelAction.list({
       filterRecordOptions: { user_id: userId },
     });
 
-    const parent = parents.length > 0 ? parents[0] : null;
-
-    // Since there's no parent-child relationship table yet, return empty array
-    // This will be updated when parent-student relationship is implemented
     const children: StudentChildDto[] = [];
 
-    if (parent) {
+    if (parents.length > 0) {
       this.logger.info(
-        `Parent ${parent.id} dashboard resolved. Children relationship not yet implemented.`,
+        `Parent ${parents[0].id} dashboard resolved. Children relationship not yet implemented.`,
       );
     }
 

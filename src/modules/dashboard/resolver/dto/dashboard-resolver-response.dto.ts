@@ -1,8 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { ModuleDescriptor } from '../interface/module-descriptor-interface';
+
 import { UserRole } from '../../../shared/enums';
-
-
+import { ModuleDescriptor } from '../interface/module-descriptor-interface';
 
 export class StudentChildDto {
   @ApiProperty()
