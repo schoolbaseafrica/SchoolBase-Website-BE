@@ -1,104 +1,155 @@
-import { HttpStatus } from '@nestjs/common';
+import { createHash } from 'crypto';
+
+import {
+  ConflictException,
+  BadRequestException,
+  NotFoundException,
+  HttpStatus,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { InviteUserDto, InviteRole } from '../dto/invite-user.dto';
-import { PendingInvitesResponseDto } from '../dto/pending-invite.dto';
-import { Invite } from '../entities/invites.entity';
+import { EmailService } from '../../email/email.service';
+import { School } from '../../school/entities/school.entity';
+import { UserRole } from '../../user/entities/user.entity';
+import { UserModelAction } from '../../user/model-actions/user-actions';
+import { AcceptInviteDto } from '../dto/accept-invite.dto';
+import { Invite, InviteStatus } from '../entities/invites.entity';
+import { InviteModelAction } from '../invite.model-action';
 import { InviteService } from '../invites.service';
+
+// Interfaces
+interface IMockModelAction {
+  create: jest.Mock;
+  get: jest.Mock;
+  list: jest.Mock;
+  update: jest.Mock;
+}
 
 describe('InviteService', () => {
   let service: InviteService;
+  let inviteModelAction: IMockModelAction;
+  let userModelAction: IMockModelAction;
 
-  const mockInviteRepo = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    find: jest.fn(),
+  const mockInvite = {
+    id: 'invite-uuid',
+    email: 'test@example.com',
+    role: UserRole.TEACHER,
+    full_name: 'John Doe',
+    token_hash: 'hashed-token',
+    expires_at: new Date(Date.now() + 100000),
+    accepted: false,
+    status: InviteStatus.PENDING,
   };
 
   beforeEach(async () => {
+    const mockAction = {
+      create: jest.fn(),
+      get: jest.fn(),
+      list: jest.fn(),
+      update: jest.fn(),
+    };
+
+    const mockLoggerObj = {
+      info: jest.fn(),
+      child: jest.fn().mockReturnThis(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InviteService,
-        { provide: getRepositoryToken(Invite), useValue: mockInviteRepo },
+        { provide: InviteModelAction, useValue: { ...mockAction } },
+        { provide: UserModelAction, useValue: { ...mockAction } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+        { provide: EmailService, useValue: { sendMail: jest.fn() } },
+        { provide: WINSTON_MODULE_PROVIDER, useValue: mockLoggerObj },
+        // Mocks for injected Repositories (used in constructor but not in acceptInvite)
+        { provide: getRepositoryToken(Invite), useValue: {} },
+        { provide: getRepositoryToken(School), useValue: {} },
       ],
     }).compile();
 
     service = module.get<InviteService>(InviteService);
+    inviteModelAction = module.get(InviteModelAction);
+    userModelAction = module.get(UserModelAction);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+  describe('acceptInvite', () => {
+    const dto: AcceptInviteDto = {
+      token: 'valid-token',
+      password: 'Password123!',
+    };
+    // Helper to simulate the hash logic inside the service
+    const hashedToken = createHash('sha256').update(dto.token).digest('hex');
 
-  describe('sendInvite', () => {
-    it('should create a new invite if email does not exist', async () => {
-      mockInviteRepo.findOne.mockResolvedValue(null);
-      mockInviteRepo.create.mockReturnValue({
-        id: '1',
-        email: 'test@example.com',
-        invitedAt: new Date(),
-        role: InviteRole.TEACHER,
-        full_name: 'John Doe',
-      });
-      mockInviteRepo.save.mockResolvedValue({});
+    it('should create user and update invite if token is valid', async () => {
+      // 1. Mock Finding Invite
+      inviteModelAction.get.mockResolvedValue(mockInvite);
 
-      const payload: InviteUserDto = {
-        email: 'test@example.com',
-        role: InviteRole.TEACHER,
-        full_name: 'John Doe',
-      };
-      const result = await service.sendInvite(payload);
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.INVITE_SENT);
-      expect(result.data[0].email).toBe(payload.email);
-    });
-
-    it('should return conflict if email already exists', async () => {
-      mockInviteRepo.findOne.mockResolvedValue({
-        id: '1',
-        email: 'test@example.com',
+      // 2. Mock User Creation
+      userModelAction.create.mockResolvedValue({
+        id: 'new-user-id',
+        email: mockInvite.email,
+        role: [mockInvite.role],
       });
 
-      const payload: InviteUserDto = {
-        email: 'test@example.com',
-        role: InviteRole.TEACHER,
-      };
-      const result = await service.sendInvite(payload);
+      const result = await service.acceptInvite(dto);
 
-      expect(result.status_code).toBe(HttpStatus.CONFLICT);
-      expect(result.message).toBe(sysMsg.INVITE_ALREADY_SENT);
-      expect(result.data).toHaveLength(0);
-    });
-  });
+      // Assert: Check if hashed token was used for lookup
+      expect(inviteModelAction.get).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: expect.objectContaining({
+            token_hash: hashedToken,
+          }),
+        }),
+      );
 
-  describe('getPendingInvites', () => {
-    it('should return pending invites if they exist', async () => {
-      const invites = [
-        { id: '1', email: 'test@example.com', invitedAt: new Date() },
-      ];
-      mockInviteRepo.find.mockResolvedValue(invites);
+      expect(userModelAction.create).toHaveBeenCalled();
+      expect(inviteModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({ updatePayload: { accepted: true } }),
+      );
 
-      const result: PendingInvitesResponseDto =
-        await service.getPendingInvites();
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.PENDING_INVITES_FETCHED);
-      expect(result.data).toHaveLength(invites.length);
+      expect(result.status_code).toBe(HttpStatus.CREATED);
+      expect(result.data.email).toBe(mockInvite.email);
     });
 
-    it('should return NOT_FOUND if no pending invites', async () => {
-      mockInviteRepo.find.mockResolvedValue([]);
+    it('should throw NotFoundException if token is invalid', async () => {
+      inviteModelAction.get.mockResolvedValue(null);
 
-      const result: PendingInvitesResponseDto =
-        await service.getPendingInvites();
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        NotFoundException,
+      );
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        sysMsg.INVALID_VERIFICATION_TOKEN,
+      );
+    });
 
-      expect(result.status_code).toBe(HttpStatus.NOT_FOUND);
-      expect(result.message).toBe(sysMsg.NO_PENDING_INVITES);
-      expect(result.data).toHaveLength(0);
+    it('should throw ConflictException if invite already accepted', async () => {
+      inviteModelAction.get.mockResolvedValue({
+        ...mockInvite,
+        accepted: true,
+      });
+
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should throw BadRequestException if token expired', async () => {
+      inviteModelAction.get.mockResolvedValue({
+        ...mockInvite,
+        expires_at: new Date(Date.now() - 10000), // Past
+      });
+
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.acceptInvite(dto)).rejects.toThrow(
+        sysMsg.TOKEN_EXPIRED,
+      );
     });
   });
 });
