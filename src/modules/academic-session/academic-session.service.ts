@@ -11,6 +11,7 @@ import { DataSource, FindOptionsOrder } from 'typeorm';
 import * as sysMsg from '../../constants/system.messages';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
+import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 import {
   AcademicSession,
   SessionStatus,
@@ -122,9 +123,10 @@ export class AcademicSessionService {
 
     const updatedAcademicSession = await this.dataSource.transaction(
       async (manager) => {
+        // Deactivate all currently active sessions
         await this.sessionModelAction.update({
           updatePayload: { status: SessionStatus.INACTIVE },
-          identifierOptions: {},
+          identifierOptions: { status: SessionStatus.ACTIVE },
           transactionOptions: {
             useTransaction: true,
             transaction: manager,
@@ -145,8 +147,9 @@ export class AcademicSessionService {
           );
         }
 
-        const updated = await this.sessionModelAction.get({
-          identifierOptions: { id: sessionId },
+        // Fetch the updated session within the transaction
+        const updated = await manager.findOne(AcademicSession, {
+          where: { id: sessionId },
         });
 
         return updated;
@@ -159,15 +162,101 @@ export class AcademicSessionService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} academicSession`;
+  async findOne(id: string) {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!session) {
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+    }
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_RETRIEVED,
+      data: session,
+    };
   }
 
-  update(id: number) {
-    return `This action updates a #${id} academicSession`;
+  async update(id: string, updateSessionDto: UpdateAcademicSessionDto) {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!session) {
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+    }
+
+    // Validate dates if provided
+    if (updateSessionDto.startDate && updateSessionDto.endDate) {
+      const start = new Date(updateSessionDto.startDate);
+      const end = new Date(updateSessionDto.endDate);
+
+      if (end <= start) {
+        throw new BadRequestException(sysMsg.INVALID_DATE_RANGE);
+      }
+    }
+
+    // Check for duplicate name if name is being updated
+    if (updateSessionDto.name && updateSessionDto.name !== session.name) {
+      const existingSession = await this.sessionModelAction.get({
+        identifierOptions: { name: updateSessionDto.name },
+      });
+
+      if (existingSession) {
+        throw new ConflictException(sysMsg.DUPLICATE_SESSION_NAME);
+      }
+    }
+
+    const updatePayload: Partial<AcademicSession> = {};
+    if (updateSessionDto.name) updatePayload.name = updateSessionDto.name;
+    if (updateSessionDto.startDate)
+      updatePayload.startDate = new Date(updateSessionDto.startDate);
+    if (updateSessionDto.endDate)
+      updatePayload.endDate = new Date(updateSessionDto.endDate);
+
+    await this.sessionModelAction.update({
+      identifierOptions: { id },
+      updatePayload,
+      transactionOptions: { useTransaction: false },
+    });
+
+    const updatedSession = await this.sessionModelAction.get({
+      identifierOptions: { id },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_UPDATED,
+      data: updatedSession,
+    };
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} academicSession`;
+  async remove(id: string) {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!session) {
+      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+    }
+
+    // Prevent deletion of active session
+    if (session.status === SessionStatus.ACTIVE) {
+      throw new BadRequestException(
+        'Cannot delete an active academic session. Please deactivate it first.',
+      );
+    }
+
+    await this.sessionModelAction.delete({
+      identifierOptions: { id },
+      transactionOptions: { useTransaction: false },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACADEMIC_SESSION_DELETED,
+      data: null,
+    };
   }
 }
