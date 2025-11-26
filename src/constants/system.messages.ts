@@ -187,6 +187,8 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_NAME_EMPTY = 'class name cannot be empty';
+export const CLASS_UPDATED = 'class updated successfully';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
