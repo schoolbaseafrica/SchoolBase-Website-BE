@@ -173,3 +173,13 @@ export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
 export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
+
+//bulk upload mesages
+export const BULK_UPLOAD_SUCCESS = 'Bulk upload completed successfully';
+export const INVALID_BULK_UPLOAD_FILE =
+  'Invalid file type. Please upload a .csv file';
+export const BULK_UPLOAD_NOT_ALLOWED = 'Only CSV files are allowed';
+export const BULK_UPLOAD_NO_NEW_EMAILS =
+  'All emails in the CSV already exist in the system';
+export const NO_BULK_UPLOAD_DATA =
+  'No valid data found in the uploaded CSV file';

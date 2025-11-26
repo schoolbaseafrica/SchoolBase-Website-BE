@@ -7,11 +7,23 @@ import {
   HttpCode,
   UseInterceptors,
   UploadedFile,
-  BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
+import * as sysMsg from '../../constants/system.messages';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
+
+import { csvUploadDocs } from './docs/csv-swagger-doc';
 import {
   InviteUserDto,
   CreatedInvitesResponseDto,
@@ -58,19 +70,18 @@ export class InvitesController {
     return this.inviteService.getPendingInvites();
   }
 
-  @Post('upload')
+  @Post('csv-bulk-upload')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
   @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  @csvUploadDocs()
   async uploadCsv(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException(
-        'No file uploaded. Please attach a CSV file.',
-      );
-    }
-
     const key = await this.inviteService.uploadCsvToS3(file);
     return {
       status_code: HttpStatus.OK,
-      message: 'CSV uploaded successfully',
+      message: sysMsg.OPERATION_SUCCESSFUL,
       file_key: key,
     };
   }

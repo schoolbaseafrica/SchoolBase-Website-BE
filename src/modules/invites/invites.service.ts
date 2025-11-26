@@ -1,4 +1,4 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
+import { Injectable, HttpStatus, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { S3 } from 'aws-sdk';
 import { Repository } from 'typeorm';
@@ -98,42 +98,60 @@ export class InviteService {
     };
   }
 
-  // async uploadCsvToS3(file: Express.Multer.File): Promise<string> {
-  //   const bucket = aws.bucketName;
-  //   const key = `invites/${Date.now()}-${file.originalname}`;
-
-  //   const params = {
-  //     Bucket: bucket,
-  //     Key: key,
-  //     Body: file.buffer,
-  //     ContentType: file.mimetype,
-  //   };
-
-  //   const result = await this.s3.upload(params).promise();
-  //   return result.Key;
-  // }
-
   async uploadCsvToS3(
     file: Express.Multer.File,
   ): Promise<PendingInvitesResponseDto> {
-    const rows = await parseCsv<InviteUserDto>(file.buffer);
-    const emails = rows.map((row) => row.email.trim().toLowerCase());
+    if (file.mimetype !== 'text/csv') {
+      throw new BadRequestException(sysMsg.BULK_UPLOAD_NOT_ALLOWED);
+    }
 
+    if (!file) {
+      throw new BadRequestException(sysMsg.NO_BULK_UPLOAD_DATA);
+    }
+
+    if (!file.originalname.endsWith('.csv')) {
+      throw new BadRequestException(sysMsg.INVALID_BULK_UPLOAD_FILE);
+    }
+    // Parse CSV into rows
+    const rows = await parseCsv<InviteUserDto>(file.buffer);
+
+    // Filter out rows with missing or empty email
+    const filteredRows = rows.filter((row) => row.email?.trim());
+
+    // Normalize emails
+    const emails = filteredRows.map((row) => row.email.trim().toLowerCase());
+
+    // Find existing invites in DB
     const existing = await this.inviteRepo.find({
       where: emails.map((email) => ({ email })),
     });
+
     const existingEmails = new Set(
       existing.map((invite) => invite.email.toLowerCase()),
     );
 
-    const validRows = rows.filter(
+    // Keep only rows with unique emails
+    const validRows = filteredRows.filter(
       (row) => !existingEmails.has(row.email.trim().toLowerCase()),
+    );
+
+    if (validRows.length === 0) {
+      throw new BadRequestException(sysMsg.BULK_UPLOAD_NO_NEW_EMAILS);
+    }
+
+    const skippedRows = filteredRows.filter((row) =>
+      existingEmails.has(row.email.trim().toLowerCase()),
     );
 
     const createdInvites: CreatedInviteDto[] = [];
 
     for (const row of validRows) {
-      const invite = this.inviteRepo.create(row);
+      const invite = this.inviteRepo.create({
+        email: row.email.trim().toLowerCase(),
+        role: row.role?.trim(),
+        full_name: row.full_name?.trim(),
+      });
+
       await this.inviteRepo.save(invite);
 
       createdInvites.push({
@@ -143,14 +161,14 @@ export class InviteService {
         role: invite.role as InviteRole,
         full_name: invite.full_name,
       });
-
-      // Optionally, send invitation email here
     }
 
     return {
       status_code: HttpStatus.OK,
-      message: `${createdInvites.length} invites sent. ${rows.length - createdInvites.length} skipped.`,
+      message: sysMsg.BULK_UPLOAD_SUCCESS,
+      total_bulk_invites_sent: createdInvites.length,
       data: createdInvites,
+      skipped_already_exist_emil_on_csv: skippedRows.map((row) => row.email),
     };
   }
 }
