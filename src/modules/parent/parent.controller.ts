@@ -3,12 +3,14 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -23,8 +25,9 @@ import {
   ApiCreateParent,
   ApiGetParent,
   ApiListParents,
+  ApiUpdateParent,
 } from './docs/parent.swagger';
-import { CreateParentDto, ParentResponseDto } from './dto';
+import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
@@ -94,6 +97,27 @@ export class ParentController {
       status_code: HttpStatus.OK,
       data,
       meta: paginationMeta,
+    };
+  }
+
+  // --- PATCH: UPDATE PARENT (ADMIN ONLY) ---
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateParent()
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDto: UpdateParentDto,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentResponseDto;
+  }> {
+    const data = await this.parentService.update(id, updateDto);
+    return {
+      message: sysMsg.PARENT_UPDATED,
+      status_code: HttpStatus.OK,
+      data,
     };
   }
 }

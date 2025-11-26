@@ -166,6 +166,10 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+//department
+export const DEPARTMENT_NOT_FOUND = 'Department not found';
+export const DEPARTMENT_CREATED = 'Department created successfully';
+export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -195,13 +199,9 @@ export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 
-// Subject messages
-export const SUBJECT_NOT_FOUND = 'Subject not found';
-export const SUBJECT_CREATED = 'Subject created successfully';
-export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
-export const DEPARTMENTS_NOT_FOUND = 'One or more departments not found';
-
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+export const STUDENT_NOT_FOUND = 'Student not found';
+export const STUDENT_UPDATED = 'Student updated successfully';
