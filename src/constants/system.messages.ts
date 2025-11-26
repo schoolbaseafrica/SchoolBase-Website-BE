@@ -167,14 +167,11 @@ export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
-
-
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
-
 
 // Classes
 export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
@@ -197,7 +194,6 @@ export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
 export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
-
 
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';

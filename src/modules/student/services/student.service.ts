@@ -117,7 +117,6 @@ export class StudentService {
   }
 
   // --- FIND ALL (with pagination and search) ---
-  // --- FIND ALL (with pagination and search) ---
   async findAll(listStudentsDto: ListStudentsDto): Promise<{
     message: string;
     status_code: number;
