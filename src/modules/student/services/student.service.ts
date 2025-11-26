@@ -1,3 +1,4 @@
+import { PaginationMeta } from '@hng-sdk/orm';
 import {
   ConflictException,
   Inject,
@@ -13,7 +14,13 @@ import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
-import { CreateStudentDto, StudentResponseDto, PatchStudentDto } from '../dto';
+import {
+  CreateStudentDto,
+  StudentResponseDto,
+  ListStudentsDto,
+  PatchStudentDto,
+} from '../dto';
+import { Student } from '../entities';
 import { StudentModelAction } from '../model-actions';
 
 @Injectable()
@@ -109,12 +116,66 @@ export class StudentService {
     });
   }
 
-  findAll() {
-    return `This action returns all term`;
+  // --- FIND ALL (with pagination and search) ---
+  async findAll(listStudentsDto: ListStudentsDto): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentResponseDto[];
+    meta: Partial<PaginationMeta>;
+  }> {
+    const { page = 1, limit = 10, search } = listStudentsDto;
+
+    // Use the custom search method for search, regular list for no search
+    const { payload: students, paginationMeta } = search
+      ? await this.searchStudentsWithModelAction(search, page, limit)
+      : await this.studentModelAction.list({
+          relations: { user: true, stream: true },
+          paginationPayload: { page, limit },
+          order: { createdAt: 'DESC' },
+        });
+
+    const data = students.map(
+      (student) => new StudentResponseDto('', student, student.user),
+    );
+
+    this.logger.info(`Fetched ${data.length} students`, {
+      searchTerm: search,
+      page,
+      limit,
+      total: paginationMeta.total,
+    });
+
+    return {
+      message: sysMsg.STUDENTS_FETCHED,
+      status_code: 200,
+      data,
+      meta: paginationMeta,
+    };
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} term`;
+  // --- FIND ONE ---
+  async findOne(id: string): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentResponseDto;
+  }> {
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true, stream: true },
+    });
+
+    if (!student) {
+      this.logger.warn(`Student not found with ID: ${id}`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const data = new StudentResponseDto('', student, student.user);
+
+    return {
+      message: sysMsg.STUDENT_FETCHED,
+      status_code: 200,
+      data,
+    };
   }
 
   async update(id: string, updateStudentDto: PatchStudentDto) {
@@ -227,6 +288,43 @@ export class StudentService {
 
       return { message: sysMsg.STUDENT_DELETED };
     });
+  }
+
+  // --- SEARCH STUDENTS (private method) ---
+  private async searchStudentsWithModelAction(
+    search: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    payload: Student[];
+    paginationMeta: Partial<PaginationMeta>;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.studentModelAction['repository']
+      .createQueryBuilder('student')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('student.stream', 'stream')
+      .orderBy('student.createdAt', 'DESC');
+
+    if (search) {
+      queryBuilder.where(
+        '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search OR student.registration_number ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const total = await queryBuilder.getCount();
+    const payload = await queryBuilder.skip(skip).take(limit).getMany();
+
+    const paginationMeta = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { payload, paginationMeta };
   }
 
   /**

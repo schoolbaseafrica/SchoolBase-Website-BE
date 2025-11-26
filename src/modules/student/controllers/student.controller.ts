@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Query,
   ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -20,10 +21,17 @@ import { UserRole } from '../../shared/enums';
 import {
   StudentSwagger,
   CreateStudentDocs,
+  GetStudentDocs,
+  ListStudentsDocs,
   UpdateStudentDocs,
   DeleteStudentDocs,
 } from '../docs';
-import { CreateStudentDto, PatchStudentDto, StudentResponseDto } from '../dto';
+import {
+  CreateStudentDto,
+  ListStudentsDto,
+  PatchStudentDto,
+  StudentResponseDto,
+} from '../dto';
 import { StudentService } from '../services';
 
 @ApiTags(StudentSwagger.tags[0])
@@ -42,12 +50,20 @@ export class StudentController {
     return this.studentService.create(createStudentDto);
   }
 
+  // --- GET: LIST ALL STUDENTS (with pagination and search) ---
   @Get()
-  findAll() {
-    return this.studentService.findAll();
+  @ListStudentsDocs()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findAll(@Query() listStudentsDto: ListStudentsDto) {
+    return this.studentService.findAll(listStudentsDto);
   }
 
+  // --- GET: GET SINGLE STUDENT BY ID ---
   @Get(':id')
+  @GetStudentDocs()
+  @Roles(UserRole.ADMIN, UserRole.STUDENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   findOne(@Param('id') id: string) {
     return this.studentService.findOne(id);
   }

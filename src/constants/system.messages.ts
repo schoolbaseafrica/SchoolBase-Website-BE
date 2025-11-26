@@ -203,6 +203,9 @@ export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+export const STUDENT_FETCHED = 'Student fetched successfully';
+export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
+
 export const STUDENT_UPDATED = 'Student updated successfully';
 export const STUDENT_DELETED = 'Student deleted successfully';
