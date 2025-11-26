@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, Like } from 'typeorm';
 import { Logger } from 'winston';
@@ -8,7 +13,7 @@ import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
-import { CreateStudentDto, UpdateStudentDto, StudentResponseDto } from '../dto';
+import { CreateStudentDto, StudentResponseDto, PatchStudentDto } from '../dto';
 import { StudentModelAction } from '../model-actions';
 
 @Injectable()
@@ -37,7 +42,7 @@ export class StudentService {
     }
     const registration_number =
       createStudentDto.registration_number ||
-      (await this.generateRegistrationNumber());
+      (await this.generateStudentNumber());
 
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { registration_number },
@@ -81,7 +86,7 @@ export class StudentService {
       const savedStudent = await this.studentModelAction.create({
         createPayload: {
           user: { id: savedUser.id },
-          registration_number: registration_number,
+          registration_number,
           photo_url: photo_url,
         },
         transactionOptions: {
@@ -92,7 +97,7 @@ export class StudentService {
 
       this.logger.info(sysMsg.RESOURCE_CREATED, {
         studentId: savedStudent.id,
-        registration_number: savedStudent.registration_number,
+        registration_number,
         email: savedUser.email,
       });
 
@@ -112,8 +117,75 @@ export class StudentService {
     return `This action returns a #${id} term`;
   }
 
-  update(id: string, updateStudentDto: UpdateStudentDto) {
-    return `#${id}: ${updateStudentDto}`;
+  async update(id: string, updateStudentDto: PatchStudentDto) {
+    const existingStudent = await this.studentModelAction.get({
+      identifierOptions: { id },
+      relations: {
+        user: true,
+      },
+    });
+    if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    if (updateStudentDto.email) {
+      const existingUser = await this.userModelAction.get({
+        identifierOptions: { email: updateStudentDto.email },
+      });
+
+      if (existingUser && existingUser.id !== existingStudent.user.id) {
+        this.logger.warn(
+          `Attempt to update student with existing email: ${updateStudentDto.email}`,
+        );
+        throw new ConflictException(sysMsg.STUDENT_EMAIL_CONFLICT);
+      }
+    }
+    return this.dataSource.transaction(async (manager) => {
+      const updatedUser = await this.userModelAction.update({
+        identifierOptions: { id: existingStudent.user.id },
+        updatePayload: {
+          first_name: updateStudentDto.first_name,
+          last_name: updateStudentDto.last_name,
+          middle_name: updateStudentDto.middle_name,
+          email: updateStudentDto.email,
+          phone: updateStudentDto.phone,
+          gender: updateStudentDto.gender,
+          dob: updateStudentDto.date_of_birth
+            ? new Date(updateStudentDto.date_of_birth)
+            : undefined,
+          homeAddress: updateStudentDto.home_address,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      let student = existingStudent;
+
+      if (updateStudentDto.photo_url) {
+        const photo_url = this.fileService.validatePhotoUrl(
+          updateStudentDto.photo_url,
+        );
+        student = await this.studentModelAction.update({
+          identifierOptions: { id },
+          updatePayload: {
+            photo_url: photo_url,
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+      }
+
+      this.logger.info(sysMsg.RESOURCE_UPDATED, {
+        studentId: id,
+      });
+
+      return new StudentResponseDto(
+        sysMsg.STUDENT_UPDATED,
+        student,
+        updatedUser,
+      );
+    });
   }
 
   remove(id: string) {
@@ -121,37 +193,40 @@ export class StudentService {
   }
 
   /**
-   * Generate a unique Registration Number in the format REG-YYYY-XXX
-   * where YYYY is the current year and XXX is a sequential number (001, 002, etc.)
+   * Generate a unique Student Number in the format STU-YYYY-XXXX
+   * where YYYY is the current year and XXXX is a 4-digit sequential number.
    */
-  private async generateRegistrationNumber(): Promise<string> {
+  private async generateStudentNumber(): Promise<string> {
     const currentYear = new Date().getFullYear();
-    const yearPrefix = `REG-${currentYear}-`;
+    const yearPrefix = `STU-${currentYear}-`;
 
-    // Query the highest existing sequential number for the current year
-    const lastStudent = await this.studentModelAction.find({
+    // Fetch the last student number for this year
+    const lastRecord = await this.studentModelAction.find({
       findOptions: {
         registration_number: Like(`${yearPrefix}%`),
       },
-      transactionOptions: {
-        useTransaction: false,
-      },
+      transactionOptions: { useTransaction: false },
       paginationPayload: { limit: 1, page: 1 },
       order: { registration_number: 'DESC' },
     });
 
     let nextSequence = 1;
-    if (lastStudent) {
-      // Extract the numeric part (e.g., '014' from 'REG-2025-014')
-      const parts = lastStudent.payload[0].registration_number.split('-');
-      if (parts.length === 3) {
-        const lastId = parts[2];
-        nextSequence = parseInt(lastId, 10) + 1;
+
+    if (lastRecord?.payload?.length > 0) {
+      const lastStudentNumber = lastRecord.payload[0].registration_number;
+
+      if (lastStudentNumber) {
+        const parts = lastStudentNumber.split('-');
+        if (parts.length === 3) {
+          const lastSeq = parseInt(parts[2], 10);
+          if (!isNaN(lastSeq)) {
+            nextSequence = lastSeq + 1;
+          }
+        }
       }
     }
 
-    // Format the sequence number to be 3 digits (e.g., 1 -> 001, 14 -> 014)
-    const sequenceStr = nextSequence.toString().padStart(3, '0');
+    const sequenceStr = String(nextSequence).padStart(4, '0');
     return `${yearPrefix}${sequenceStr}`;
   }
 }
