@@ -20,6 +20,9 @@ interface IMockDataSource {
   destroy: jest.Mock;
   isInitialized: boolean;
 }
+interface IDatabaseError extends Error {
+  code?: string;
+}
 
 describe('DatabaseService', () => {
   let service: DatabaseService;
@@ -185,12 +188,13 @@ describe('DatabaseService', () => {
       expect(writtenContent).toContain('"host=value"');
     });
 
-    it('should throw InternalServerErrorException when connection test fails', async () => {
-      const connectionError = new Error('Connection refused');
+    it('should throw BadRequestException when connection test fails', async () => {
+      const connectionError = new Error('Connection refused') as IDatabaseError;
+      connectionError.code = 'ECONNREFUSED'; // Add error code
       mockDataSource.initialize.mockRejectedValue(connectionError);
 
       await expect(service.create(mockConfigureDatabaseDto)).rejects.toThrow(
-        'Connection refused',
+        'Cannot connect to database host', // Updated expectation
       );
 
       // Verify error was logged
@@ -202,12 +206,50 @@ describe('DatabaseService', () => {
       // Verify .env was not written
       expect(fs.writeFileSync).not.toHaveBeenCalled();
     });
+
+    it('should throw BadRequestException for invalid credentials', async () => {
+      const authError = new Error(
+        'password authentication failed',
+      ) as IDatabaseError;
+      authError.code = '28P01';
+      mockDataSource.initialize.mockRejectedValue(authError);
+
+      await expect(service.create(mockConfigureDatabaseDto)).rejects.toThrow(
+        'Invalid database credentials',
+      );
+    });
+
+    it('should throw BadRequestException when database does not exist', async () => {
+      const dbError = new Error(
+        'database "test_db" does not exist',
+      ) as IDatabaseError;
+      dbError.code = '3D000';
+      mockDataSource.initialize.mockRejectedValue(dbError);
+
+      await expect(service.create(mockConfigureDatabaseDto)).rejects.toThrow(
+        'does not exist. Please create it first',
+      );
+    });
+
+    it('should throw BadRequestException for role does not exist', async () => {
+      const roleError = new Error(
+        'role "root" does not exist',
+      ) as IDatabaseError;
+      roleError.code = '28000';
+      mockDataSource.initialize.mockRejectedValue(roleError);
+
+      await expect(service.create(mockConfigureDatabaseDto)).rejects.toThrow(
+        'Invalid database credentials',
+      );
+    });
+
     it('should throw InternalServerErrorException when query fails', async () => {
       const queryError = new Error('Query failed');
+
       mockDataSource.query.mockRejectedValue(queryError);
 
       await expect(service.create(mockConfigureDatabaseDto)).rejects.toThrow(
-        'Query failed',
+        'Failed to connect to database. Please check your configuration.', // Updated expectation
       );
 
       // Verify connection was initialized but query failed
