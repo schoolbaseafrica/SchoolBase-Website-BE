@@ -8,6 +8,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+import * as sysMsg from '../../constants/system.messages';
+
+import { AcceptInviteDto } from './dto/accept-invite.dto';
 import {
   InviteUserDto,
   CreatedInvitesResponseDto,
@@ -52,5 +55,29 @@ export class InvitesController {
   })
   async getPendingInvites(): Promise<PendingInvitesResponseDto> {
     return this.inviteService.getPendingInvites();
+  }
+
+  @Post('accept')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Accept invitation and set password' })
+  @ApiResponse({
+    status: HttpStatus.CREATED,
+    description: sysMsg.ACCOUNT_CREATED,
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: sysMsg.INVALID_VERIFICATION_TOKEN,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.TOKEN_EXPIRED,
+  })
+  async acceptInvite(@Body() acceptInviteDto: AcceptInviteDto) {
+    const user = await this.inviteService.acceptInvite(acceptInviteDto);
+    return {
+      status_code: HttpStatus.OK,
+      message: 'Account activated successfully',
+      data: user,
+    };
   }
 }
