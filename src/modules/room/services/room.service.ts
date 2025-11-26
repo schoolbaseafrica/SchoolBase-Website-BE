@@ -8,8 +8,6 @@ import { DataSource, In } from 'typeorm';
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
-import { UpdateRoomDTO } from '../dto/update-room-dto';
-import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 @Injectable()
@@ -51,69 +49,6 @@ export class RoomService {
     });
 
     return newRoom;
-  }
-
-  async findAll() {
-    const { payload } = await this.roomModelAction.list({
-      relations: { streams: true },
-    });
-
-    return payload;
-  }
-
-  async findOne(id: string) {
-    const room = await this.roomModelAction.get({
-      identifierOptions: { id },
-      relations: { streams: true },
-    });
-
-    if (!room) {
-      throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
-    }
-
-    return room;
-  }
-
-  async update(id: string, updateRoomDto: UpdateRoomDTO) {
-    const existingRoom = await this.findOne(id);
-
-    if (!existingRoom) {
-      throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
-    }
-
-    if (updateRoomDto.name) {
-      // Check if ANY room has this name
-      const duplicate = await this.findByName(
-        this.sanitizedName(updateRoomDto.name),
-      );
-
-      if (duplicate && duplicate.id !== id) {
-        throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
-      }
-
-      // Update the sanitized name in our payload
-      updateRoomDto.name = this.sanitizedName(updateRoomDto.name);
-    }
-
-    let streamEntities: Stream[] = undefined;
-
-    if (updateRoomDto.streams) {
-      streamEntities = await this.validateStreams(updateRoomDto.streams);
-    }
-
-    // Merge new data into existing entity
-    Object.assign(existingRoom, updateRoomDto);
-
-    // If streams were provided, update the relationship
-    if (streamEntities) {
-      existingRoom.streams = streamEntities;
-    }
-
-    const updatedRoom = await this.datasource
-      .getRepository(Room)
-      .save(existingRoom);
-
-    return updatedRoom;
   }
 
   private async validateStreams(streams: string[]) {
