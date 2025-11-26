@@ -171,6 +171,7 @@ export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
 export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+export const DEPARTMENT_UPDATED = 'Department updated successfully';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
