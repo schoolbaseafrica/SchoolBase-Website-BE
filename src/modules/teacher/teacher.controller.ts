@@ -90,7 +90,7 @@ export class TeacherController {
     return this.teacherService.create(createDto);
   }
 
-  // --- GET: LIST ALL TEACHERS (ADMIN/TEACHER READ) ---
+  // --- GET: LIST ALL TEACHERS (PAGINATED / FILTERED) ---
   @Get()
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)

@@ -3,6 +3,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiQuery,
   ApiOkResponse,
   ApiNotFoundResponse,
   ApiCreatedResponse,
@@ -31,5 +32,16 @@ export const DocsCreateClass = () => {
     ApiResponse(responses.badRequest),
     ApiNotFoundResponse(responses.notFound),
     ApiResponse(responses.conflict),
+  );
+};
+
+export const DocsGetGroupedClasses = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getGroupedClasses;
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiQuery(parameters.page),
+    ApiQuery(parameters.limit),
+    ApiOkResponse(responses.ok),
   );
 };

@@ -4,7 +4,7 @@ import {
   ConflictException,
   HttpStatus,
   InternalServerErrorException,
-} from '@nestjs/common'; // Added HttpStatus
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, EntityManager } from 'typeorm';
 
@@ -32,6 +32,7 @@ describe('AcademicSessionService', () => {
       create: jest.fn(),
       list: jest.fn(),
       update: jest.fn(),
+      delete: jest.fn(),
     };
 
     mockSessionModelAction =
@@ -253,23 +254,202 @@ describe('AcademicSessionService', () => {
   });
 
   describe('findOne', () => {
-    it('should return a single academic session message', () => {
-      const result = service.findOne(1);
-      expect(result).toBe('This action returns a #1 academicSession');
+    it('should return a single academic session message', async () => {
+      const mockSession: AcademicSession = {
+        id: '1',
+        name: 'Test',
+        startDate: new Date(),
+        endDate: new Date(),
+        status: SessionStatus.INACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockSessionModelAction.get.mockResolvedValue(mockSession);
+      const result = await service.findOne('1');
+      expect(result).toBeDefined();
     });
   });
 
   describe('update', () => {
-    it('should return update message', () => {
-      const result = service.update(1);
-      expect(result).toBe('This action updates a #1 academicSession');
+    it('should return update message', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+      await expect(service.update('1', {})).rejects.toThrow();
     });
   });
 
   describe('remove', () => {
-    it('should return remove message', () => {
-      const result = service.remove(1);
-      expect(result).toBe('This action removes a #1 academicSession');
+    it('should return remove message', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+      await expect(service.remove('1')).rejects.toThrow();
+    });
+  });
+
+  // New comprehensive tests for implemented methods
+  describe('findOne - implementation tests', () => {
+    const mockSession: AcademicSession = {
+      id: 'uuid-123',
+      name: '2024/2025',
+      startDate: new Date('2024-09-01'),
+      endDate: new Date('2025-08-31'),
+      status: SessionStatus.INACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should return a single academic session successfully', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockSession);
+
+      const result = await service.findOne('uuid-123');
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_RETRIEVED,
+        data: mockSession,
+      });
+      expect(mockSessionModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'uuid-123' },
+      });
+    });
+
+    it('should throw BadRequestException if session not found', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(service.findOne('non-existent-id')).rejects.toThrow(
+        new BadRequestException(sysMsg.SESSION_NOT_FOUND),
+      );
+    });
+  });
+
+  describe('update - implementation tests', () => {
+    const existingSession: AcademicSession = {
+      id: 'uuid-123',
+      name: '2024/2025',
+      startDate: new Date('2024-09-01'),
+      endDate: new Date('2025-08-31'),
+      status: SessionStatus.INACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const updateDto = {
+      name: '2025/2026',
+      startDate: new Date(Date.now() + 86400000).toISOString(),
+      endDate: new Date(Date.now() + 172800000).toISOString(),
+    };
+
+    it('should update an academic session successfully', async () => {
+      const updatedSession = {
+        ...existingSession,
+        name: updateDto.name,
+        startDate: new Date(updateDto.startDate),
+        endDate: new Date(updateDto.endDate),
+      };
+
+      mockSessionModelAction.get
+        .mockResolvedValueOnce(existingSession)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(updatedSession);
+
+      mockSessionModelAction.update.mockResolvedValue(true as any);
+
+      const result = await service.update('uuid-123', updateDto);
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_UPDATED,
+        data: updatedSession,
+      });
+    });
+
+    it('should throw BadRequestException if session not found', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.update('non-existent-id', updateDto),
+      ).rejects.toThrow(new BadRequestException(sysMsg.SESSION_NOT_FOUND));
+    });
+
+    it('should throw BadRequestException if end date is before start date', async () => {
+      const invalidDto = {
+        startDate: new Date(Date.now() + 172800000).toISOString(),
+        endDate: new Date(Date.now() + 86400000).toISOString(),
+      };
+
+      mockSessionModelAction.get.mockResolvedValue(existingSession);
+
+      await expect(service.update('uuid-123', invalidDto)).rejects.toThrow(
+        new BadRequestException(sysMsg.INVALID_DATE_RANGE),
+      );
+    });
+
+    it('should throw ConflictException if new name already exists', async () => {
+      const duplicateDto = { name: 'Existing Session' };
+
+      mockSessionModelAction.get
+        .mockResolvedValueOnce(existingSession)
+        .mockResolvedValueOnce({} as AcademicSession);
+
+      await expect(service.update('uuid-123', duplicateDto)).rejects.toThrow(
+        new ConflictException(sysMsg.DUPLICATE_SESSION_NAME),
+      );
+    });
+  });
+
+  describe('remove - implementation tests', () => {
+    const mockSession: AcademicSession = {
+      id: 'uuid-123',
+      name: '2024/2025',
+      startDate: new Date('2024-09-01'),
+      endDate: new Date('2025-08-31'),
+      status: SessionStatus.INACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    it('should delete an inactive academic session successfully', async () => {
+      mockSessionModelAction.get.mockResolvedValue(mockSession);
+      mockSessionModelAction.delete.mockResolvedValue(true as any);
+
+      const result = await service.remove('uuid-123');
+
+      expect(result).toEqual({
+        status_code: HttpStatus.OK,
+        message: sysMsg.ACADEMIC_SESSION_DELETED,
+        data: null,
+      });
+      expect(mockSessionModelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: 'uuid-123' },
+        transactionOptions: { useTransaction: false },
+      });
+    });
+
+    it('should throw BadRequestException if session not found', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(service.remove('non-existent-id')).rejects.toThrow(
+        new BadRequestException(sysMsg.SESSION_NOT_FOUND),
+      );
+    });
+
+    it('should throw BadRequestException if trying to delete active session', async () => {
+      const activeSession = { ...mockSession, status: SessionStatus.ACTIVE };
+      mockSessionModelAction.get.mockResolvedValue(activeSession);
+
+      await expect(service.remove('uuid-123')).rejects.toThrow(
+        new BadRequestException(
+          'Cannot delete an active academic session. Please deactivate it first.',
+        ),
+      );
+    });
+  });
+
+  describe('activateSession - implementation tests', () => {
+    it('should throw BadRequestException if session not found', async () => {
+      mockSessionModelAction.get.mockResolvedValue(null);
+
+      await expect(service.activateSession('non-existent-id')).rejects.toThrow(
+        new BadRequestException(sysMsg.SESSION_NOT_FOUND),
+      );
     });
   });
 
@@ -486,6 +666,10 @@ describe('AcademicSessionService', () => {
             async (callback: (manager: EntityManager) => unknown) => {
               const mockManager: Partial<EntityManager> = {
                 update: jest.fn().mockResolvedValue({ affected: 1 }),
+                findOne: jest.fn().mockResolvedValue({
+                  ...mockSession,
+                  status: SessionStatus.ACTIVE,
+                }),
               };
               return callback(mockManager as EntityManager);
             },
@@ -537,7 +721,7 @@ describe('AcademicSessionService', () => {
       // Verify first update deactivated all sessions
       expect(mockSessionModelAction.update).toHaveBeenNthCalledWith(1, {
         updatePayload: { status: SessionStatus.INACTIVE },
-        identifierOptions: {},
+        identifierOptions: { status: SessionStatus.ACTIVE },
         transactionOptions: {
           useTransaction: true,
           transaction: expect.any(Object),
