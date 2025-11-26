@@ -80,5 +80,59 @@ export const ClassSwagger = {
         },
       },
     },
+    getGroupedClasses: {
+      operation: {
+        summary: 'Get all classes grouped by name',
+        description:
+          'Returns all classes grouped by name, including their IDs, arms, and academic session. Supports pagination via page and limit query parameters. Returns an empty array if no classes exist.',
+      },
+      parameters: {
+        page: {
+          name: 'page',
+          in: 'query',
+          required: false,
+          description: 'Page number',
+          schema: { type: 'integer', default: 1 },
+        },
+        limit: {
+          name: 'limit',
+          in: 'query',
+          required: false,
+          description: 'Number of records per page',
+          schema: { type: 'integer', default: 20 },
+        },
+      },
+      responses: {
+        ok: {
+          description: 'Grouped classes list with pagination',
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 200 },
+              message: {
+                type: 'string',
+                example: 'classes fetched successfully',
+              },
+              data: {
+                type: 'array',
+                items: { $ref: '#/components/schemas/GroupedClassDto' },
+              },
+              pagination: {
+                type: 'object',
+                properties: {
+                  page: { type: 'integer', example: 1 },
+                  limit: { type: 'integer', example: 20 },
+                  total: { type: 'integer', example: 100 },
+                  totalPages: { type: 'integer', example: 5 },
+                },
+              },
+            },
+          },
+        },
+        notFound: {
+          description: 'No classes found',
+        },
+      },
+    },
   },
 };

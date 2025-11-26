@@ -32,6 +32,7 @@ type MockQueryBuilder = {
   leftJoinAndSelect: jest.Mock;
   orderBy: jest.Mock;
   where: jest.Mock;
+  andWhere: jest.Mock;
   getCount: jest.Mock;
   skip: jest.Mock;
   take: jest.Mock;
@@ -70,6 +71,7 @@ describe('ParentService', () => {
     user_id: 'user-uuid-123',
     photo_url: 'https://example.com/photos/parent123.jpg',
     is_active: true,
+    deleted_at: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     user: mockUser as User,
@@ -94,6 +96,7 @@ describe('ParentService', () => {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
       getCount: jest.fn(),
       skip: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
@@ -364,32 +367,56 @@ describe('ParentService', () => {
         NotFoundException,
       );
     });
+
+    it('should throw NotFoundException if parent is soft deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(service.findOne(mockParentId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+    });
   });
 
   describe('findAll', () => {
     it('should return paginated parents without search', async () => {
       const mockParents = [mockParent as Parent];
-      const mockPaginationMeta = {
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      };
 
-      parentModelAction.list.mockResolvedValue({
-        payload: mockParents,
-        paginationMeta: mockPaginationMeta,
-      });
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
 
       const result = await service.findAll({ page: 1, limit: 10 });
 
       expect(result.data).toHaveLength(1);
-      expect(result.paginationMeta).toEqual(mockPaginationMeta);
-      expect(parentModelAction.list).toHaveBeenCalledWith({
-        relations: { user: true },
-        paginationPayload: { page: 1, limit: 10 },
-        order: { createdAt: 'DESC' },
-      });
+      expect(result.paginationMeta.total).toBe(1);
+      expect(result.paginationMeta.page).toBe(1);
+      expect(result.paginationMeta.limit).toBe(10);
+
+      // Verify query builder was used
+      expect(parentRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'parent.user',
+        'user',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'parent.deleted_at IS NULL',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'parent.createdAt',
+        'DESC',
+      );
+      // Should not call andWhere when there's no search
+      expect(mockQueryBuilder.andWhere).not.toHaveBeenCalled();
     });
 
     it('should use query builder for search when search term is provided', async () => {
@@ -415,11 +442,14 @@ describe('ParentService', () => {
         'parent.user',
         'user',
       );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'parent.deleted_at IS NULL',
+      );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
         'parent.createdAt',
         'DESC',
       );
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
         { search: '%John%' },
       );
@@ -430,17 +460,12 @@ describe('ParentService', () => {
 
     it('should log search information without search term', async () => {
       const mockParents = [mockParent as Parent];
-      const mockPaginationMeta = {
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      };
 
-      parentModelAction.list.mockResolvedValue({
-        payload: mockParents,
-        paginationMeta: mockPaginationMeta,
-      });
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
 
       await service.findAll({ page: 1, limit: 10 });
 
@@ -450,7 +475,7 @@ describe('ParentService', () => {
           searchTerm: undefined,
           page: 1,
           limit: 10,
-          total: mockPaginationMeta.total,
+          total: 1,
         },
       );
     });
@@ -515,6 +540,22 @@ describe('ParentService', () => {
       ).rejects.toThrow(NotFoundException);
       expect(mockLogger.warn).toHaveBeenCalledWith(
         'Parent not found with ID: non-existent-uuid',
+      );
+    });
+
+    it('should throw NotFoundException if parent is soft deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(service.update(mockParentId, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
       );
     });
 
@@ -748,6 +789,95 @@ describe('ParentService', () => {
       const updateCall = userModelAction.update.mock.calls[0][0];
       const dob = updateCall.updatePayload.dob as Date;
       expect(dob.toISOString()).toContain('1990-01-15');
+    });
+  });
+
+  describe('remove', () => {
+    beforeEach(() => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      parentModelAction.update.mockResolvedValue(mockParent as Parent);
+      userModelAction.update.mockResolvedValue(mockUser as User);
+    });
+
+    it('should soft delete a parent successfully', async () => {
+      await service.remove(mockParentId);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+        relations: { user: true },
+      });
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(parentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockParentId },
+          updatePayload: expect.objectContaining({
+            deleted_at: expect.any(Date),
+            is_active: false,
+          }),
+        }),
+      );
+    });
+
+    it('should deactivate associated user account', async () => {
+      await service.remove(mockParentId);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockParent.user_id },
+          updatePayload: {
+            is_active: false,
+          },
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(service.remove('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Parent not found with ID: non-existent-id',
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if parent is already soft deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(service.remove(mockParentId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should execute parent and user updates in a transaction', async () => {
+      await service.remove(mockParentId);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(parentModelAction.update).toHaveBeenCalled();
+      expect(userModelAction.update).toHaveBeenCalled();
+    });
+
+    it('should log successful deletion', async () => {
+      await service.remove(mockParentId);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.any(String), // system message
+        expect.objectContaining({
+          parentId: mockParentId,
+          userId: mockParent.user_id,
+        }),
+      );
     });
   });
 });
