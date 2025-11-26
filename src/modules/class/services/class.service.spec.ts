@@ -66,6 +66,7 @@ describe('ClassService', () => {
     find: jest.fn(),
     create: jest.fn(),
     findAllWithSession: jest.fn(),
+    findAllWithSessionRaw: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -292,7 +293,26 @@ describe('ClassService', () => {
   describe('getGroupedClasses', () => {
     it('should return grouped classes with status_code 200 and message', async () => {
       // Mock grouped data
-      const mockGrouped = [
+      const mockRawClasses = [
+        {
+          id: 'class-id-1',
+          name: 'JSS1',
+          arm: 'A',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+        {
+          id: 'class-id-2',
+          name: 'JSS1',
+          arm: 'B',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+      ];
+
+      (
+        mockClassModelAction.findAllWithSessionRaw as jest.Mock
+      ).mockResolvedValue(mockRawClasses);
+
+      const expectedGrouped = [
         {
           name: 'JSS1',
           academicSession: { id: 'session-id', name: '2027/2028' },
@@ -302,29 +322,25 @@ describe('ClassService', () => {
           ],
         },
       ];
-      (mockClassModelAction.findAllWithSession as jest.Mock).mockResolvedValue(
-        mockGrouped,
-      );
 
       const result = await service.getGroupedClasses();
-
       expect(result.status_code).toBe(200);
       expect(result.message).toBe(sysMsg.CLASS_FETCHED);
-      expect(result.data).toEqual(mockGrouped);
-      expect(mockClassModelAction.findAllWithSession).toHaveBeenCalled();
+      expect(result.data).toEqual(expectedGrouped);
+      expect(mockClassModelAction.findAllWithSessionRaw).toHaveBeenCalled();
     });
 
     it('should return status_code 200 and message for empty grouped classes', async () => {
-      (mockClassModelAction.findAllWithSession as jest.Mock).mockResolvedValue(
-        [],
-      );
+      (
+        mockClassModelAction.findAllWithSessionRaw as jest.Mock
+      ).mockResolvedValue([]);
 
       const result = await service.getGroupedClasses();
 
       expect(result.status_code).toBe(200);
       expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
       expect(result.data).toEqual([]);
-      expect(mockClassModelAction.findAllWithSession).toHaveBeenCalled();
+      expect(mockClassModelAction.findAllWithSessionRaw).toHaveBeenCalled();
     });
   });
 });

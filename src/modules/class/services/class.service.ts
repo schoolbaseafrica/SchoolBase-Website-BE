@@ -163,11 +163,38 @@ export class ClassService {
    * Fetches all classes grouped by name and academic session, including arm.
    */
   async getGroupedClasses() {
-    const grouped = await this.classModelAction.findAllWithSession();
+    const classes = await this.classModelAction.findAllWithSessionRaw();
+
+    const grouped: Record<
+      string,
+      {
+        name: string;
+        academicSession: { id: string; name: string };
+        classes: { id: string; arm?: string }[];
+      }
+    > = {};
+
+    for (const cls of classes) {
+      const key = `${cls.name}_${cls.academicSession.id}`;
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: cls.name,
+          academicSession: {
+            id: cls.academicSession.id,
+            name: cls.academicSession.name,
+          },
+          classes: [],
+        };
+      }
+      grouped[key].classes.push({ id: cls.id, arm: cls.arm });
+    }
+
     return {
       status_code: HttpStatus.OK,
-      message: grouped.length ? sysMsg.CLASS_FETCHED : sysMsg.NO_CLASS_FOUND,
-      data: grouped,
+      message: Object.values(grouped).length
+        ? sysMsg.CLASS_FETCHED
+        : sysMsg.NO_CLASS_FOUND,
+      data: Object.values(grouped),
     };
   }
 }
