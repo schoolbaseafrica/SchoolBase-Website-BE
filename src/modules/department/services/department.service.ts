@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  HttpStatus,
   Inject,
   Injectable,
 } from '@nestjs/common';
@@ -21,7 +20,6 @@ export interface IListDepartmentsOptions {
 }
 
 export interface IBaseResponse<T> {
-  status_code: number;
   message: string;
   data: T;
 }
@@ -60,7 +58,6 @@ export class DepartmentService {
     });
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.DEPARTMENT_CREATED,
       data: this.mapToResponseDto(newDepartment),
     };
