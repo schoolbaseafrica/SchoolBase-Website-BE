@@ -214,4 +214,44 @@ describe('SchoolService', () => {
       );
     });
   });
+
+  describe('getSchoolDetails', () => {
+    it('should return school details when school exists', async () => {
+      const mockSchool = {
+        id: 'uuid-123',
+        name: 'Test School',
+        address: '123 Main Street',
+        email: 'test@school.com',
+        phone: '1234567890',
+        logo_url: 'logo.png',
+        primary_color: '#000000',
+        secondary_color: '#ffffff',
+        accent_color: '#cccccc',
+        installation_completed: true,
+      };
+
+      schoolModelAction.list.mockResolvedValue({
+        payload: [mockSchool as School],
+        paginationMeta: {},
+      });
+
+      const result = await service.getSchoolDetails();
+
+      expect(result).toEqual(mockSchool);
+      expect(schoolModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { installation_completed: true },
+      });
+    });
+
+    it('should throw ConflictException when no school exists', async () => {
+      schoolModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+
+      await expect(service.getSchoolDetails()).rejects.toThrow(
+        ConflictException,
+      );
+    });
+  });
 });
