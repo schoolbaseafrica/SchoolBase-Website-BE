@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, Like } from 'typeorm';
+import { DataSource, IsNull, Like } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -131,6 +131,9 @@ export class StudentService {
     const { payload: students, paginationMeta } = search
       ? await this.searchStudentsWithModelAction(search, page, limit)
       : await this.studentModelAction.list({
+          filterRecordOptions: {
+            deleted_at: IsNull(),
+          },
           relations: { user: true, stream: true },
           paginationPayload: { page, limit },
           order: { createdAt: 'DESC' },
@@ -162,7 +165,7 @@ export class StudentService {
       relations: { user: true, stream: true },
     });
 
-    if (!student) {
+    if (!student || student.deleted_at) {
       this.logger.warn(`Student not found with ID: ${id}`);
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     }
@@ -184,7 +187,8 @@ export class StudentService {
         user: true,
       },
     });
-    if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    if (!existingStudent || existingStudent.deleted_at)
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     if (updateStudentDto.email) {
       const existingUser = await this.userModelAction.get({
         identifierOptions: { email: updateStudentDto.email },
@@ -307,8 +311,8 @@ export class StudentService {
       .orderBy('student.createdAt', 'DESC')
       .where('student.deleted_at IS NULL');
 
-    if (search) {
-      queryBuilder.where(
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search OR student.registration_number ILIKE :search)',
         { search: `%${search}%` },
       );
