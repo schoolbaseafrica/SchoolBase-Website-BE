@@ -36,7 +36,9 @@ export class StudentService {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
 
-  async create(createStudentDto: CreateStudentDto) {
+  async create(
+    createStudentDto: CreateStudentDto,
+  ): Promise<StudentResponseDto> {
     const existingUser = await this.userModelAction.get({
       identifierOptions: { email: createStudentDto.email },
     });
@@ -109,9 +111,9 @@ export class StudentService {
       });
 
       return new StudentResponseDto(
-        sysMsg.STUDENT_CREATED,
         savedStudent,
         savedUser,
+        sysMsg.STUDENT_CREATED,
       );
     });
   }
@@ -129,13 +131,16 @@ export class StudentService {
     const { payload: students, paginationMeta } = search
       ? await this.searchStudentsWithModelAction(search, page, limit)
       : await this.studentModelAction.list({
+          filterRecordOptions: {
+            is_deleted: false,
+          },
           relations: { user: true, stream: true },
           paginationPayload: { page, limit },
           order: { createdAt: 'DESC' },
         });
 
     const data = students.map(
-      (student) => new StudentResponseDto('', student, student.user),
+      (student) => new StudentResponseDto(student, student.user),
     );
 
     this.logger.info(`Fetched ${data.length} students`, {
@@ -154,38 +159,36 @@ export class StudentService {
   }
 
   // --- FIND ONE ---
-  async findOne(id: string): Promise<{
-    message: string;
-    status_code: number;
-    data: StudentResponseDto;
-  }> {
+  async findOne(id: string): Promise<StudentResponseDto> {
     const student = await this.studentModelAction.get({
       identifierOptions: { id },
       relations: { user: true, stream: true },
     });
 
-    if (!student) {
+    if (!student || student.is_deleted) {
       this.logger.warn(`Student not found with ID: ${id}`);
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     }
 
-    const data = new StudentResponseDto('', student, student.user);
-
-    return {
-      message: sysMsg.STUDENT_FETCHED,
-      status_code: 200,
-      data,
-    };
+    return new StudentResponseDto(
+      student,
+      student.user,
+      sysMsg.STUDENT_FETCHED,
+    );
   }
 
-  async update(id: string, updateStudentDto: PatchStudentDto) {
+  async update(
+    id: string,
+    updateStudentDto: PatchStudentDto,
+  ): Promise<StudentResponseDto> {
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { id },
       relations: {
         user: true,
       },
     });
-    if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    if (!existingStudent || existingStudent.is_deleted)
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     if (updateStudentDto.email) {
       const existingUser = await this.userModelAction.get({
         identifierOptions: { email: updateStudentDto.email },
@@ -242,15 +245,53 @@ export class StudentService {
       });
 
       return new StudentResponseDto(
-        sysMsg.STUDENT_UPDATED,
         student,
         updatedUser,
+        sysMsg.STUDENT_UPDATED,
       );
     });
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} term`;
+  async remove(id: string) {
+    const existingStudent = await this.studentModelAction.get({
+      identifierOptions: { id },
+      relations: {
+        user: true,
+      },
+    });
+    if (!existingStudent || existingStudent.is_deleted)
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    return this.dataSource.transaction(async (manager) => {
+      await this.userModelAction.update({
+        identifierOptions: { id: existingStudent.user.id },
+        updatePayload: {
+          deleted_at: new Date(),
+          is_active: false,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      await this.studentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          is_deleted: true,
+          deleted_at: new Date(),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(sysMsg.RESOURCE_DELETED, {
+        studentId: id,
+      });
+
+      return { message: sysMsg.STUDENT_DELETED };
+    });
   }
 
   // --- SEARCH STUDENTS (private method) ---
@@ -268,10 +309,11 @@ export class StudentService {
       .createQueryBuilder('student')
       .leftJoinAndSelect('student.user', 'user')
       .leftJoinAndSelect('student.stream', 'stream')
-      .orderBy('student.createdAt', 'DESC');
+      .orderBy('student.createdAt', 'DESC')
+      .where('student.is_deleted IS NOT TRUE');
 
-    if (search) {
-      queryBuilder.where(
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search OR student.registration_number ILIKE :search)',
         { search: `%${search}%` },
       );

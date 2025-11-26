@@ -85,5 +85,28 @@ export const StudentSwagger = {
         },
       },
     },
+    delete: {
+      operation: {
+        summary: 'Delete a Student (ADMIN only)',
+        description: 'Deletes an already existing student.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Student ID',
+        },
+      },
+      responses: {
+        ok: {
+          description: sysMsg.STUDENT_DELETED,
+        },
+        notFound: {
+          description: sysMsg.STUDENT_NOT_FOUND,
+        },
+        badRequest: {
+          description: sysMsg.BAD_REQUEST,
+        },
+      },
+    },
   },
 };

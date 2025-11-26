@@ -21,9 +21,10 @@ import { UserRole } from '../../shared/enums';
 import {
   StudentSwagger,
   CreateStudentDocs,
-  ListStudentsDocs,
   GetStudentDocs,
+  ListStudentsDocs,
   UpdateStudentDocs,
+  DeleteStudentDocs,
 } from '../docs';
 import {
   CreateStudentDto,
@@ -79,8 +80,12 @@ export class StudentController {
     return this.studentService.update(id, updateStudentDto);
   }
 
+  @DeleteStudentDocs()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.OK)
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.studentService.remove(id);
   }
 }
