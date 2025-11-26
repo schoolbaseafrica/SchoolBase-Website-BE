@@ -10,6 +10,7 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
@@ -29,6 +30,8 @@ import {
   StudentResponseDto,
   UpdateStudentDto,
 } from '../dto';
+import {  UpdateStudentDocs } from '../docs';
+import {  PatchStudentDto } from '../dto';
 import { StudentService } from '../services';
 
 @ApiTags(StudentSwagger.tags[0])
@@ -65,8 +68,15 @@ export class StudentController {
     return this.studentService.findOne(id);
   }
 
+  @UpdateStudentDocs()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.OK)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateStudentDto: UpdateStudentDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateStudentDto: PatchStudentDto,
+  ) {
     return this.studentService.update(id, updateStudentDto);
   }
 
