@@ -1,35 +1,41 @@
 import {
-  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
   NotFoundException,
+  HttpStatus,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
-import { ApiSuccessResponseDto } from '../../../common/dto/response.dto';
+import * as sysMsg from '../../../constants/system.messages';
 import {
-  CLASS_CREATED,
-  CLASS_OR_CLASS_STREAM_ALREADY_EXIST,
-  SESSION_NOT_FOUND,
-} from '../../../constants/system.messages';
+  AcademicSession,
+  SessionStatus,
+} from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Stream } from '../../stream/entities/stream.entity';
-import { CreateClassDto } from '../dto/create-class.dto';
+import { CreateClassDto, ClassResponseDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
+
+export interface ICreateClassResponse {
+  status_code: number;
+  message: string;
+  data: ClassResponseDto;
+}
 
 @Injectable()
 export class ClassService {
   private readonly logger: Logger;
   constructor(
-    private readonly dataSource: DataSource,
     private readonly classModelAction: ClassModelAction,
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
+    private readonly academicSessionModelAction: AcademicSessionModelAction,
+    private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: ClassService.name });
@@ -58,7 +64,10 @@ export class ClassService {
     const assignments = await this.classTeacherModelAction.list({
       filterRecordOptions: {
         class: { id: classId },
-        session_id: target_session,
+        session_id:
+          typeof target_session === 'string'
+            ? target_session
+            : target_session.id,
         is_active: true,
       },
       relations: {
@@ -82,62 +91,71 @@ export class ClassService {
     });
   }
 
-  async create(createClassDto: CreateClassDto) {
-    const { name, stream, session_id } = createClassDto;
+  /**
+   * Creates a class and links it to the active academic session.
+   */
+  async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
+    const { name, arm } = createClassDto;
 
-    const sessionExist = await this.sessionModelAction.get({
-      identifierOptions: { id: session_id },
-    });
+    // Fetch active academic session
+    const academicSession = await this.getActiveSession();
 
-    // Check if session exist
-    if (!sessionExist) {
-      throw new BadRequestException(SESSION_NOT_FOUND);
-    }
-
-    const normalizedName = name.trim().toLowerCase();
-    const normalizedStream = stream ? stream.trim().toLowerCase() : null;
-
-    // Check for existing class name/stream in session
     const { payload } = await this.classModelAction.find({
       findOptions: {
-        normalized_name: normalizedName,
-        normalized_stream: normalizedStream,
-        session_id,
+        name,
+        arm,
+        academicSession: { id: academicSession.id },
       },
       transactionOptions: {
         useTransaction: false,
       },
     });
-
     if (payload.length > 0) {
-      throw new ConflictException(CLASS_OR_CLASS_STREAM_ALREADY_EXIST);
+      throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
     }
 
     // Use transaction for atomic creation
     const createdClass = await this.dataSource.transaction(async (manager) => {
       const newClass = await this.classModelAction.create({
         createPayload: {
-          name: name.trim(),
-          session_id,
-          stream,
-          normalized_name: normalizedName,
-          normalized_stream: normalizedStream,
+          name,
+          arm,
+          academicSession,
         },
         transactionOptions: {
           useTransaction: true,
           transaction: manager,
         },
       });
-
-      this.logger.info(CLASS_CREATED, newClass);
+      this.logger.info(sysMsg.CLASS_CREATED, newClass);
       return newClass;
     });
 
-    return new ApiSuccessResponseDto(CLASS_CREATED, createdClass);
+    return {
+      status_code: HttpStatus.CREATED,
+      message: sysMsg.CLASS_CREATED,
+      data: {
+        id: createdClass.id,
+        name: createdClass.name,
+        arm: createdClass.arm,
+        academicSession: {
+          id: academicSession.id,
+          name: academicSession.name,
+        },
+      },
+    };
   }
 
-  // Mock helper for active session
-  private async getActiveSession(): Promise<string> {
-    return '2024-2025';
+  /**
+   * Fetches the active academic session entity.
+   */
+  private async getActiveSession(): Promise<AcademicSession> {
+    const { payload } = await this.academicSessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+    if (!payload.length) throw new NotFoundException('No active session found');
+    if (payload.length > 1)
+      throw new ConflictException('Multiple active sessions found');
+    return payload[0];
   }
 }

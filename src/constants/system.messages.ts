@@ -112,6 +112,10 @@ export const RATE_LIMIT_EXCEEDED = 'rate limit exceeded';
 export const FILE_TOO_LARGE = 'file too large';
 export const UNSUPPORTED_FILE_TYPE = 'unsupported file type';
 export const FILE_UPLOAD_FAILED = 'file upload failed';
+export const FILE_UPLOAD_SUCCESS = 'file uploaded successfully';
+export const FILE_REQUIRED = 'file is required';
+export const IMAGE_UPLOAD_SUCCESS = 'image uploaded successfully';
+export const IMAGE_UPLOAD_FAILED = 'image upload failed';
 
 // Payment / Billing
 export const PAYMENT_SUCCESS = 'payment success';
@@ -163,6 +167,15 @@ export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
 
+
+
+// School Installation messages
+export const INSTALLATION_COMPLETED =
+  'school installation completed successfully';
+export const INSTALLATION_ALREADY_COMPLETED =
+  'school installation already completed';
+
+
 // Classes
 export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
   'class, teacher, or session not found';
@@ -170,8 +183,9 @@ export const CLASS_ALREADY_HAS_TEACHER =
   'class already has a teacher assigned for this session';
 export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
-export const CLASS_OR_CLASS_STREAM_ALREADY_EXIST =
-  'A class with the same name/stream already exists in this session.';
+export const CLASS_ALREADY_EXIST =
+  'A class with the same name and arm already exists in this session.';
+
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
@@ -183,6 +197,7 @@ export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
 export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
+
 
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';

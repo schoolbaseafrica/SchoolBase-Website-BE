@@ -1,37 +1,52 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Matches,
-} from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
 
 export class CreateClassDto {
   @ApiProperty({
-    example: 's1a2b3c4-5678-90ab-cdef-1234567890ab',
-    description: 'The ID of the session where the class will be added',
-  })
-  @IsNotEmpty({ message: 'session_id is required' })
-  @IsUUID('4', { message: 'session_id must be a valid UUID' })
-  session_id: string;
-
-  @ApiProperty({
-    example: 'SSS 2',
-    description: 'The name of the class. Letters, numbers, and spaces only.',
+    example: 'JSS1',
+    description: 'The name of the class (e.g., JSS1, SSS2, etc.).',
   })
   @IsNotEmpty({ message: 'Class name cannot be empty' })
-  @Matches(/^[a-zA-Z0-9 ]+$/, {
-    message: 'Class name can only contain letters, numbers, and spaces',
-  })
+  @IsString()
+  @Transform(({ value }) =>
+    typeof value === 'string'
+      ? value.trim().replace(/\s+/g, ' ').toUpperCase()
+      : value,
+  )
   name: string;
 
   @ApiProperty({
-    example: 'Science',
-    description: 'Optional stream for the class, e.g., Science, Arts, Commerce',
+    example: 'A',
+    description: 'The arm of the class (e.g., A, B, C, etc.).',
     required: false,
   })
   @IsOptional()
   @IsString()
-  stream?: string;
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().toUpperCase() : value,
+  )
+  arm?: string;
+}
+
+export class AcademicSessionDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+}
+
+export class ClassResponseDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty()
+  name: string;
+
+  @ApiProperty({ required: false })
+  arm?: string;
+
+  @ApiProperty({ type: () => AcademicSessionDto, required: false })
+  academicSession?: AcademicSessionDto;
 }
