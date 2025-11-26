@@ -8,6 +8,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -39,6 +40,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly emailService: EmailService,
     private readonly sessionService: SessionService,
+    private readonly configService: ConfigService,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -207,7 +209,7 @@ export class AuthService {
     }
 
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour expiry
 
     await this.userService.updateUser(
       {
@@ -218,13 +220,16 @@ export class AuthService {
       { useTransaction: false },
     );
 
+    const FRONTEND_URL = this.configService.get<string>('frontend.url');
+    const resetLink = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
+
     const emailpayload: EmailPayload = {
       to: [{ name: user.first_name, email: user.email }],
       subject: 'Password Reset Request',
       templateNameID: EmailTemplateID.FORGOT_PASSWORD,
       templateData: {
         name: user.first_name,
-        otp: resetToken,
+        resetLink: resetLink,
         resetTokenExpiry,
       },
     };
@@ -232,7 +237,7 @@ export class AuthService {
     this.logger.info(`Password reset token for ${email}: ${resetToken}`);
 
     return {
-      message: 'Password reset token has been sent',
+      message: sysMsg.PASSWORD_RESET_TOKEN_SENT,
     };
   }
 
@@ -263,7 +268,7 @@ export class AuthService {
 
     this.logger.info(`Password successfully reset for user: ${user.email}`);
 
-    return { message: 'Password has been successfully reset' };
+    return { message: sysMsg.PASSWORD_RESET_SUCCESS };
   }
 
   async activateUserAccount(id: string) {
