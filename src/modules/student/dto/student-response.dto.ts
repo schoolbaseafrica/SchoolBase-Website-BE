@@ -89,13 +89,6 @@ export class StudentResponseDto {
   })
   updated_at: Date;
 
-  @ApiProperty({
-    description: 'Deleted at timestamp',
-    type: Date,
-    required: false,
-  })
-  deleted_at?: Date | null;
-
   constructor(student: Student, user: User, message?: string) {
     this.message = message;
     this.id = student.id;
@@ -114,6 +107,5 @@ export class StudentResponseDto {
     this.photo_url = student.photo_url;
     this.created_at = student.createdAt;
     this.updated_at = student.updatedAt;
-    this.deleted_at = student.deleted_at;
   }
 }
