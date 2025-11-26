@@ -47,6 +47,7 @@ export const PASSWORD_RESET_SUCCESS = 'password reset success';
 export const PASSWORD_RESET_FAILED = 'password reset failed';
 export const PASSWORD_RESET_TOKEN_INVALID = 'password reset token invalid';
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'password reset token expired';
+export const PASSWORD_RESET_TOKEN_SENT = 'password reset token has been sent';
 export const PASSWORD_SAME_AS_OLD =
   'new password cannot be same as old password';
 
@@ -130,8 +131,12 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 // Streams
-export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const INVALID_STREAM_IDS =
+  'One or more provided Stream IDs are invalid.';
+export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
@@ -161,21 +166,50 @@ export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
 export const ACADEMY_SESSION_ACTIVATED =
   'Academic session activated successfully.';
+export const ACADEMIC_SESSION_RETRIEVED =
+  'Academic session retrieved successfully.';
+export const ACADEMIC_SESSION_UPDATED =
+  'Academic session updated successfully.';
+export const ACADEMIC_SESSION_DELETED =
+  'Academic session deleted successfully.';
+export const INACTIVE_SESSION_LOCKED =
+  'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
+// Room
+export const ROOM_CREATED_SUCCESSFULLY = 'Room created successfully.';
+export const DUPLICATE_ROOM_NAME = 'A room with this name already exists.';
+export const ROOM_RETRIEVED_SUCCESSFULLY =
+  'Room details retrieved successfully.';
+export const ROOM_LIST_RETRIEVED_SUCCESSFULLY =
+  'List of rooms retrieved successfully.';
+export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
+export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
+export const ROOM_NOT_FOUND = 'Room not found.';
+export const INVALID_ROOM_ID = 'Invalid room ID provided.';
+export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
+export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
+export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+
 //department
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
 export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+export const DEPARTMENT_UPDATED = 'Department updated successfully';
+export const DEPARTMENT_DELETED = 'Department deleted successfully';
+export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
+  'Cannot delete department with associated subjects';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
+export const SCHOOL_NOT_FOUND = 'School not found';
 
 // Classes
 export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
@@ -186,12 +220,17 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_NAME_EMPTY = 'class name cannot be empty';
+export const CLASS_UPDATED = 'class updated successfully';
+export const CLASS_FETCHED = 'classes fetched successfully';
+export const NO_CLASS_FOUND = 'no classes found.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
 export const PARENTS_FETCHED = 'Parents fetched successfully';
+export const PARENT_DELETED = 'Parent deleted successfully';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
@@ -199,9 +238,22 @@ export const CONTACT_NOT_FOUND = 'Contact inquiry not found';
 export const CONTACT_ALREADY_RESOLVED = 'Contact inquiry already resolved';
 export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 
+// Database messages
+export const DATABASE_CREATED = 'Database stored successfully';
+export const DATABASE_ALREADY_CONFIGURED =
+  'Database already configured for this school';
+export const DATABASE_CONFIGURATION_FAILED = 'Database configuration failed';
+export const DATABASE_CONFIGURATION_SUCCESS =
+  'Database configuration successful';
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+export const STUDENT_FETCHED = 'Student fetched successfully';
+export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';
+export const STUDENT_DELETED = 'Student deleted successfully';
+
+// Dashboard messages
+export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';

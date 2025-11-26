@@ -3,12 +3,15 @@ import {
   Entity,
   Index,
   JoinColumn,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   Unique,
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Room } from '../../../modules/room/entities/room.entity';
 import { Class } from '../../class/entities/class.entity';
 import { Student } from '../../student/entities/student.entity';
 
@@ -30,4 +33,8 @@ export class Stream extends BaseEntity {
 
   @OneToMany(() => Student, (student) => student.stream)
   students: Student[];
+
+  @ManyToMany(() => Room, (room) => room.streams)
+  @JoinTable()
+  rooms: Room[];
 }

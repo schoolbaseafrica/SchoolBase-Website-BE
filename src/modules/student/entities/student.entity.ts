@@ -19,4 +19,10 @@ export class Student extends BaseEntity {
   @ManyToOne(() => Stream, (stream) => stream.students)
   @JoinColumn({ name: 'stream_id' })
   stream: Stream;
+
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date | null;
 }

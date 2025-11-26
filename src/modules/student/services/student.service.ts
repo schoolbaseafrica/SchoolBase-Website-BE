@@ -1,3 +1,4 @@
+import { PaginationMeta } from '@hng-sdk/orm';
 import {
   ConflictException,
   Inject,
@@ -13,7 +14,13 @@ import { UserRole } from '../../shared/enums';
 import { FileService } from '../../shared/file/file.service';
 import { hashPassword } from '../../shared/utils/password.util';
 import { UserModelAction } from '../../user/model-actions/user-actions';
-import { CreateStudentDto, StudentResponseDto, PatchStudentDto } from '../dto';
+import {
+  CreateStudentDto,
+  StudentResponseDto,
+  ListStudentsDto,
+  PatchStudentDto,
+} from '../dto';
+import { Student } from '../entities';
 import { StudentModelAction } from '../model-actions';
 
 @Injectable()
@@ -29,7 +36,9 @@ export class StudentService {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
 
-  async create(createStudentDto: CreateStudentDto) {
+  async create(
+    createStudentDto: CreateStudentDto,
+  ): Promise<StudentResponseDto> {
     const existingUser = await this.userModelAction.get({
       identifierOptions: { email: createStudentDto.email },
     });
@@ -102,29 +111,84 @@ export class StudentService {
       });
 
       return new StudentResponseDto(
-        sysMsg.STUDENT_CREATED,
         savedStudent,
         savedUser,
+        sysMsg.STUDENT_CREATED,
       );
     });
   }
 
-  findAll() {
-    return `This action returns all term`;
+  // --- FIND ALL (with pagination and search) ---
+  async findAll(listStudentsDto: ListStudentsDto): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentResponseDto[];
+    meta: Partial<PaginationMeta>;
+  }> {
+    const { page = 1, limit = 10, search } = listStudentsDto;
+
+    // Use the custom search method for search, regular list for no search
+    const { payload: students, paginationMeta } = search
+      ? await this.searchStudentsWithModelAction(search, page, limit)
+      : await this.studentModelAction.list({
+          filterRecordOptions: {
+            is_deleted: false,
+          },
+          relations: { user: true, stream: true },
+          paginationPayload: { page, limit },
+          order: { createdAt: 'DESC' },
+        });
+
+    const data = students.map(
+      (student) => new StudentResponseDto(student, student.user),
+    );
+
+    this.logger.info(`Fetched ${data.length} students`, {
+      searchTerm: search,
+      page,
+      limit,
+      total: paginationMeta.total,
+    });
+
+    return {
+      message: sysMsg.STUDENTS_FETCHED,
+      status_code: 200,
+      data,
+      meta: paginationMeta,
+    };
   }
 
-  findOne(id: string) {
-    return `This action returns a #${id} term`;
+  // --- FIND ONE ---
+  async findOne(id: string): Promise<StudentResponseDto> {
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true, stream: true },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student not found with ID: ${id}`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    return new StudentResponseDto(
+      student,
+      student.user,
+      sysMsg.STUDENT_FETCHED,
+    );
   }
 
-  async update(id: string, updateStudentDto: PatchStudentDto) {
+  async update(
+    id: string,
+    updateStudentDto: PatchStudentDto,
+  ): Promise<StudentResponseDto> {
     const existingStudent = await this.studentModelAction.get({
       identifierOptions: { id },
       relations: {
         user: true,
       },
     });
-    if (!existingStudent) throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    if (!existingStudent || existingStudent.is_deleted)
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     if (updateStudentDto.email) {
       const existingUser = await this.userModelAction.get({
         identifierOptions: { email: updateStudentDto.email },
@@ -181,15 +245,91 @@ export class StudentService {
       });
 
       return new StudentResponseDto(
-        sysMsg.STUDENT_UPDATED,
         student,
         updatedUser,
+        sysMsg.STUDENT_UPDATED,
       );
     });
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} term`;
+  async remove(id: string) {
+    const existingStudent = await this.studentModelAction.get({
+      identifierOptions: { id },
+      relations: {
+        user: true,
+      },
+    });
+    if (!existingStudent || existingStudent.is_deleted)
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    return this.dataSource.transaction(async (manager) => {
+      await this.userModelAction.update({
+        identifierOptions: { id: existingStudent.user.id },
+        updatePayload: {
+          deleted_at: new Date(),
+          is_active: false,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      await this.studentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          is_deleted: true,
+          deleted_at: new Date(),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(sysMsg.RESOURCE_DELETED, {
+        studentId: id,
+      });
+
+      return { message: sysMsg.STUDENT_DELETED };
+    });
+  }
+
+  // --- SEARCH STUDENTS (private method) ---
+  private async searchStudentsWithModelAction(
+    search: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{
+    payload: Student[];
+    paginationMeta: Partial<PaginationMeta>;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.studentModelAction['repository']
+      .createQueryBuilder('student')
+      .leftJoinAndSelect('student.user', 'user')
+      .leftJoinAndSelect('student.stream', 'stream')
+      .orderBy('student.createdAt', 'DESC')
+      .where('student.is_deleted IS NOT TRUE');
+
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
+        '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search OR student.registration_number ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
+
+    const total = await queryBuilder.getCount();
+    const payload = await queryBuilder.skip(skip).take(limit).getMany();
+
+    const paginationMeta = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+
+    return { payload, paginationMeta };
   }
 
   /**

@@ -1,157 +1,115 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { S3 } from 'aws-sdk';
-import { Repository } from 'typeorm';
+import * as crypto from 'crypto';
 
-import config from '../../config/config';
+import {
+  Inject,
+  Injectable,
+  HttpStatus,
+  NotFoundException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { FindOptionsWhere } from 'typeorm';
+import { Logger } from 'winston';
+
 import * as sysMsg from '../../constants/system.messages';
+import { UserRole } from '../user/entities/user.entity';
+import { UserModelAction } from '../user/model-actions/user-actions';
 
-import {
-  InviteUserDto,
-  CreatedInviteDto,
-  InviteRole,
-} from './dto/invite-user.dto';
-import {
-  PendingInviteDto,
-  PendingInvitesResponseDto,
-} from './dto/pending-invite.dto';
-import { Invite } from './entities/invites.entity';
-
-const { aws } = config();
+import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { Invite, InviteStatus } from './entities/invites.entity';
+import { InviteModelAction } from './invite.model-action';
 
 @Injectable()
 export class InviteService {
-  private readonly s3 = new S3({
-    region: aws.region,
-    accessKeyId: aws.accessKeyId,
-    secretAccessKey: aws.secretAccessKey,
-  });
+  private readonly logger: Logger;
 
   constructor(
-    @InjectRepository(Invite)
-    private readonly inviteRepo: Repository<Invite>,
-  ) {}
+    @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
 
-  async sendInvite(payload: InviteUserDto): Promise<PendingInvitesResponseDto> {
-    const exists = await this.inviteRepo.findOne({
-      where: { email: payload.email },
-    });
-
-    if (exists) {
-      return {
-        status_code: HttpStatus.CONFLICT,
-        message: sysMsg.INVITE_ALREADY_SENT,
-        data: [],
-      };
-    }
-
-    const invite = this.inviteRepo.create({
-      email: payload.email,
-      role: payload.role,
-      full_name: payload.full_name,
-    });
-
-    await this.inviteRepo.save(invite);
-
-    const createdInvite: CreatedInviteDto = {
-      id: invite.id,
-      email: invite.email,
-      invited_at: invite.invitedAt,
-      role: invite.role as InviteRole,
-      full_name: invite.full_name,
-    };
-
-    /**const emailPayload: EmailPayload = {
-      to: [
-        { 
-          email: invite.email, 
-          name: invite.full_name 
-        }
-      ],
-      subject: `You are invited to ${schoolName}`,
-      templateNameID: EmailTemplateID.INVITE, // 'invite.njk'
-      templateData: {
-        firstName: invite.full_name.split(' ')[0], 
-        role: invite.role,                         
-        schoolName: schoolName,                    
-        logoUrl: schoolLogo,                       
-        inviteLink: inviteLink,                    
-      },
-    };
-
-
-    let route = 'accept-invite';
-
-    switch (payload.role) {
-      case UserRole.TEACHER:
-        route = 'invited-teacher';
-        break;
-      case UserRole.PARENT:
-        route = 'invited-parent';
-        break;
-      case UserRole.ADMIN:
-        route = 'invited-admin';
-        break;
-      case UserRole.STUDENT:
-        route = 'invited-student';
-        break;
-      default:
-        route = 'accept-invite';
-    }
-
-    // Use the dynamic route in the link
-    const inviteLink = `${frontendUrl}/${route}?token=${token}`;
-    
-    **/
-
-    {
-      return {
-        status_code: HttpStatus.OK,
-        message: sysMsg.INVITE_SENT,
-        data: [createdInvite],
-      };
-    }
+    private readonly userModelAction: UserModelAction,
+    private readonly inviteModelAction: InviteModelAction,
+  ) {
+    this.logger = baseLogger.child({ context: InviteService.name });
   }
 
-  async getPendingInvites(): Promise<PendingInvitesResponseDto> {
-    const invites = await this.inviteRepo.find({
-      where: { accepted: false },
-      order: { createdAt: 'DESC' },
+  async acceptInvite(acceptInviteDto: AcceptInviteDto) {
+    const { token, password } = acceptInviteDto;
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const invite = await this.inviteModelAction.get({
+      identifierOptions: {
+        token_hash: hashedToken,
+        status: InviteStatus.PENDING,
+      } as FindOptionsWhere<Invite>,
     });
 
-    if (invites.length === 0) {
-      return {
-        status_code: HttpStatus.NOT_FOUND,
-        message: sysMsg.NO_PENDING_INVITES,
-        data: [],
-      };
+    if (!invite) {
+      throw new NotFoundException(sysMsg.INVALID_VERIFICATION_TOKEN);
     }
 
-    const mappedInvites: PendingInviteDto[] = invites.map((invite) => ({
-      id: invite.id,
-      email: invite.email,
-      invited_at: invite.invitedAt,
-    }));
+    if (invite.accepted) {
+      throw new ConflictException('This invitation has already been used.');
+    }
+
+    if (new Date() > invite.expires_at) {
+      throw new BadRequestException(sysMsg.TOKEN_EXPIRED);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const names = invite.full_name ? invite.full_name.split(' ') : ['User', ''];
+    const firstName = names[0];
+    const lastName = names.slice(1).join(' ') || '';
+
+    const newUser = await this.userModelAction.create({
+      createPayload: {
+        email: invite.email,
+        password: hashedPassword,
+        first_name: firstName,
+        last_name: lastName,
+        role: [invite.role as UserRole],
+        is_active: true,
+        is_verified: true,
+      },
+      transactionOptions: { useTransaction: false },
+    });
+
+    await this.inviteModelAction.update({
+      identifierOptions: { id: invite.id },
+      updatePayload: { accepted: true },
+      transactionOptions: { useTransaction: false },
+    });
+
+    this.logger.info(
+      `User ${newUser.email} successfully created via invitation.`,
+    );
 
     return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.PENDING_INVITES_FETCHED,
-      data: mappedInvites,
+      status_code: HttpStatus.CREATED,
+      message: sysMsg.ACCOUNT_CREATED,
+      data: {
+        id: newUser.id,
+        email: newUser.email,
+        role: newUser.role,
+      },
     };
   }
 
-  async uploadCsvToS3(file: Express.Multer.File): Promise<string> {
-    const bucket = aws.bucketName;
-    const key = `invites/${Date.now()}-${file.originalname}`;
+  // async uploadCsvToS3(file: Express.Multer.File): Promise<string> {
+  //   const bucket = aws.bucketName;
+  //   const key = `invites/${Date.now()}-${file.originalname}`;
 
-    const params = {
-      Bucket: bucket,
-      Key: key,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    };
+  //   const params = {
+  //     Bucket: bucket,
+  //     Key: key,
+  //     Body: file.buffer,
+  //     ContentType: file.mimetype,
+  //   };
 
-    const result = await this.s3.upload(params).promise();
-    return result.Key;
-  }
+  //   const result = await this.s3.upload(params).promise();
+  //   return result.Key;
+  // }
 }

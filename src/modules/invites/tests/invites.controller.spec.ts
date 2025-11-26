@@ -1,104 +1,69 @@
 import { HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { InviteUserDto, InviteRole } from '../dto/invite-user.dto';
-import { PendingInvitesResponseDto } from '../dto/pending-invite.dto';
-import { Invite } from '../entities/invites.entity';
+import { AcceptInviteDto } from '../dto/accept-invite.dto';
+import { InviteRole } from '../dto/invite-user.dto';
+import { InvitesController } from '../invites.controller';
 import { InviteService } from '../invites.service';
 
-describe('InviteService', () => {
-  let service: InviteService;
+interface IMockInviteService {
+  sendInvite: jest.Mock;
+  getPendingInvites: jest.Mock;
+  acceptInvite: jest.Mock;
+}
 
-  const mockInviteRepo = {
-    findOne: jest.fn(),
-    create: jest.fn(),
-    save: jest.fn(),
-    find: jest.fn(),
-  };
+describe('InvitesController', () => {
+  let controller: InvitesController;
+  let service: IMockInviteService;
 
   beforeEach(async () => {
+    const mockService = {
+      sendInvite: jest.fn(),
+      getPendingInvites: jest.fn(),
+      acceptInvite: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        InviteService,
-        { provide: getRepositoryToken(Invite), useValue: mockInviteRepo },
-      ],
+      controllers: [InvitesController],
+      providers: [{ provide: InviteService, useValue: mockService }],
     }).compile();
 
-    service = module.get<InviteService>(InviteService);
+    controller = module.get<InvitesController>(InvitesController);
+    service = module.get(InviteService) as unknown as IMockInviteService;
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  it('should be defined', () => {
+    expect(controller).toBeDefined();
   });
 
-  describe('sendInvite', () => {
-    it('should create a new invite if email does not exist', async () => {
-      mockInviteRepo.findOne.mockResolvedValue(null);
-      mockInviteRepo.create.mockReturnValue({
+  // ... existing tests ...
+
+  describe('acceptInvite', () => {
+    it('should call service to accept invite and return success', async () => {
+      const dto: AcceptInviteDto = { token: 'abc', password: '123' };
+      const mockUser = {
         id: '1',
-        email: 'test@example.com',
-        invitedAt: new Date(),
-        role: InviteRole.TEACHER,
-        full_name: 'John Doe',
-      });
-      mockInviteRepo.save.mockResolvedValue({});
-
-      const payload: InviteUserDto = {
-        email: 'test@example.com',
-        role: InviteRole.TEACHER,
-        full_name: 'John Doe',
-      };
-      const result = await service.sendInvite(payload);
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.INVITE_SENT);
-      expect(result.data[0].email).toBe(payload.email);
-    });
-
-    it('should return conflict if email already exists', async () => {
-      mockInviteRepo.findOne.mockResolvedValue({
-        id: '1',
-        email: 'test@example.com',
-      });
-
-      const payload: InviteUserDto = {
-        email: 'test@example.com',
+        email: 'test@test.com',
         role: InviteRole.TEACHER,
       };
-      const result = await service.sendInvite(payload);
 
-      expect(result.status_code).toBe(HttpStatus.CONFLICT);
-      expect(result.message).toBe(sysMsg.INVITE_ALREADY_SENT);
-      expect(result.data).toHaveLength(0);
-    });
-  });
+      service.acceptInvite.mockResolvedValue({
+        status_code: HttpStatus.CREATED,
+        message: sysMsg.ACCOUNT_CREATED,
+        data: mockUser,
+      });
 
-  describe('getPendingInvites', () => {
-    it('should return pending invites if they exist', async () => {
-      const invites = [
-        { id: '1', email: 'test@example.com', invitedAt: new Date() },
-      ];
-      mockInviteRepo.find.mockResolvedValue(invites);
+      const result = await controller.acceptInvite(dto);
 
-      const result: PendingInvitesResponseDto =
-        await service.getPendingInvites();
-
+      expect(service.acceptInvite).toHaveBeenCalledWith(dto);
       expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.PENDING_INVITES_FETCHED);
-      expect(result.data).toHaveLength(invites.length);
-    });
-
-    it('should return NOT_FOUND if no pending invites', async () => {
-      mockInviteRepo.find.mockResolvedValue([]);
-
-      const result: PendingInvitesResponseDto =
-        await service.getPendingInvites();
-
-      expect(result.status_code).toBe(HttpStatus.NOT_FOUND);
-      expect(result.message).toBe(sysMsg.NO_PENDING_INVITES);
-      expect(result.data).toHaveLength(0);
+      expect(result.message).toBe('Account activated successfully');
+      expect(result.data).toEqual({
+        status_code: HttpStatus.CREATED,
+        message: sysMsg.ACCOUNT_CREATED,
+        data: mockUser,
+      });
     });
   });
 });

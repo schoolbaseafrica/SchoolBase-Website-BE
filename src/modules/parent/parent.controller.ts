@@ -4,6 +4,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Body,
   Param,
   Query,
@@ -26,6 +27,7 @@ import {
   ApiGetParent,
   ApiListParents,
   ApiUpdateParent,
+  ApiDeleteParent,
 } from './docs/parent.swagger';
 import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
 import { ParentService } from './parent.service';
@@ -118,6 +120,22 @@ export class ParentController {
       message: sysMsg.PARENT_UPDATED,
       status_code: HttpStatus.OK,
       data,
+    };
+  }
+
+  // --- DELETE: SOFT DELETE PARENT (ADMIN ONLY) ---
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiDeleteParent()
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{
+    message: string;
+    status_code: number;
+  }> {
+    await this.parentService.remove(id);
+    return {
+      message: sysMsg.PARENT_DELETED,
+      status_code: HttpStatus.OK,
     };
   }
 }

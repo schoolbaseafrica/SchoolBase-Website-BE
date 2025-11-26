@@ -2,12 +2,15 @@ import {
   ConflictException,
   HttpStatus,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import * as sysMsg from '../../../constants/system.messages';
+import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -64,6 +67,9 @@ describe('ClassService', () => {
     get: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
+    findAllWithSession: jest.fn(),
+    findAllWithSessionRaw: jest.fn(),
+    list: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -202,6 +208,7 @@ describe('ClassService', () => {
       expect(result).toEqual(emptyPayload.payload);
     });
   });
+
   describe('create', () => {
     const createClassDto = {
       name: 'Grade 10',
@@ -284,6 +291,161 @@ describe('ClassService', () => {
       await expect(service.create(createClassDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('updateClass', () => {
+    const classId = 'class-uuid-1';
+    const updateDto = { name: 'JSS2', arm: 'B' };
+    const mockAcademicSession = {
+      id: 'session-uuid-1',
+      name: '2026/2027',
+      startDate: new Date(),
+      endDate: new Date(),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const existingClass = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      academicSession: mockAcademicSession,
+      teacher_assignment: [],
+      streams: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Class;
+
+    beforeEach(() => {
+      classModelAction.get.mockResolvedValue(existingClass);
+      classModelAction.find.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classModelAction.update = jest.fn();
+    });
+
+    it('should update class and return updated response', async () => {
+      const result = await service.updateClass(classId, updateDto);
+
+      expect(classModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        relations: { academicSession: true },
+      });
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: {
+          name: updateDto.name,
+          arm: updateDto.arm,
+          academicSession: { id: existingClass.academicSession.id },
+        },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(classModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        updatePayload: { name: updateDto.name, arm: updateDto.arm },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual({
+        message: expect.any(String),
+        id: classId,
+        name: updateDto.name,
+        arm: updateDto.arm,
+        academicSession: {
+          id: existingClass.academicSession.id,
+          name: existingClass.academicSession.name,
+        },
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+      await expect(service.updateClass('wrong-id', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException if name is empty', async () => {
+      await expect(service.updateClass(classId, { name: '' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw ConflictException if class with same name/arm exists', async () => {
+      classModelAction.find.mockResolvedValue({
+        payload: [
+          {
+            id: 'other-id',
+            name: 'JSS2',
+            arm: 'B',
+            academicSession: mockAcademicSession,
+            teacher_assignment: [],
+            streams: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        paginationMeta: {},
+      });
+      await expect(service.updateClass(classId, updateDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+  });
+  describe('getGroupedClasses', () => {
+    it('should return grouped classes with status_code 200 and message', async () => {
+      // Mock grouped data
+      const mockRawClasses = [
+        {
+          id: 'class-id-1',
+          name: 'JSS1',
+          arm: 'A',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+        {
+          id: 'class-id-2',
+          name: 'JSS1',
+          arm: 'B',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+      ];
+
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockRawClasses,
+        paginationMeta: { total: 1, page: 1, limit: 20 },
+      });
+
+      const expectedGrouped = [
+        {
+          name: 'JSS1',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+          classes: [
+            { id: 'class-id-1', arm: 'A' },
+            { id: 'class-id-2', arm: 'B' },
+          ],
+        },
+      ];
+
+      const result = await service.getGroupedClasses();
+      expect(result.message).toBe(sysMsg.CLASS_FETCHED);
+      expect(result.items).toEqual(expectedGrouped);
+      expect(result.pagination).toBeDefined();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
+    });
+
+    it('should return status_code 200 and message for empty grouped classes', async () => {
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page: 1, limit: 20 },
+      });
+
+      const result = await service.getGroupedClasses();
+
+      expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
+      expect(result.items).toEqual([]);
+      expect(result.pagination).toBeDefined();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
     });
   });
 });
