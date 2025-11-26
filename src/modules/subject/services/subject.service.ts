@@ -13,12 +13,8 @@ import { DepartmentModelAction } from '../../department/model-actions/department
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
 import { Subject } from '../entities/subject.entity';
+import { IBaseResponse } from '../interface/types';
 import { SubjectModelAction } from '../model-actions/subject.actions';
-
-export interface IBaseResponse<T> {
-  message: string;
-  data: T;
-}
 
 @Injectable()
 export class SubjectService {
