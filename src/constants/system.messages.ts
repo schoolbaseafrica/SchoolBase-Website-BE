@@ -172,6 +172,8 @@ export const ACADEMIC_SESSION_UPDATED =
   'Academic session updated successfully.';
 export const ACADEMIC_SESSION_DELETED =
   'Academic session deleted successfully.';
+export const INACTIVE_SESSION_LOCKED =
+  'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';

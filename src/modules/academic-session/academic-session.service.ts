@@ -5,6 +5,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  ForbiddenException,
 } from '@nestjs/common';
 import { DataSource, FindOptionsOrder } from 'typeorm';
 
@@ -29,6 +30,7 @@ export interface ICreateSessionResponse {
   message: string;
   data: AcademicSession;
 }
+
 @Injectable()
 export class AcademicSessionService {
   private readonly logger = new Logger(AcademicSessionService.name);
@@ -36,6 +38,13 @@ export class AcademicSessionService {
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
   ) {}
+
+  private validateSessionIsModifiable(session: AcademicSession): void {
+    if (session.status !== SessionStatus.ACTIVE) {
+      throw new ForbiddenException(sysMsg.INACTIVE_SESSION_LOCKED);
+    }
+  }
+
   async create(
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
@@ -187,6 +196,9 @@ export class AcademicSessionService {
       throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
+    // LOCK CHECK: Prevent modification of inactive sessions
+    this.validateSessionIsModifiable(session);
+
     // Validate dates if provided
     if (updateSessionDto.startDate && updateSessionDto.endDate) {
       const start = new Date(updateSessionDto.startDate);
@@ -241,11 +253,9 @@ export class AcademicSessionService {
       throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
     }
 
-    // Prevent deletion of active session
-    if (session.status === SessionStatus.ACTIVE) {
-      throw new BadRequestException(
-        'Cannot delete an active academic session. Please deactivate it first.',
-      );
+    // LOCK CHECK: Prevent deletion of inactive sessions (locked for historical data)
+    if (session.status !== SessionStatus.ACTIVE) {
+      throw new ForbiddenException(sysMsg.INACTIVE_SESSION_LOCKED);
     }
 
     await this.sessionModelAction.delete({
