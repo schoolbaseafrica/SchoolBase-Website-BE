@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { In } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -23,6 +23,7 @@ export class SubjectService {
   constructor(
     private readonly subjectModelAction: SubjectModelAction,
     private readonly departmentModelAction: DepartmentModelAction,
+    private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: SubjectService.name });
@@ -32,48 +33,62 @@ export class SubjectService {
   async create(
     createSubjectDto: CreateSubjectDto,
   ): Promise<IBaseResponse<SubjectResponseDto>> {
-    // Check if subject with same name exists
-    const existingSubject = await this.subjectModelAction.get({
-      identifierOptions: { name: createSubjectDto.name },
-    });
+    return this.dataSource.transaction(async (manager) => {
+      // Check if subject with same name exists
+      const existingSubject = await this.subjectModelAction.get({
+        identifierOptions: { name: createSubjectDto.name },
+      });
 
-    if (existingSubject) {
-      throw new ConflictException(sysMsg.SUBJECT_ALREADY_EXISTS);
-    }
+      if (existingSubject) {
+        throw new ConflictException(sysMsg.SUBJECT_ALREADY_EXISTS);
+      }
 
-    // Validate that all departments exist
-    const departments = await this.departmentModelAction.list({
-      filterRecordOptions: {
-        id: In(createSubjectDto.departmentIds),
-      },
-    });
+      // Validate that all departments exist
+      const departments = await this.departmentModelAction.list({
+        filterRecordOptions: {
+          id: In(createSubjectDto.departmentIds),
+        },
+      });
 
-    if (departments.payload.length !== createSubjectDto.departmentIds.length) {
-      throw new NotFoundException(sysMsg.DEPARTMENTS_NOT_FOUND);
-    }
+      if (
+        departments.payload.length !== createSubjectDto.departmentIds.length
+      ) {
+        const existingDepartmentIds = new Set(
+          departments.payload.map((department) => department.id),
+        );
+        const missingDepartmentIds = createSubjectDto.departmentIds.filter(
+          (deptId) => !existingDepartmentIds.has(deptId),
+        );
 
-    // Create subject with departments
-    const newSubject = await this.subjectModelAction.create({
-      createPayload: {
-        name: createSubjectDto.name,
+        throw new NotFoundException(
+          `${sysMsg.DEPARTMENTS_NOT_FOUND}: ${missingDepartmentIds.join(', ')}`,
+        );
+      }
+
+      // Create subject with departments within the same transaction to avoid orphaned subjects
+      const newSubject = await this.subjectModelAction.create({
+        createPayload: {
+          name: createSubjectDto.name,
+          departments: departments.payload,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Construct response directly from newSubject and departments already in memory
+      // This avoids an unnecessary database query
+      const subjectWithRelations: Subject = {
+        ...newSubject,
         departments: departments.payload,
-      },
-      transactionOptions: {
-        useTransaction: false,
-      },
+      };
+
+      return {
+        message: sysMsg.SUBJECT_CREATED,
+        data: this.mapToResponseDto(subjectWithRelations),
+      };
     });
-
-    // Construct response directly from newSubject and departments already in memory
-    // This avoids an unnecessary database query
-    const subjectWithRelations: Subject = {
-      ...newSubject,
-      departments: departments.payload,
-    };
-
-    return {
-      message: sysMsg.SUBJECT_CREATED,
-      data: this.mapToResponseDto(subjectWithRelations),
-    };
   }
 
   private mapToResponseDto(subject: Subject): SubjectResponseDto {
