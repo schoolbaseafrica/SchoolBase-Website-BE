@@ -1,8 +1,14 @@
-import { NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
@@ -14,6 +20,16 @@ import { ClassService } from './class.service';
 const MOCK_CLASS_ID = '1';
 const MOCK_SESSION_ID = '2023-2024';
 const MOCK_ACTIVE_SESSION = '2024-2025';
+
+const mockRepository = {};
+
+const mockDataSource = {
+  createEntityManager: jest.fn(),
+  getRepository: jest.fn().mockReturnValue(mockRepository),
+  transaction: jest.fn().mockImplementation(async (callback) => {
+    return callback({});
+  }),
+};
 
 const mockClass = {
   id: MOCK_CLASS_ID,
@@ -41,10 +57,13 @@ describe('ClassService', () => {
   let service: ClassService;
   let classModelAction: jest.Mocked<ClassModelAction>;
   let classTeacherModelAction: jest.Mocked<ClassTeacherModelAction>;
+  let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
   let mockLogger: jest.Mocked<Logger>;
 
   const mockClassModelAction = {
     get: jest.fn(),
+    find: jest.fn(),
+    create: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -76,12 +95,29 @@ describe('ClassService', () => {
           provide: WINSTON_MODULE_PROVIDER,
           useValue: mockLogger,
         },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
+        {
+          provide: AcademicSessionModelAction,
+          useValue: {
+            list: jest.fn().mockResolvedValue({
+              payload: [
+                { id: MOCK_ACTIVE_SESSION, name: '2024/2025 Academic Session' },
+              ],
+              paginationMeta: {},
+            }),
+            find: jest.fn().mockResolvedValue({ payload: [] }),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<ClassService>(ClassService);
     classModelAction = module.get(ClassModelAction);
     classTeacherModelAction = module.get(ClassTeacherModelAction);
+    academicSessionModelAction = module.get(AcademicSessionModelAction);
   });
 
   afterEach(() => {
@@ -164,6 +200,90 @@ describe('ClassService', () => {
       );
 
       expect(result).toEqual(emptyPayload.payload);
+    });
+  });
+  describe('create', () => {
+    const createClassDto = {
+      name: 'Grade 10',
+      arm: 'A',
+    };
+    const mockCreatedClass = {
+      id: 'class-uuid-1',
+      name: 'Grade 10',
+      arm: 'A',
+    } as unknown as Class;
+
+    it('should successfully create a new class and link it to the active session', async () => {
+      // Setup
+      (classModelAction.find as jest.Mock).mockResolvedValue({
+        payload: [],
+      }); // Class does not exist
+      (classModelAction.create as jest.Mock).mockResolvedValue(
+        mockCreatedClass,
+      );
+      const activeSession = {
+        id: MOCK_ACTIVE_SESSION,
+        name: '2024/2025 Academic Session',
+      };
+      (academicSessionModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [activeSession],
+        paginationMeta: {},
+      });
+
+      // Execute
+      const result = await service.create(createClassDto);
+
+      // Assertions
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: {
+          name: createClassDto.name,
+          arm: createClassDto.arm,
+          academicSession: { id: MOCK_ACTIVE_SESSION },
+        },
+        transactionOptions: {
+          useTransaction: false,
+        },
+      });
+
+      expect(classModelAction.create).toHaveBeenCalledWith({
+        createPayload: {
+          name: createClassDto.name,
+          arm: createClassDto.arm,
+          academicSession: activeSession,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: expect.any(Object),
+        },
+      });
+
+      expect(result.status_code).toBe(HttpStatus.CREATED);
+      expect(result.data.name).toBe(createClassDto.name);
+      expect(result.data.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
+    });
+
+    it('should throw ConflictException if the class already exists in the active session', async () => {
+      // Setup
+      (classModelAction.find as jest.Mock).mockResolvedValue({
+        payload: [mockCreatedClass],
+      }); // Class already exists
+
+      // Execute & Assert
+      await expect(service.create(createClassDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+
+    it('should throw NotFoundException if no active academic session is found', async () => {
+      // Setup
+      (academicSessionModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [],
+      }); // No active session
+
+      // Execute & Assert
+      await expect(service.create(createClassDto)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

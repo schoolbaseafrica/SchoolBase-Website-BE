@@ -6,6 +6,7 @@ import {
   IsOptional,
   MaxLength,
   MinLength,
+  IsEmpty,
 } from 'class-validator';
 
 export class CreateContactDto {
@@ -46,4 +47,8 @@ export class CreateContactDto {
   @MinLength(10)
   @MaxLength(2000)
   message: string;
+
+  @IsEmpty({ message: 'Invalid submission' })
+  @IsOptional()
+  website?: string;
 }

@@ -1,27 +1,42 @@
-import { Controller, Get, Param, Query, ParseUUIDPipe } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiParam,
-  ApiNotFoundResponse,
-  ApiOkResponse,
-} from '@nestjs/swagger';
+  Controller,
+  Get,
+  Param,
+  Query,
+  ParseUUIDPipe,
+  Post,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
-import { ClassSwagger } from '../docs/class.swagger';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from '../../shared/enums';
+import { DocsCreateClass, DocsGetClassTeachers } from '../docs/class.decorator';
+import { CreateClassDto } from '../dto/create-class.dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassService } from '../services/class.service';
 
-@ApiTags(ClassSwagger.tags[0])
+@ApiTags('Classes')
 @Controller('classes')
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassController {
   constructor(private readonly classService: ClassService) {}
 
+  // --- POST: CREATE CLASS (ADMIN ONLY) ---
+  @Post('')
+  @DocsCreateClass()
+  async create(@Body() createClassDto: CreateClassDto) {
+    return this.classService.create(createClassDto);
+  }
+
   @Get(':id/teachers')
-  @ApiOperation(ClassSwagger.endpoints.getTeachers.operation)
-  @ApiParam(ClassSwagger.endpoints.getTeachers.parameters.id)
-  @ApiOkResponse(ClassSwagger.endpoints.getTeachers.responses.ok)
-  @ApiNotFoundResponse(ClassSwagger.endpoints.getTeachers.responses.notFound)
+  @DocsGetClassTeachers()
   async getTeachers(
     @Param('id', ParseUUIDPipe) classId: string,
     @Query() query: GetTeachersQueryDto,

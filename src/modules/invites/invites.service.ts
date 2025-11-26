@@ -61,6 +61,49 @@ export class InviteService {
       full_name: invite.full_name,
     };
 
+    /**const emailPayload: EmailPayload = {
+      to: [
+        { 
+          email: invite.email, 
+          name: invite.full_name 
+        }
+      ],
+      subject: `You are invited to ${schoolName}`,
+      templateNameID: EmailTemplateID.INVITE, // 'invite.njk'
+      templateData: {
+        firstName: invite.full_name.split(' ')[0], 
+        role: invite.role,                         
+        schoolName: schoolName,                    
+        logoUrl: schoolLogo,                       
+        inviteLink: inviteLink,                    
+      },
+    };
+
+
+    let route = 'accept-invite';
+
+    switch (payload.role) {
+      case UserRole.TEACHER:
+        route = 'invited-teacher';
+        break;
+      case UserRole.PARENT:
+        route = 'invited-parent';
+        break;
+      case UserRole.ADMIN:
+        route = 'invited-admin';
+        break;
+      case UserRole.STUDENT:
+        route = 'invited-student';
+        break;
+      default:
+        route = 'accept-invite';
+    }
+
+    // Use the dynamic route in the link
+    const inviteLink = `${frontendUrl}/${route}?token=${token}`;
+    
+    **/
+
     {
       return {
         status_code: HttpStatus.OK,

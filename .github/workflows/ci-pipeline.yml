@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [dev, staging, main]
 
+# Prevent duplicate runs - cancel in-progress runs when a new one starts
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci-run:
     runs-on: ubuntu-latest
