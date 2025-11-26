@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsOptional } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsNumber,
+  Min,
+} from 'class-validator';
 
 export class CreateClassDto {
   @ApiProperty({
@@ -71,4 +77,30 @@ export class GroupedClassDto {
     isArray: true,
   })
   classes: ClassItemDto[];
+}
+
+export class ListGroupedClassesDto {
+  @ApiProperty({
+    description: 'Page number',
+    example: 1,
+    required: false,
+    default: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  page?: number = 1;
+
+  @ApiProperty({
+    description: 'Number of records per page',
+    example: 20,
+    required: false,
+    default: 20,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Type(() => Number)
+  limit?: number = 20;
 }

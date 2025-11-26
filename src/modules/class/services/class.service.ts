@@ -162,8 +162,11 @@ export class ClassService {
   /**
    * Fetches all classes grouped by name and academic session, including arm.
    */
-  async getGroupedClasses() {
-    const classes = await this.classModelAction.findAllWithSessionRaw();
+  async getGroupedClasses(page = 1, limit = 20) {
+    const classes = await this.classModelAction.findAllWithSessionRaw(
+      page,
+      limit,
+    );
 
     const grouped: Record<
       string,
