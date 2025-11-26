@@ -30,16 +30,16 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   middle_name: string;
 
-  @Column()
+  @Column({ nullable: true })
   gender: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   dob: Date;
 
   @Column()
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   phone: string;
 
   @Column({ name: 'home_address', nullable: true })

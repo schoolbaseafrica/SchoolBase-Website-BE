@@ -8,15 +8,12 @@ import {
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { FindOptionsWhere } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
-import { SchoolModelAction } from '../school/model-actions/school.action';
 import { UserRole } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
@@ -29,14 +26,10 @@ export class InviteService {
   private readonly logger: Logger;
 
   constructor(
-    @InjectRepository(Invite)
-    private readonly configService: ConfigService,
-
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
 
     private readonly userModelAction: UserModelAction,
     private readonly inviteModelAction: InviteModelAction,
-    private readonly schoolModelAction: SchoolModelAction,
   ) {
     this.logger = baseLogger.child({ context: InviteService.name });
   }

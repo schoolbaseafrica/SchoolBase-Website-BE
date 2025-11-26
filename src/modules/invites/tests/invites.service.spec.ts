@@ -8,16 +8,15 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { EmailService } from '../../email/email.service';
-import { School } from '../../school/entities/school.entity';
+import { SchoolModelAction } from '../../school/model-actions/school.action';
 import { UserRole } from '../../user/entities/user.entity';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import { AcceptInviteDto } from '../dto/accept-invite.dto';
-import { Invite, InviteStatus } from '../entities/invites.entity';
+import { InviteStatus } from '../entities/invites.entity';
 import { InviteModelAction } from '../invite.model-action';
 import { InviteService } from '../invites.service';
 
@@ -63,12 +62,12 @@ describe('InviteService', () => {
         InviteService,
         { provide: InviteModelAction, useValue: { ...mockAction } },
         { provide: UserModelAction, useValue: { ...mockAction } },
+        { provide: SchoolModelAction, useValue: { ...mockAction } },
+
         { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: EmailService, useValue: { sendMail: jest.fn() } },
         { provide: WINSTON_MODULE_PROVIDER, useValue: mockLoggerObj },
         // Mocks for injected Repositories (used in constructor but not in acceptInvite)
-        { provide: getRepositoryToken(Invite), useValue: {} },
-        { provide: getRepositoryToken(School), useValue: {} },
       ],
     }).compile();
 
