@@ -20,6 +20,9 @@ export class Student extends BaseEntity {
   @JoinColumn({ name: 'stream_id' })
   stream: Stream;
 
-  @Column({ type: 'timestamp', nullable: true, default: null })
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
   deleted_at: Date | null;
 }

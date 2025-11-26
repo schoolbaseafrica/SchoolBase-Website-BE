@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, IsNull, Like } from 'typeorm';
+import { DataSource, Like } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -132,7 +132,7 @@ export class StudentService {
       ? await this.searchStudentsWithModelAction(search, page, limit)
       : await this.studentModelAction.list({
           filterRecordOptions: {
-            deleted_at: IsNull(),
+            is_deleted: false,
           },
           relations: { user: true, stream: true },
           paginationPayload: { page, limit },
@@ -165,7 +165,7 @@ export class StudentService {
       relations: { user: true, stream: true },
     });
 
-    if (!student || student.deleted_at) {
+    if (!student || student.is_deleted) {
       this.logger.warn(`Student not found with ID: ${id}`);
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     }
@@ -187,7 +187,7 @@ export class StudentService {
         user: true,
       },
     });
-    if (!existingStudent || existingStudent.deleted_at)
+    if (!existingStudent || existingStudent.is_deleted)
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     if (updateStudentDto.email) {
       const existingUser = await this.userModelAction.get({
@@ -259,7 +259,7 @@ export class StudentService {
         user: true,
       },
     });
-    if (!existingStudent || existingStudent.deleted_at)
+    if (!existingStudent || existingStudent.is_deleted)
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     return this.dataSource.transaction(async (manager) => {
       await this.userModelAction.update({
@@ -277,6 +277,7 @@ export class StudentService {
       await this.studentModelAction.update({
         identifierOptions: { id },
         updatePayload: {
+          is_deleted: true,
           deleted_at: new Date(),
         },
         transactionOptions: {
@@ -309,7 +310,7 @@ export class StudentService {
       .leftJoinAndSelect('student.user', 'user')
       .leftJoinAndSelect('student.stream', 'stream')
       .orderBy('student.createdAt', 'DESC')
-      .where('student.deleted_at IS NULL');
+      .where('student.is_deleted IS NOT TRUE');
 
     if (search && search.trim()) {
       queryBuilder.andWhere(
