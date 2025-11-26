@@ -1,3 +1,7 @@
+import { HttpStatus } from '@nestjs/common';
+
+import * as sysMsg from '../../../constants/system.messages';
+import { ClassResponseDto } from '../dto/create-class.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -7,7 +11,7 @@ import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
  */
 
 export const ClassSwagger = {
-  tags: ['Class'],
+  tags: ['Classes'],
   summary: 'Class Management',
   description:
     'Endpoints for creating, retrieving, updating, and deleting academic sessions.',
@@ -32,6 +36,47 @@ export const ClassSwagger = {
         },
         notFound: {
           description: 'Class not found',
+        },
+      },
+    },
+    createClass: {
+      operation: {
+        summary: 'Create a new class (Admin)',
+        description:
+          'Creates a new class with a unique name and arm (A, B, C, etc.) optional in the current session.',
+      },
+      body: {
+        name: {
+          name: 'name',
+          description:
+            'The name of the class. Letters, numbers, and spaces only (e.g., "SSS 2").',
+        },
+        arm: {
+          name: 'arm',
+          description:
+            'The arm of the class (optional). If provided, must be one of: A, B, C, etc.',
+          enum: ['A', 'B', 'C'],
+          required: false,
+        },
+      },
+      responses: {
+        created: {
+          status: HttpStatus.CREATED,
+          description: sysMsg.CLASS_CREATED,
+          type: ClassResponseDto,
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description:
+            'Validation failed: name is empty, whitespace, or contains invalid characters.',
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: sysMsg.SESSION_NOT_FOUND,
+        },
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description: sysMsg.CLASS_ALREADY_EXIST,
         },
       },
     },
