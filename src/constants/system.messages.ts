@@ -188,3 +188,6 @@ export const CONTACT_STATUS_UPDATED = 'Contact status updated successfully';
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+
+// Dashboard messages
+export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
