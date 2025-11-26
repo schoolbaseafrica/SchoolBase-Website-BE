@@ -131,8 +131,12 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 // Streams
-export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const INVALID_STREAM_IDS =
+  'One or more provided Stream IDs are invalid.';
+export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+
 // Invites
 export const INVITE_SENT = 'INVITE_SENT';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
@@ -167,6 +171,22 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
+// Room
+export const ROOM_CREATED_SUCCESSFULLY = 'Room created successfully.';
+export const DUPLICATE_ROOM_NAME = 'A room with this name already exists.';
+export const ROOM_RETRIEVED_SUCCESSFULLY =
+  'Room details retrieved successfully.';
+export const ROOM_LIST_RETRIEVED_SUCCESSFULLY =
+  'List of rooms retrieved successfully.';
+export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
+export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
+export const ROOM_NOT_FOUND = 'Room not found.';
+export const INVALID_ROOM_ID = 'Invalid room ID provided.';
+export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
+export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
+export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+
 //department
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
@@ -188,6 +208,8 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_FETCHED = 'classes fetched successfully';
+export const NO_CLASS_FOUND = 'no classes found.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
