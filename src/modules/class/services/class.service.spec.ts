@@ -8,6 +8,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
@@ -64,6 +65,9 @@ describe('ClassService', () => {
     get: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
+    findAllWithSession: jest.fn(),
+    findAllWithSessionRaw: jest.fn(),
+    list: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
@@ -284,6 +288,62 @@ describe('ClassService', () => {
       await expect(service.create(createClassDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('getGroupedClasses', () => {
+    it('should return grouped classes with status_code 200 and message', async () => {
+      // Mock grouped data
+      const mockRawClasses = [
+        {
+          id: 'class-id-1',
+          name: 'JSS1',
+          arm: 'A',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+        {
+          id: 'class-id-2',
+          name: 'JSS1',
+          arm: 'B',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+      ];
+
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockRawClasses,
+        paginationMeta: { total: 1, page: 1, limit: 20 },
+      });
+
+      const expectedGrouped = [
+        {
+          name: 'JSS1',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+          classes: [
+            { id: 'class-id-1', arm: 'A' },
+            { id: 'class-id-2', arm: 'B' },
+          ],
+        },
+      ];
+
+      const result = await service.getGroupedClasses();
+      expect(result.message).toBe(sysMsg.CLASS_FETCHED);
+      expect(result.items).toEqual(expectedGrouped);
+      expect(result.pagination).toBeDefined();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
+    });
+
+    it('should return status_code 200 and message for empty grouped classes', async () => {
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page: 1, limit: 20 },
+      });
+
+      const result = await service.getGroupedClasses();
+
+      expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
+      expect(result.items).toEqual([]);
+      expect(result.pagination).toBeDefined();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
     });
   });
 });
