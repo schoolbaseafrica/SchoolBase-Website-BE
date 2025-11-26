@@ -205,3 +205,9 @@ export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+// Subject messages
+export const SUBJECT_CREATED = 'Subject created successfully';
+export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
+export const DEPARTMENTS_NOT_FOUND =
+  'One or more referenced departments were not found';
