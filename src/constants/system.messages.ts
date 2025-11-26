@@ -243,5 +243,7 @@ export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration n
 export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
-
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+// Dashboard messages
+export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
