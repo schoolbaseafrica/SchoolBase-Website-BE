@@ -3,12 +3,15 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
+  Delete,
   Body,
   Param,
   Query,
   UseGuards,
   HttpCode,
   HttpStatus,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -23,8 +26,10 @@ import {
   ApiCreateParent,
   ApiGetParent,
   ApiListParents,
+  ApiUpdateParent,
+  ApiDeleteParent,
 } from './docs/parent.swagger';
-import { CreateParentDto, ParentResponseDto } from './dto';
+import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
@@ -94,6 +99,43 @@ export class ParentController {
       status_code: HttpStatus.OK,
       data,
       meta: paginationMeta,
+    };
+  }
+
+  // --- PATCH: UPDATE PARENT (ADMIN ONLY) ---
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateParent()
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateDto: UpdateParentDto,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentResponseDto;
+  }> {
+    const data = await this.parentService.update(id, updateDto);
+    return {
+      message: sysMsg.PARENT_UPDATED,
+      status_code: HttpStatus.OK,
+      data,
+    };
+  }
+
+  // --- DELETE: SOFT DELETE PARENT (ADMIN ONLY) ---
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiDeleteParent()
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<{
+    message: string;
+    status_code: number;
+  }> {
+    await this.parentService.remove(id);
+    return {
+      message: sysMsg.PARENT_DELETED,
+      status_code: HttpStatus.OK,
     };
   }
 }

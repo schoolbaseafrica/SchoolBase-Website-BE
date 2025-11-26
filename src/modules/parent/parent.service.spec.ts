@@ -16,7 +16,7 @@ import * as passwordUtil from '../shared/utils/password.util';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateParentDto } from './dto';
+import { CreateParentDto, UpdateParentDto } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
 import { ParentService } from './parent.service';
@@ -32,6 +32,7 @@ type MockQueryBuilder = {
   leftJoinAndSelect: jest.Mock;
   orderBy: jest.Mock;
   where: jest.Mock;
+  andWhere: jest.Mock;
   getCount: jest.Mock;
   skip: jest.Mock;
   take: jest.Mock;
@@ -70,6 +71,7 @@ describe('ParentService', () => {
     user_id: 'user-uuid-123',
     photo_url: 'https://example.com/photos/parent123.jpg',
     is_active: true,
+    deleted_at: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     user: mockUser as User,
@@ -94,6 +96,7 @@ describe('ParentService', () => {
       leftJoinAndSelect: jest.fn().mockReturnThis(),
       orderBy: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
       getCount: jest.fn(),
       skip: jest.fn().mockReturnThis(),
       take: jest.fn().mockReturnThis(),
@@ -364,32 +367,56 @@ describe('ParentService', () => {
         NotFoundException,
       );
     });
+
+    it('should throw NotFoundException if parent is soft deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(service.findOne(mockParentId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+    });
   });
 
   describe('findAll', () => {
     it('should return paginated parents without search', async () => {
       const mockParents = [mockParent as Parent];
-      const mockPaginationMeta = {
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      };
 
-      parentModelAction.list.mockResolvedValue({
-        payload: mockParents,
-        paginationMeta: mockPaginationMeta,
-      });
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
 
       const result = await service.findAll({ page: 1, limit: 10 });
 
       expect(result.data).toHaveLength(1);
-      expect(result.paginationMeta).toEqual(mockPaginationMeta);
-      expect(parentModelAction.list).toHaveBeenCalledWith({
-        relations: { user: true },
-        paginationPayload: { page: 1, limit: 10 },
-        order: { createdAt: 'DESC' },
-      });
+      expect(result.paginationMeta.total).toBe(1);
+      expect(result.paginationMeta.page).toBe(1);
+      expect(result.paginationMeta.limit).toBe(10);
+
+      // Verify query builder was used
+      expect(parentRepository.createQueryBuilder).toHaveBeenCalled();
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'parent.user',
+        'user',
+      );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'parent.deleted_at IS NULL',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'parent.createdAt',
+        'DESC',
+      );
+      // Should not call andWhere when there's no search
+      expect(mockQueryBuilder.andWhere).not.toHaveBeenCalled();
     });
 
     it('should use query builder for search when search term is provided', async () => {
@@ -415,11 +442,14 @@ describe('ParentService', () => {
         'parent.user',
         'user',
       );
+      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+        'parent.deleted_at IS NULL',
+      );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
         'parent.createdAt',
         'DESC',
       );
-      expect(mockQueryBuilder.where).toHaveBeenCalledWith(
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
         { search: '%John%' },
       );
@@ -430,17 +460,12 @@ describe('ParentService', () => {
 
     it('should log search information without search term', async () => {
       const mockParents = [mockParent as Parent];
-      const mockPaginationMeta = {
-        total: 1,
-        page: 1,
-        limit: 10,
-        totalPages: 1,
-      };
 
-      parentModelAction.list.mockResolvedValue({
-        payload: mockParents,
-        paginationMeta: mockPaginationMeta,
-      });
+      // Get the mock query builder instance and cast to our mock type
+      const mockQueryBuilder =
+        parentRepository.createQueryBuilder() as unknown as MockQueryBuilder;
+      mockQueryBuilder.getCount = jest.fn().mockResolvedValue(1);
+      mockQueryBuilder.getMany = jest.fn().mockResolvedValue(mockParents);
 
       await service.findAll({ page: 1, limit: 10 });
 
@@ -450,7 +475,7 @@ describe('ParentService', () => {
           searchTerm: undefined,
           page: 1,
           limit: 10,
-          total: mockPaginationMeta.total,
+          total: 1,
         },
       );
     });
@@ -474,6 +499,384 @@ describe('ParentService', () => {
           limit: 10,
           total: 1, // From getCount mock
         },
+      );
+    });
+  });
+
+  describe('update', () => {
+    const updateDto: UpdateParentDto = {
+      first_name: 'Updated',
+      last_name: 'Name',
+    };
+
+    beforeEach(() => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      // Default: no email conflict (email doesn't exist for another user)
+      userModelAction.get.mockResolvedValue(null);
+      userModelAction.update.mockResolvedValue({
+        ...mockUser,
+        ...updateDto,
+      } as User);
+      parentModelAction.update.mockResolvedValue(mockParent as Parent);
+    });
+
+    it('should update parent successfully', async () => {
+      const result = await service.update(mockParentId, updateDto);
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('id', mockParentId);
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+        relations: { user: true },
+      });
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.update('non-existent-uuid', updateDto),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Parent not found with ID: non-existent-uuid',
+      );
+    });
+
+    it('should throw NotFoundException if parent is soft deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(service.update(mockParentId, updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+    });
+
+    it('should throw ConflictException if email already exists for another user', async () => {
+      const updateWithEmail = {
+        ...updateDto,
+        email: 'newemail@example.com',
+      };
+
+      const existingUser = {
+        id: 'different-user-id', // Different from mockUser.id which is 'user-uuid-123'
+        email: 'newemail@example.com',
+      };
+
+      // Reset the mock chain - first call is for email check, should return existing user
+      userModelAction.get.mockReset();
+      userModelAction.get.mockResolvedValue(existingUser as User);
+
+      await expect(
+        service.update(mockParentId, updateWithEmail),
+      ).rejects.toThrow(ConflictException);
+      await expect(
+        service.update(mockParentId, updateWithEmail),
+      ).rejects.toThrow('User with email newemail@example.com already exists.');
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Attempt to update parent email to existing email: newemail@example.com',
+      );
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { email: 'newemail@example.com' },
+      });
+    });
+
+    it('should allow updating email if new email does not exist', async () => {
+      const updateWithEmail = {
+        ...updateDto,
+        email: 'newemail@example.com',
+      };
+
+      // Override default mock: no existing user with this email
+      userModelAction.get.mockResolvedValueOnce(null);
+      userModelAction.update.mockResolvedValue({
+        ...mockUser,
+        email: 'newemail@example.com',
+      } as User);
+
+      const result = await service.update(mockParentId, updateWithEmail);
+
+      expect(result).toBeDefined();
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { email: 'newemail@example.com' },
+      });
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            email: 'newemail@example.com',
+          }),
+        }),
+      );
+    });
+
+    it('should allow updating email if email is same as current', async () => {
+      const updateWithSameEmail = {
+        ...updateDto,
+        email: mockUser.email,
+      };
+
+      const result = await service.update(mockParentId, updateWithSameEmail);
+
+      expect(result).toBeDefined();
+      expect(dataSource.transaction).toHaveBeenCalled();
+    });
+
+    it('should validate photo URL when updating', async () => {
+      const updateWithPhoto = {
+        ...updateDto,
+        photo_url: 'https://example.com/photos/new-parent123.jpg',
+      };
+
+      await service.update(mockParentId, updateWithPhoto);
+
+      expect(fileService.validatePhotoUrl).toHaveBeenCalledWith(
+        'https://example.com/photos/new-parent123.jpg',
+      );
+    });
+
+    it('should allow setting photo_url to null when updating', async () => {
+      const updateWithNullPhoto = {
+        ...updateDto,
+        photo_url: null,
+      };
+
+      await service.update(mockParentId, updateWithNullPhoto);
+
+      // Should not throw and should complete successfully
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(parentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            photo_url: null,
+          }),
+        }),
+      );
+    });
+
+    it('should update user fields correctly including email', async () => {
+      const updateWithUserFields: UpdateParentDto = {
+        first_name: 'Jane',
+        last_name: 'Smith',
+        middle_name: 'Marie',
+        email: 'jane.smith@example.com',
+        phone: '+234 999 888 7777',
+        gender: 'Female',
+        date_of_birth: '1990-01-01',
+        home_address: '456 New Street',
+        is_active: false,
+      };
+
+      const updatedUser = {
+        ...mockUser,
+        first_name: 'Jane',
+        last_name: 'Smith',
+        middle_name: 'Marie',
+        email: 'jane.smith@example.com',
+        phone: '+234 999 888 7777',
+        gender: 'Female',
+        dob: new Date('1990-01-01'),
+        homeAddress: '456 New Street',
+        is_active: false,
+      };
+
+      // Override default mock: no email conflict
+      userModelAction.get.mockResolvedValueOnce(null);
+      userModelAction.update.mockResolvedValue(updatedUser as User);
+
+      await service.update(mockParentId, updateWithUserFields);
+
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { email: 'jane.smith@example.com' },
+      });
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockUser.id },
+          updatePayload: expect.objectContaining({
+            first_name: 'Jane',
+            last_name: 'Smith',
+            middle_name: 'Marie',
+            email: 'jane.smith@example.com',
+            phone: '+234 999 888 7777',
+            gender: 'Female',
+            dob: expect.any(Date),
+            homeAddress: '456 New Street',
+            is_active: false,
+          }),
+        }),
+      );
+    });
+
+    it('should update parent fields correctly', async () => {
+      const updateWithParentFields: UpdateParentDto = {
+        is_active: false,
+        photo_url: 'https://example.com/new-photo.jpg',
+      };
+
+      await service.update(mockParentId, updateWithParentFields);
+
+      expect(parentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockParentId },
+          updatePayload: expect.objectContaining({
+            is_active: false,
+            photo_url: 'https://example.com/new-photo.jpg',
+          }),
+        }),
+      );
+    });
+
+    it('should update both user and parent in a transaction', async () => {
+      await service.update(mockParentId, updateDto);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(userModelAction.update).toHaveBeenCalled();
+      expect(parentModelAction.update).toHaveBeenCalled();
+    });
+
+    it('should log successful update', async () => {
+      await service.update(mockParentId, updateDto);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.any(String), // system message
+        expect.objectContaining({
+          parentId: mockParentId,
+          email: mockUser.email,
+        }),
+      );
+    });
+
+    it('should handle partial updates (only some fields)', async () => {
+      const partialUpdate: UpdateParentDto = {
+        first_name: 'Partial',
+      };
+
+      await service.update(mockParentId, partialUpdate);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            first_name: 'Partial',
+          }),
+        }),
+      );
+      // Other fields should not be in the update payload
+      const updateCall = userModelAction.update.mock.calls[0][0];
+      expect(updateCall.updatePayload).not.toHaveProperty('last_name');
+    });
+
+    it('should convert date_of_birth string to Date object', async () => {
+      const updateWithDate: UpdateParentDto = {
+        date_of_birth: '1990-01-15',
+      };
+
+      await service.update(mockParentId, updateWithDate);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          updatePayload: expect.objectContaining({
+            dob: expect.any(Date),
+          }),
+        }),
+      );
+      const updateCall = userModelAction.update.mock.calls[0][0];
+      const dob = updateCall.updatePayload.dob as Date;
+      expect(dob.toISOString()).toContain('1990-01-15');
+    });
+  });
+
+  describe('remove', () => {
+    beforeEach(() => {
+      parentModelAction.get.mockResolvedValue(mockParent as Parent);
+      parentModelAction.update.mockResolvedValue(mockParent as Parent);
+      userModelAction.update.mockResolvedValue(mockUser as User);
+    });
+
+    it('should soft delete a parent successfully', async () => {
+      await service.remove(mockParentId);
+
+      expect(parentModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockParentId },
+        relations: { user: true },
+      });
+      expect(dataSource.transaction).toHaveBeenCalled();
+      expect(parentModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockParentId },
+          updatePayload: expect.objectContaining({
+            deleted_at: expect.any(Date),
+            is_active: false,
+          }),
+        }),
+      );
+    });
+
+    it('should deactivate associated user account', async () => {
+      await service.remove(mockParentId);
+
+      expect(userModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockParent.user_id },
+          updatePayload: {
+            is_active: false,
+          },
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if parent not found', async () => {
+      parentModelAction.get.mockResolvedValue(null);
+
+      await expect(service.remove('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Parent not found with ID: non-existent-id',
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException if parent is already soft deleted', async () => {
+      const deletedParent = {
+        ...mockParent,
+        deleted_at: new Date(),
+      } as Parent;
+
+      parentModelAction.get.mockResolvedValue(deletedParent);
+
+      await expect(service.remove(mockParentId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        `Parent not found with ID: ${mockParentId}`,
+      );
+      expect(dataSource.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should execute parent and user updates in a transaction', async () => {
+      await service.remove(mockParentId);
+
+      expect(dataSource.transaction).toHaveBeenCalledTimes(1);
+      expect(parentModelAction.update).toHaveBeenCalled();
+      expect(userModelAction.update).toHaveBeenCalled();
+    });
+
+    it('should log successful deletion', async () => {
+      await service.remove(mockParentId);
+
+      expect(mockLogger.info).toHaveBeenCalledWith(
+        expect.any(String), // system message
+        expect.objectContaining({
+          parentId: mockParentId,
+          userId: mockParent.user_id,
+        }),
       );
     });
   });

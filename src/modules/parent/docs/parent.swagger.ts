@@ -9,7 +9,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-import { CreateParentDto, ParentResponseDto } from '../dto';
+import { CreateParentDto, ParentResponseDto, UpdateParentDto } from '../dto';
 
 /**
  * Swagger decorators for Parent endpoints
@@ -120,4 +120,65 @@ export const ApiListParents = () =>
         },
       },
     }),
+  );
+
+/**
+ * Swagger decorators for Update Parent endpoint
+ */
+export const ApiUpdateParent = () =>
+  applyDecorators(
+    ApiOperation({ summary: 'Update parent (partial, ADMIN only)' }),
+    ApiParam({
+      name: 'id',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiBody({ type: UpdateParentDto }),
+    ApiResponse({
+      status: 200,
+      description: 'Parent updated successfully',
+      type: ParentResponseDto,
+    }),
+    ApiResponse({ status: 404, description: 'Parent not found' }),
+    ApiResponse({
+      status: 409,
+      description: 'Email already exists for another user',
+    }),
+  );
+
+/**
+ * Swagger decorators for Delete Parent endpoint
+ */
+export const ApiDeleteParent = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Delete a parent (ADMIN only)',
+      description:
+        'Deletes a parent. The parent and associated user account will be deactivated.',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Parent deleted successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'resource deleted',
+          },
+          status_code: {
+            type: 'number',
+            example: 200,
+          },
+        },
+      },
+    }),
+    ApiResponse({ status: 404, description: 'Parent not found' }),
   );

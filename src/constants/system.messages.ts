@@ -47,6 +47,7 @@ export const PASSWORD_RESET_SUCCESS = 'password reset success';
 export const PASSWORD_RESET_FAILED = 'password reset failed';
 export const PASSWORD_RESET_TOKEN_INVALID = 'password reset token invalid';
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'password reset token expired';
+export const PASSWORD_RESET_TOKEN_SENT = 'password reset token has been sent';
 export const PASSWORD_SAME_AS_OLD =
   'new password cannot be same as old password';
 
@@ -166,6 +167,10 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+//department
+export const DEPARTMENT_NOT_FOUND = 'Department not found';
+export const DEPARTMENT_CREATED = 'Department created successfully';
+export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -188,6 +193,7 @@ export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
 export const PARENTS_FETCHED = 'Parents fetched successfully';
+export const PARENT_DELETED = 'Parent deleted successfully';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
@@ -203,3 +209,8 @@ export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration n
 //user messages
 export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
 export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
+export const STUDENT_FETCHED = 'Student fetched successfully';
+export const STUDENTS_FETCHED = 'Students fetched successfully';
+export const STUDENT_NOT_FOUND = 'Student not found';
+
+export const STUDENT_UPDATED = 'Student updated successfully';

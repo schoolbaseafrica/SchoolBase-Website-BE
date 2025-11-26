@@ -17,9 +17,15 @@ import {
   generateStrongPassword,
   hashPassword,
 } from '../shared/utils/password.util';
+import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
-import { CreateParentDto, ListParentsDto, ParentResponseDto } from './dto';
+import {
+  CreateParentDto,
+  ListParentsDto,
+  ParentResponseDto,
+  UpdateParentDto,
+} from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
 
@@ -129,20 +135,12 @@ export class ParentService {
   }> {
     const { page = 1, limit = 10, search } = listParentsDto;
 
-    let result: { payload: Parent[]; paginationMeta: Partial<PaginationMeta> };
-
-    if (search) {
-      // For complex searches, we need to use a different approach
-      // since the list method might not support OR conditions across relations
-      result = await this.searchParentsWithModelAction(search, page, limit);
-    } else {
-      // No search - use regular list
-      result = await this.parentModelAction.list({
-        relations: { user: true },
-        paginationPayload: { page, limit },
-        order: { createdAt: 'DESC' },
-      });
-    }
+    // Using query builder to ensure deleted_at filtering works correctly
+    const result = await this.searchParentsWithModelAction(
+      search || '',
+      page,
+      limit,
+    );
 
     const data = result.payload.map((parent) =>
       this.transformToParentResponseDto(parent),
@@ -163,12 +161,166 @@ export class ParentService {
       relations: { user: true },
     });
 
-    if (!parent) {
+    if (!parent || parent.deleted_at) {
       this.logger.warn(`Parent not found with ID: ${id}`);
       throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
     }
 
     return this.transformToParentResponseDto(parent);
+  }
+
+  // --- UPDATE ---
+  async update(
+    id: string,
+    updateDto: UpdateParentDto,
+  ): Promise<ParentResponseDto> {
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${id}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // Check for email conflict if email is being updated
+    if (updateDto.email && updateDto.email !== parent.user.email) {
+      const existingUser = await this.userModelAction.get({
+        identifierOptions: { email: updateDto.email },
+      });
+      if (existingUser && existingUser.id !== parent.user_id) {
+        this.logger.warn(
+          `Attempt to update parent email to existing email: ${updateDto.email}`,
+        );
+        throw new ConflictException(
+          `User with email ${updateDto.email} already exists.`,
+        );
+      }
+    }
+
+    // Prepare update payloads
+    const userUpdatePayload: Partial<User> = {};
+    if (updateDto.first_name !== undefined)
+      userUpdatePayload.first_name = updateDto.first_name;
+    if (updateDto.last_name !== undefined)
+      userUpdatePayload.last_name = updateDto.last_name;
+    if (updateDto.middle_name !== undefined)
+      userUpdatePayload.middle_name = updateDto.middle_name;
+    if (updateDto.email !== undefined)
+      userUpdatePayload.email = updateDto.email;
+    if (updateDto.phone !== undefined)
+      userUpdatePayload.phone = updateDto.phone;
+    if (updateDto.gender !== undefined)
+      userUpdatePayload.gender = updateDto.gender;
+    if (updateDto.date_of_birth !== undefined)
+      userUpdatePayload.dob = new Date(updateDto.date_of_birth);
+    if (updateDto.home_address !== undefined)
+      userUpdatePayload.homeAddress = updateDto.home_address;
+    if (updateDto.is_active !== undefined)
+      userUpdatePayload.is_active = updateDto.is_active;
+
+    const parentUpdatePayload: Partial<Parent> = {};
+    if (updateDto.is_active !== undefined)
+      parentUpdatePayload.is_active = updateDto.is_active;
+
+    // Handle Photo URL Update
+    if (updateDto.photo_url !== undefined) {
+      parentUpdatePayload.photo_url = updateDto.photo_url
+        ? this.fileService.validatePhotoUrl(updateDto.photo_url)
+        : null;
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      // Update User Data using model action within transaction
+      const updatedUser = await this.userModelAction.update({
+        identifierOptions: { id: parent.user_id },
+        updatePayload: userUpdatePayload,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Update Parent Data using model action within transaction
+      const updatedParent = await this.parentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: parentUpdatePayload,
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Return response
+      const response = {
+        ...updatedParent,
+        first_name: updatedUser.first_name,
+        last_name: updatedUser.last_name,
+        middle_name: updatedUser.middle_name,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        gender: updatedUser.gender,
+        date_of_birth: updatedUser.dob,
+        home_address: updatedUser.homeAddress,
+        is_active: updatedParent.is_active,
+        photo_url: updatedParent.photo_url,
+        created_at: updatedParent.createdAt,
+        updated_at: updatedParent.updatedAt,
+      };
+
+      this.logger.info(sysMsg.PARENT_UPDATED, {
+        parentId: id,
+        email: updatedUser.email,
+      });
+
+      return plainToInstance(ParentResponseDto, response, {
+        excludeExtraneousValues: true,
+      });
+    });
+  }
+
+  // --- DELETE (Soft Delete) ---
+  async remove(id: string): Promise<void> {
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id },
+      relations: { user: true },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${id}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    return this.dataSource.transaction(async (manager) => {
+      // Set deleted_at and is_active to false within transaction
+      await this.parentModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          deleted_at: new Date(),
+          is_active: false,
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      // Also deactivate the associated user account within transaction
+      await this.userModelAction.update({
+        identifierOptions: { id: parent.user_id },
+        updatePayload: { is_active: false },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      this.logger.info(sysMsg.PARENT_DELETED, {
+        parentId: id,
+        userId: parent.user_id,
+      });
+    });
   }
 
   // --- HELPER METHOD TO TRANSFORM ENTITY TO DTO ---
@@ -200,24 +352,23 @@ export class ParentService {
     });
   }
   private async searchParentsWithModelAction(
-    search: string,
+    search: string | undefined,
     page: number = 1,
     limit: number = 10,
   ): Promise<{
     payload: Parent[];
     paginationMeta: Partial<PaginationMeta>;
   }> {
-    // Since the model action's list method might not support complex OR conditions
-    // across relations, we'll use the repository from the model action
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.parentModelAction['repository']
       .createQueryBuilder('parent')
       .leftJoinAndSelect('parent.user', 'user')
+      .where('parent.deleted_at IS NULL')
       .orderBy('parent.createdAt', 'DESC');
 
-    if (search) {
-      queryBuilder.where(
+    if (search && search.trim()) {
+      queryBuilder.andWhere(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search)',
         { search: `%${search}%` },
       );
