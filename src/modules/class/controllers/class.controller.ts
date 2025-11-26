@@ -5,6 +5,7 @@ import {
   Query,
   ParseUUIDPipe,
   Post,
+  Patch,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -18,12 +19,14 @@ import {
   DocsCreateClass,
   DocsGetClassTeachers,
   DocsGetGroupedClasses,
+  DocsUpdateClass,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
   ListGroupedClassesDto,
   GroupedClassDto,
-} from '../dto/create-class.dto';
+  UpdateClassDto,
+} from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 import { ClassService } from '../services/class.service';
@@ -49,6 +52,16 @@ export class ClassController {
   @DocsGetGroupedClasses()
   async getGroupedClasses(@Query() query: ListGroupedClassesDto) {
     return this.classService.getGroupedClasses(query.page, query.limit);
+  }
+
+  // --- PATCH: UPDATE CLASS (ADMIN ONLY) ---
+  @Patch(':id')
+  @DocsUpdateClass()
+  async updateClass(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() updateClassDto: UpdateClassDto,
+  ) {
+    return this.classService.updateClass(classId, updateClassDto);
   }
 
   @Get(':id/teachers')

@@ -14,3 +14,14 @@ export interface ICreateClassResponse {
   message: string;
   data: ClassResponseDto;
 }
+
+export interface IUpdateClassResponse {
+  message: string;
+  id: string;
+  name: string;
+  arm?: string;
+  academicSession: {
+    id: string;
+    name: string;
+  };
+}

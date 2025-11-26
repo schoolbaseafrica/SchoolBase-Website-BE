@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  BadRequestException,
   HttpStatus,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -16,11 +17,17 @@ import {
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Stream } from '../../stream/entities/stream.entity';
-import { CreateClassDto } from '../dto/create-class.dto';
-import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
+import {
+  CreateClassDto,
+  TeacherAssignmentResponseDto,
+  UpdateClassDto,
+} from '../dto';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
-import { ICreateClassResponse } from '../types/base-response.interface';
+import {
+  ICreateClassResponse,
+  IUpdateClassResponse,
+} from '../types/base-response.interface';
 
 @Injectable()
 export class ClassService {
@@ -152,6 +159,68 @@ export class ClassService {
     if (payload.length > 1)
       throw new ConflictException('Multiple active sessions found');
     return payload[0];
+  }
+
+  /**
+   * Updates the name and/or arm of an existing class, ensuring uniqueness within the session.
+   */
+  async updateClass(
+    classId: string,
+    updateClassDto: UpdateClassDto,
+  ): Promise<IUpdateClassResponse> {
+    // 1. Fetch class by ID
+    const existingClass = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+    if (!existingClass) {
+      throw new NotFoundException(`Class with ID ${classId} not found`);
+    }
+
+    // 2. Prepare new values
+    const { name, arm } = updateClassDto;
+    const newName = name ?? existingClass.name;
+    const newArm = arm ?? existingClass.arm;
+    const sessionId = existingClass.academicSession.id;
+
+    // Prevent empty class name
+    if (name !== undefined && (!newName || newName.trim() === '')) {
+      throw new BadRequestException(sysMsg.CLASS_NAME_EMPTY);
+    }
+
+    // 3. Check uniqueness
+    const { payload } = await this.classModelAction.find({
+      findOptions: {
+        name: newName,
+        arm: newArm,
+        academicSession: { id: sessionId },
+      },
+      transactionOptions: { useTransaction: false },
+    });
+    if (payload.length > 0 && payload[0].id !== classId) {
+      throw new ConflictException(sysMsg.CLASS_ALREADY_EXIST);
+    }
+
+    // 4. Update and save
+    existingClass.name = newName;
+    existingClass.arm = newArm;
+    await this.classModelAction.update({
+      identifierOptions: { id: classId },
+      updatePayload: { name: newName, arm: newArm },
+      transactionOptions: { useTransaction: false },
+    });
+
+    // 5. Return response
+    return {
+      message: sysMsg.CLASS_UPDATED,
+      id: existingClass.id,
+      name: existingClass.name,
+      arm: existingClass.arm,
+      academicSession: {
+        id: sessionId,
+        name: existingClass.academicSession.name,
+      },
+    };
   }
 
   /**

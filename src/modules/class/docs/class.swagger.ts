@@ -134,5 +134,50 @@ export const ClassSwagger = {
         },
       },
     },
+    updateClass: {
+      operation: {
+        summary: 'Update class name or arm (Admin)',
+        description:
+          'Updates the name and/or arm of an existing class. Ensures the new name/arm combination is unique within the session.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID to update',
+        },
+      },
+      body: {
+        name: {
+          name: 'name',
+          description: 'The new name of the class (optional).',
+          required: false,
+        },
+        arm: {
+          name: 'arm',
+          description: 'The new arm of the class (optional).',
+          required: false,
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Class updated successfully',
+          type: ClassResponseDto,
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Validation failed: invalid name or arm.',
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class not found',
+        },
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description:
+            'Class with this name/arm already exists in the session.',
+        },
+      },
+    },
   },
 };
