@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { CreateDepartmentDto } from '../dto/create-department.dto';
 import { UpdateDepartmentDto } from '../dto/update-department.dto';
 import { DepartmentService } from '../services/department.service';
 
@@ -7,12 +8,17 @@ import { DepartmentController } from './department.controller';
 
 describe('DepartmentController', () => {
   let controller: DepartmentController;
-  let departmentService: { create: jest.Mock; update: jest.Mock };
+  let departmentService: {
+    create: jest.Mock;
+    update: jest.Mock;
+    remove: jest.Mock;
+  };
 
   beforeEach(async () => {
     departmentService = {
       create: jest.fn(),
       update: jest.fn(),
+      remove: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -37,27 +43,35 @@ describe('DepartmentController', () => {
   });
 
   describe('create', () => {
+    const createDepartmentDto: CreateDepartmentDto = {
+      name: 'Science',
+    };
+
     it('should delegate to DepartmentService and return its response', async () => {
-      const createDto = { name: 'Science' };
       const serviceResponse = {
         message: 'Department created successfully',
         data: { id: 'dept-1', name: 'Science' },
       };
       departmentService.create.mockResolvedValue(serviceResponse);
 
-      await expect(controller.create(createDto)).resolves.toEqual(
+      await expect(controller.create(createDepartmentDto)).resolves.toEqual(
         serviceResponse,
       );
-      expect(departmentService.create).toHaveBeenCalledWith(createDto);
+      expect(departmentService.create).toHaveBeenCalledWith(
+        createDepartmentDto,
+      );
     });
 
     it('should propagate errors thrown by DepartmentService', async () => {
-      const createDto = { name: 'Science' };
       const error = new Error('Creation failed');
       departmentService.create.mockRejectedValue(error);
 
-      await expect(controller.create(createDto)).rejects.toThrow(error);
-      expect(departmentService.create).toHaveBeenCalledWith(createDto);
+      await expect(controller.create(createDepartmentDto)).rejects.toThrow(
+        error,
+      );
+      expect(departmentService.create).toHaveBeenCalledWith(
+        createDepartmentDto,
+      );
     });
   });
 
@@ -92,6 +106,31 @@ describe('DepartmentController', () => {
         departmentId,
         updateDto,
       );
+    });
+  });
+
+  describe('remove', () => {
+    const departmentId = 'dept-1';
+
+    it('should delegate to DepartmentService and return its response', async () => {
+      const serviceResponse = {
+        message: 'Department deleted successfully',
+        data: undefined,
+      };
+      departmentService.remove.mockResolvedValue(serviceResponse);
+
+      await expect(controller.remove(departmentId)).resolves.toEqual(
+        serviceResponse,
+      );
+      expect(departmentService.remove).toHaveBeenCalledWith(departmentId);
+    });
+
+    it('should propagate errors thrown by DepartmentService', async () => {
+      const error = new Error('Deletion failed');
+      departmentService.remove.mockRejectedValue(error);
+
+      await expect(controller.remove(departmentId)).rejects.toThrow(error);
+      expect(departmentService.remove).toHaveBeenCalledWith(departmentId);
     });
   });
 });

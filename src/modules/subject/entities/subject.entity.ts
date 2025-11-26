@@ -1,18 +1,18 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Class } from '../../class/entities/class.entity';
+import { Department } from '../../department/entities/department.entity';
 
 @Entity('subjects')
 export class Subject extends BaseEntity {
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', length: 255, nullable: false, unique: true })
   name: string;
 
-  @Column({ type: 'varchar', nullable: false, unique: true })
-  code: string;
-
-  // class_level should be a FK → class table
-  @ManyToOne(() => Class, (cls) => cls.id, { nullable: false })
-  @JoinColumn({ name: 'class_id' })
-  class_id: Class;
+  @ManyToMany(() => Department, (department) => department.subjects)
+  @JoinTable({
+    name: 'subject_departments',
+    joinColumn: { name: 'subject_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'department_id', referencedColumnName: 'id' },
+  })
+  departments: Department[];
 }

@@ -121,6 +121,34 @@ export class DepartmentService {
     };
   }
 
+  async remove(id: string): Promise<IBaseResponse<void>> {
+    const department = await this.departmentModelAction.get({
+      identifierOptions: { id },
+      relations: { subjects: true },
+    });
+
+    if (!department) {
+      throw new NotFoundException(sysMsg.DEPARTMENT_NOT_FOUND);
+    }
+
+    // Check if department has subjects
+    if (department.subjects && department.subjects.length > 0) {
+      throw new BadRequestException(sysMsg.DEPARTMENT_HAS_ASSOCIATED_SUBJECTS);
+    }
+
+    await this.departmentModelAction.delete({
+      identifierOptions: { id },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    return {
+      message: sysMsg.DEPARTMENT_DELETED,
+      data: undefined,
+    };
+  }
+
   private mapToResponseDto(department: Department): DepartmentResponseDto {
     return {
       id: department.id,
