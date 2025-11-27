@@ -196,16 +196,6 @@ export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
 export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 
-//department
-export const DEPARTMENT_NOT_FOUND = 'Department not found';
-export const DEPARTMENT_CREATED = 'Department created successfully';
-export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
-export const DEPARTMENT_UPDATED = 'Department updated successfully';
-export const DEPARTMENT_DELETED = 'Department deleted successfully';
-export const DEPARTMENT_HAS_ASSOCIATED_SUBJECTS =
-  'Cannot delete department with associated subjects';
-export const DEPARTMENTS_NOT_FOUND = 'One or more departments not found';
-
 // Subject messages
 export const SUBJECT_CREATED = 'Subject created successfully';
 export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
