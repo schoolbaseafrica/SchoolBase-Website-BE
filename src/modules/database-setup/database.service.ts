@@ -50,6 +50,25 @@ export class DatabaseService {
     };
   }
 
+  // Update configuration
+  async update(configureDatabaseDto: ConfigureDatabaseDto) {
+    if (!this.checkSetupCompleted()) {
+      throw new BadRequestException(
+        'Initial setup must be completed first before updating configuration.',
+      );
+    }
+
+    // Test new connection
+    await this.testConnectionAndCreateTables(configureDatabaseDto);
+
+    // Save new config
+    await this.saveConfigToFile(configureDatabaseDto);
+
+    return {
+      message: sysMsg.DATABASE_CONFIGURATION_UPDATED,
+    };
+  }
+
   private async testConnectionAndCreateTables(
     configureDatabaseDto: ConfigureDatabaseDto,
   ) {
@@ -79,7 +98,6 @@ export class DatabaseService {
       return true;
     } catch (error) {
       this.logger.error('Database connection failed', { error });
-      // throw error;
       // Transform database errors to client-friendly messages
       const errorCode = error?.code;
       const errorMessage = error?.message || '';
@@ -169,5 +187,18 @@ export class DatabaseService {
       }
       throw error;
     }
+  }
+
+  //===> check if setup is already completed <====
+  private checkSetupCompleted(): boolean {
+    const envPath = join(process.cwd(), '.env');
+
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const setupCompletedRegex = /SETUP_COMPLETED\s*=\s*['"]?true['"]?/i;
+      return setupCompletedRegex.test(envContent);
+    }
+
+    return false;
   }
 }

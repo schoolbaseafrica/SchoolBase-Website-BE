@@ -206,6 +206,8 @@ export const DATABASE_ALREADY_CONFIGURED =
 export const DATABASE_CONFIGURATION_FAILED = 'Database configuration failed';
 export const DATABASE_CONFIGURATION_SUCCESS =
   'Database configuration successful';
+export const DATABASE_CONFIGURATION_UPDATED =
+  'Database configuration updated successfully';
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
