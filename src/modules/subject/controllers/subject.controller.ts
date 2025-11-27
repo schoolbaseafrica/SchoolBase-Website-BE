@@ -1,9 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 
@@ -15,8 +19,12 @@ import {
   ApiSubjectTags,
   ApiSubjectBearerAuth,
   ApiCreateSubject,
+  ApiFindAllSubjects,
+  ApiFindOneSubject,
+  ApiDeleteSubject,
 } from '../docs/subject.swagger';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
+import { ListSubjectsDto } from '../dto/list-subjects.dto';
 import { SubjectService } from '../services/subject.service';
 
 @Controller('subjects')
@@ -32,5 +40,27 @@ export class SubjectController {
   @ApiCreateSubject()
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectService.create(createSubjectDto);
+  }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  @ApiFindAllSubjects()
+  findAll(@Query() query: ListSubjectsDto) {
+    return this.subjectService.findAll(query.page, query.limit);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiFindOneSubject()
+  findOne(@Param('id') id: string) {
+    return this.subjectService.findOne(id);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiDeleteSubject()
+  remove(@Param('id') id: string) {
+    return this.subjectService.remove(id);
   }
 }

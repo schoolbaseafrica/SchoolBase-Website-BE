@@ -29,10 +29,10 @@ export class Timetable extends BaseEntity {
 
   @ManyToOne(() => Class, { nullable: false })
   @JoinColumn({ name: 'class_id' })
-  stream: Class;
+  class: Class;
 
   @Column({ name: 'class_id' })
-  stream_id: string;
+  class_id: string;
 
   @ManyToOne(() => Subject, { nullable: true })
   @JoinColumn({ name: 'subject_id' })
