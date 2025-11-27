@@ -15,4 +15,7 @@ export class Subject extends BaseEntity {
     inverseJoinColumn: { name: 'department_id', referencedColumnName: 'id' },
   })
   departments: Department[];
+
+  @Column({ default: true })
+  is_active: boolean;
 }

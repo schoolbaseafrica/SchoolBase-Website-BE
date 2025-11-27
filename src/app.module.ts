@@ -27,7 +27,9 @@ import { StreamModule } from './modules/stream/stream.module';
 import { StudentModule } from './modules/student/student.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
+import { TeacherSubjectModule } from './modules/teacher-subject/teacher-subject.module';
 import { TermModule } from './modules/term/term.module';
+import { TimetableModule } from './modules/timetable/timetable.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
@@ -77,6 +79,8 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     StudentModule,
     DashboardModule,
     DatabaseModule,
+    TimetableModule,
+    TeacherSubjectModule,
   ],
   controllers: [AppController],
   providers: [
