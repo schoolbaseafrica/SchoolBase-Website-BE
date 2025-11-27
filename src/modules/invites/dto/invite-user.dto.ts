@@ -6,6 +6,7 @@ import { PendingInviteDto } from './pending-invite.dto';
 export enum InviteRole {
   TEACHER = 'TEACHER',
   PARENT = 'PARENT',
+  ADMIN = 'ADMIN',
 }
 
 export class InviteUserDto {
