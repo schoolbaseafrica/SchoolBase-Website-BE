@@ -18,10 +18,10 @@ export class TeacherSubject extends BaseEntity {
   @JoinColumn({ name: 'subject_id' })
   subject: Subject;
 
-  @Column({ name: 'subject_id' })
+  @Column({ name: 'subject_id', type: 'uuid', nullable: false })
   subject_id: string;
 
-  @Column({ name: 'subject_id' })
+  @Column({ name: 'class_id', nullable: true })
   class_id: string;
 
   @Column({ default: true })
