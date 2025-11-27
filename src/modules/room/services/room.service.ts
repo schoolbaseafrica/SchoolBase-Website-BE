@@ -3,10 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
@@ -27,19 +26,12 @@ export class RoomService {
         throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
       }
 
-      let streamEntities: Stream[] = [];
-
-      if (createRoomDto.streams && createRoomDto.streams.length > 0) {
-        streamEntities = await this.validateStreams(createRoomDto.streams);
-      }
-
       const newRoom = await this.roomModelAction.create({
         createPayload: {
           name: this.sanitizedField(createRoomDto.name),
           type: this.sanitizedField(createRoomDto.type),
           capacity: createRoomDto.capacity,
           location: this.sanitizedField(createRoomDto.location),
-          streams: streamEntities,
         },
         transactionOptions: {
           useTransaction: true,
@@ -55,7 +47,7 @@ export class RoomService {
 
   async findAll() {
     const { payload } = await this.roomModelAction.list({
-      relations: { streams: true },
+      relations: { current_class: true },
     });
 
     return {
@@ -67,7 +59,7 @@ export class RoomService {
   async findOne(id: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { id },
-      relations: { streams: true },
+      relations: { current_class: true },
     });
 
     if (!room) {
@@ -75,19 +67,6 @@ export class RoomService {
     }
 
     return { message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY, ...room };
-  }
-
-  private async validateStreams(streams: string[]) {
-    const streamRepo = this.datasource.getRepository(Stream);
-    const streamEntities = await streamRepo.findBy({
-      id: In(streams),
-    });
-
-    if (streamEntities.length !== streams.length) {
-      throw new NotFoundException(sysMsg.INVALID_STREAM_IDS);
-    }
-
-    return streamEntities;
   }
 
   private async findByName(name: string) {

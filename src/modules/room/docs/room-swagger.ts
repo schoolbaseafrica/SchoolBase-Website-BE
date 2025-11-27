@@ -29,7 +29,6 @@ export const ApiCreateRoom = () =>
             type: 'Laboratory',
             capacity: 30,
             location: 'North Wing',
-            streams: ['uuid-1', 'uuid-2'],
           },
         },
       },
@@ -38,7 +37,6 @@ export const ApiCreateRoom = () =>
       description: sysMsg.ROOM_CREATED_SUCCESSFULLY,
     }),
     ApiConflictResponse({ description: sysMsg.DUPLICATE_ROOM_NAME }),
-    ApiNotFoundResponse({ description: sysMsg.INVALID_STREAM_IDS }),
   );
 
 export const ApiFindAllRooms = () =>

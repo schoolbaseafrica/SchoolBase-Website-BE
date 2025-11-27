@@ -1,13 +1,4 @@
-import {
-  ArrayNotEmpty,
-  IsArray,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Min,
-} from 'class-validator';
+import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 
 export class CreateRoomDTO {
   @IsNotEmpty()
@@ -25,10 +16,4 @@ export class CreateRoomDTO {
   @IsNotEmpty()
   @IsString()
   location: string;
-
-  @IsOptional()
-  @IsArray({ message: 'Streams must be provided as an array' })
-  @ArrayNotEmpty({ message: 'If providing streams, the list cannot be empty' })
-  @IsUUID('4', { each: true, message: 'Invalid Stream ID provided' })
-  streams?: string[];
 }

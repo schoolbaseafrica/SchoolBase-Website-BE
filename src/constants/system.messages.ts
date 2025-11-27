@@ -131,8 +131,6 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 // Streams
-export const INVALID_STREAM_IDS =
-  'One or more provided Stream IDs are invalid.';
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
@@ -191,8 +189,7 @@ export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
 export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
 export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
-export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
-export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
+export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 
 //department

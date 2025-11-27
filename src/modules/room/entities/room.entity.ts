@@ -1,8 +1,7 @@
-import { Column, Entity, ManyToMany } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Stream } from '../../stream/entities/stream.entity';
-import { RoomStatus } from '../enums/room-enum';
+import { Class } from '../../class/entities/class.entity';
 
 @Entity('rooms')
 export class Room extends BaseEntity {
@@ -24,14 +23,7 @@ export class Room extends BaseEntity {
   @Column({ type: 'varchar', name: 'location', length: 255, nullable: false })
   location: string;
 
-  @Column({
-    type: 'enum',
-    name: 'status',
-    enum: RoomStatus,
-    default: RoomStatus.AVAILABLE,
-  })
-  status: RoomStatus;
-
-  @ManyToMany(() => Stream, (stream) => stream.rooms)
-  streams: Stream[];
+  @OneToOne(() => Class, (cls) => cls.room, { nullable: true })
+  @JoinColumn({ name: 'current_class' })
+  current_class?: Class;
 }
