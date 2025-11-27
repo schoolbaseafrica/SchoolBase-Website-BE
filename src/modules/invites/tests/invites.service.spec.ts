@@ -354,6 +354,22 @@ describe('InviteService', () => {
   // CSV Upload Tests
 
   describe('uploadCsv', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+
+      // Mock config values required for uploadCsv
+      configService.get.mockImplementation((key: string) => {
+        const config: Record<string, string> = {
+          ['frontend.url']: 'https://school.com',
+          ['school.name']: 'Test School',
+          ['school.logoUrl']: 'https://school.com/logo.png',
+          ['mail.from.adress']: 'noreply@school.com',
+          ['mail.from.name']: 'School Admin',
+        };
+        return config[key];
+      });
+    });
+
     it('should process CSV upload and send invite emails', async () => {
       const mockFile = {
         buffer: Buffer.from(
