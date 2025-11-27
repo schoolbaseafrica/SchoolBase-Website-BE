@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 
 import { CannotRevokeOtherSessionsException } from '../../common/exceptions/domain.exceptions';
 import * as sysMsg from '../../constants/system.messages';
@@ -114,25 +114,27 @@ export class SessionService {
     refreshToken: string,
   ): Promise<Session | null> {
     // Get all active sessions for the user
-    const sessions = await this.sessionRepository.find({
+    const now = new Date();
+    const validSessions = await this.sessionRepository.find({
       where: {
         user_id: userId,
         is_active: true,
+        expires_at: MoreThan(now),
       },
     });
-
-    // Check if any session has expired
-    const now = new Date();
-    const validSessions = sessions.filter(
-      (session) => session.expires_at > now,
+    // Try to match the refresh token against stored hashes
+    const comparisonResults = await Promise.all(
+      validSessions.map((session) =>
+        bcrypt.compare(refreshToken, session.refresh_token),
+      ),
     );
 
-    // Try to match the refresh token against stored hashes
-    for (const session of validSessions) {
-      const isMatch = await bcrypt.compare(refreshToken, session.refresh_token);
-      if (isMatch) {
-        return session;
-      }
+    const matchingSessionIndex = comparisonResults.findIndex(
+      (isMatch) => isMatch,
+    );
+
+    if (matchingSessionIndex !== -1) {
+      return validSessions[matchingSessionIndex];
     }
 
     return null;
