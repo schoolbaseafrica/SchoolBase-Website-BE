@@ -122,4 +122,113 @@ describe('SubjectService', () => {
 
     expect(subjectModelActionMock.create).not.toHaveBeenCalled();
   });
+
+  describe('findAll', () => {
+    it('should return all subjects successfully with pagination', async () => {
+      const subjects = [
+        {
+          id: 'subject-1',
+          name: 'Chemistry',
+          createdAt: new Date('2024-01-03T00:00:00Z'),
+          updatedAt: new Date('2024-01-04T00:00:00Z'),
+        },
+        {
+          id: 'subject-2',
+          name: 'Biology',
+          createdAt: new Date('2024-01-05T00:00:00Z'),
+          updatedAt: new Date('2024-01-06T00:00:00Z'),
+        },
+      ];
+
+      const paginationMeta = {
+        total: 2,
+        page: 1,
+        limit: 20,
+        total_pages: 1,
+        has_next: false,
+        has_previous: false,
+      };
+
+      subjectModelActionMock.list.mockResolvedValue({
+        payload: subjects,
+        paginationMeta,
+      });
+
+      const result = await service.findAll(1, 20);
+
+      expect(result).toEqual({
+        message: sysMsg.SUBJECTS_RETRIEVED,
+        data: [
+          {
+            id: 'subject-1',
+            name: 'Chemistry',
+            created_at: subjects[0].createdAt,
+            updated_at: subjects[0].updatedAt,
+          },
+          {
+            id: 'subject-2',
+            name: 'Biology',
+            created_at: subjects[1].createdAt,
+            updated_at: subjects[1].updatedAt,
+          },
+        ],
+        pagination: paginationMeta,
+      });
+
+      expect(subjectModelActionMock.list).toHaveBeenCalledWith({
+        paginationPayload: { page: 1, limit: 20 },
+      });
+    });
+
+    it('should return empty array when no subjects exist', async () => {
+      const paginationMeta = {
+        total: 0,
+        page: 1,
+        limit: 20,
+        total_pages: 0,
+        has_next: false,
+        has_previous: false,
+      };
+
+      subjectModelActionMock.list.mockResolvedValue({
+        payload: {},
+        paginationMeta,
+      });
+
+      const result = await service.findAll();
+
+      expect(result).toEqual({
+        message: sysMsg.SUBJECTS_RETRIEVED,
+        data: [],
+        pagination: paginationMeta,
+      });
+
+      expect(subjectModelActionMock.list).toHaveBeenCalledWith({
+        paginationPayload: { page: 1, limit: 20 },
+      });
+    });
+
+    it('should use custom page and limit values', async () => {
+      const paginationMeta = {
+        total: 50,
+        page: 2,
+        limit: 10,
+        total_pages: 5,
+        has_next: true,
+        has_previous: true,
+      };
+
+      subjectModelActionMock.list.mockResolvedValue({
+        payload: {},
+        paginationMeta,
+      });
+
+      const result = await service.findAll(2, 10);
+
+      expect(result.pagination).toEqual(paginationMeta);
+      expect(subjectModelActionMock.list).toHaveBeenCalledWith({
+        paginationPayload: { page: 2, limit: 10 },
+      });
+    });
+  });
 });

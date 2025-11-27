@@ -199,6 +199,7 @@ export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 // Subject messages
 export const SUBJECT_CREATED = 'Subject created successfully';
 export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
+export const SUBJECTS_RETRIEVED = 'Subjects retrieved successfully';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =

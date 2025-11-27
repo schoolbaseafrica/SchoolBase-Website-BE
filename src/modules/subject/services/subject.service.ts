@@ -7,7 +7,11 @@ import * as sysMsg from '../../../constants/system.messages';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
 import { Subject } from '../entities/subject.entity';
-import { IBaseResponse } from '../interface/types';
+import {
+  IBaseResponse,
+  IPaginatedResponse,
+  IPaginationMeta,
+} from '../interface/types';
 import { SubjectModelAction } from '../model-actions/subject.actions';
 
 @Injectable()
@@ -52,6 +56,36 @@ export class SubjectService {
         data: this.mapToResponseDto(newSubject),
       };
     });
+  }
+
+  // FIND ALL SUBJECTS
+  async findAll(
+    page = 1,
+    limit = 20,
+  ): Promise<IPaginatedResponse<SubjectResponseDto>> {
+    const { payload, paginationMeta } = await this.subjectModelAction.list({
+      paginationPayload: { page, limit },
+    });
+
+    const subjects = Object.values(payload).map((subject) =>
+      this.mapToResponseDto(subject),
+    );
+
+    // Ensure pagination meta has all required fields
+    const pagination: IPaginationMeta = {
+      total: paginationMeta?.total ?? 0,
+      page: paginationMeta?.page ?? page,
+      limit: paginationMeta?.limit ?? limit,
+      total_pages: paginationMeta?.total_pages,
+      has_next: paginationMeta?.has_next,
+      has_previous: paginationMeta?.has_previous,
+    };
+
+    return {
+      message: sysMsg.SUBJECTS_RETRIEVED,
+      data: subjects,
+      pagination,
+    };
   }
 
   private mapToResponseDto(subject: Subject): SubjectResponseDto {
