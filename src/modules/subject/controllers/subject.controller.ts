@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -21,10 +22,12 @@ import {
   ApiCreateSubject,
   ApiFindAllSubjects,
   ApiFindOneSubject,
+  ApiUpdateSubject,
   ApiDeleteSubject,
 } from '../docs/subject.swagger';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { ListSubjectsDto } from '../dto/list-subjects.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { SubjectService } from '../services/subject.service';
 
 @Controller('subjects')
@@ -47,6 +50,14 @@ export class SubjectController {
   @ApiFindAllSubjects()
   findAll(@Query() query: ListSubjectsDto) {
     return this.subjectService.findAll(query.page, query.limit);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateSubject()
+  update(@Param('id') id: string, @Body() updateSubjectDto: UpdateSubjectDto) {
+    return this.subjectService.update(id, updateSubjectDto);
   }
 
   @Get(':id')

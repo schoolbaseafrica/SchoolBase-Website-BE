@@ -14,6 +14,7 @@ import {
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 
 /**
  * Swagger documentation for Subject endpoints.
@@ -134,6 +135,44 @@ export const ApiFindOneSubject = () =>
       type: SubjectResponseDto,
     }),
     ApiNotFoundResponse({ description: sysMsg.SUBJECT_NOT_FOUND }),
+  );
+
+/**
+ * Swagger decorators for Update Subject endpoint
+ */
+export const ApiUpdateSubject = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Update Subject',
+      description:
+        'Updates an existing subject. Subject name must be unique if changed.',
+    }),
+    ApiParam({ name: 'id', description: 'Subject ID', type: String }),
+    ApiBody({
+      type: UpdateSubjectDto,
+      description: 'Update subject payload',
+      examples: {
+        example1: {
+          summary: 'Update Subject Name',
+          value: {
+            name: 'Advanced Biology',
+          },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: sysMsg.SUBJECT_UPDATED,
+      type: SubjectResponseDto,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.SUBJECT_NOT_FOUND }),
+    ApiResponse({
+      status: 409,
+      description: 'Subject with this name already exists.',
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Invalid input data.',
+    }),
   );
 
 /**

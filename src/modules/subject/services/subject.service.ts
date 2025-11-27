@@ -11,6 +11,7 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { Subject } from '../entities/subject.entity';
 import {
   IBaseResponse,
@@ -107,6 +108,54 @@ export class SubjectService {
       message: sysMsg.SUBJECT_RETRIEVED,
       data: this.mapToResponseDto(subject),
     };
+  }
+
+  // UPDATE SUBJECT
+  async update(
+    id: string,
+    updateSubjectDto: UpdateSubjectDto,
+  ): Promise<IBaseResponse<SubjectResponseDto>> {
+    return this.dataSource.transaction(async (manager) => {
+      // Check if subject exists
+      const existingSubject = await this.subjectModelAction.get({
+        identifierOptions: { id },
+      });
+
+      if (!existingSubject) {
+        throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+      }
+
+      // If name is being updated, check for conflicts
+      if (
+        updateSubjectDto.name &&
+        updateSubjectDto.name !== existingSubject.name
+      ) {
+        const conflictingSubject = await this.subjectModelAction.get({
+          identifierOptions: { name: updateSubjectDto.name },
+        });
+
+        if (conflictingSubject && conflictingSubject.id !== id) {
+          throw new ConflictException(sysMsg.SUBJECT_ALREADY_EXISTS);
+        }
+      }
+
+      // Update subject
+      const updatedSubject = await this.subjectModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          ...(updateSubjectDto.name && { name: updateSubjectDto.name }),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      return {
+        message: sysMsg.SUBJECT_UPDATED,
+        data: this.mapToResponseDto(updatedSubject),
+      };
+    });
   }
 
   // DELETE SUBJECT

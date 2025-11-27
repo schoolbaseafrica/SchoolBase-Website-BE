@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { CreateSubjectDto } from '../dto/create-subject.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { SubjectService } from '../services/subject.service';
 
 import { SubjectController } from './subject.controller';
@@ -11,6 +12,7 @@ describe('SubjectController', () => {
     create: jest.Mock;
     findAll: jest.Mock;
     findOne: jest.Mock;
+    update: jest.Mock;
     remove: jest.Mock;
   };
 
@@ -19,6 +21,7 @@ describe('SubjectController', () => {
       create: jest.fn(),
       findAll: jest.fn(),
       findOne: jest.fn(),
+      update: jest.fn(),
       remove: jest.fn(),
     };
 
@@ -151,6 +154,46 @@ describe('SubjectController', () => {
         error,
       );
       expect(subjectService.findOne).toHaveBeenCalledWith('non-existent-id');
+    });
+  });
+
+  describe('update', () => {
+    const updateSubjectDto: UpdateSubjectDto = {
+      name: 'Advanced Biology',
+    };
+
+    it('should delegate to SubjectService and return its response', async () => {
+      const serviceResponse = {
+        message: 'Subject updated successfully',
+        data: {
+          id: 'subject-1',
+          name: 'Advanced Biology',
+          created_at: new Date('2024-01-03T00:00:00Z'),
+          updated_at: new Date('2024-01-05T00:00:00Z'),
+        },
+      };
+      subjectService.update.mockResolvedValue(serviceResponse);
+
+      await expect(
+        controller.update('subject-1', updateSubjectDto),
+      ).resolves.toEqual(serviceResponse);
+      expect(subjectService.update).toHaveBeenCalledWith(
+        'subject-1',
+        updateSubjectDto,
+      );
+    });
+
+    it('should propagate errors thrown by SubjectService', async () => {
+      const error = new Error('Update failed');
+      subjectService.update.mockRejectedValue(error);
+
+      await expect(
+        controller.update('subject-1', updateSubjectDto),
+      ).rejects.toThrow(error);
+      expect(subjectService.update).toHaveBeenCalledWith(
+        'subject-1',
+        updateSubjectDto,
+      );
     });
   });
 

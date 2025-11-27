@@ -6,6 +6,7 @@ import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
+import { UpdateSubjectDto } from '../dto/update-subject.dto';
 import { SubjectModelAction } from '../model-actions/subject.actions';
 
 import { SubjectService } from './subject.service';
@@ -271,6 +272,116 @@ describe('SubjectService', () => {
       expect(subjectModelActionMock.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'non-existent-id' },
       });
+    });
+  });
+
+  describe('update', () => {
+    const updateDto: UpdateSubjectDto = {
+      name: 'Advanced Chemistry',
+    };
+
+    it('should update a subject successfully when provided with valid data', async () => {
+      const existingSubject = {
+        id: 'subject-1',
+        name: 'Chemistry',
+        createdAt: new Date('2024-01-03T00:00:00Z'),
+        updatedAt: new Date('2024-01-04T00:00:00Z'),
+      };
+
+      const updatedSubject = {
+        ...existingSubject,
+        name: updateDto.name,
+        updatedAt: new Date('2024-01-05T00:00:00Z'),
+      };
+
+      subjectModelActionMock.get
+        .mockResolvedValueOnce(existingSubject) // First call: check if exists
+        .mockResolvedValueOnce(undefined); // Second call: check for name conflict
+      subjectModelActionMock.update.mockResolvedValue(updatedSubject);
+
+      const result = await service.update('subject-1', updateDto);
+
+      expect(result).toEqual({
+        message: sysMsg.SUBJECT_UPDATED,
+        data: {
+          id: updatedSubject.id,
+          name: updatedSubject.name,
+          created_at: updatedSubject.createdAt,
+          updated_at: updatedSubject.updatedAt,
+        },
+      });
+
+      expect(dataSourceMock.transaction).toHaveBeenCalledTimes(1);
+      expect(subjectModelActionMock.update).toHaveBeenCalledWith({
+        identifierOptions: { id: 'subject-1' },
+        updatePayload: { name: updateDto.name },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: entityManagerMock,
+        },
+      });
+    });
+
+    it('should throw NotFoundException if subject does not exist', async () => {
+      subjectModelActionMock.get.mockResolvedValue(undefined);
+
+      const updatePromise = service.update('non-existent-id', updateDto);
+
+      await expect(updatePromise).rejects.toBeInstanceOf(NotFoundException);
+      await expect(updatePromise).rejects.toThrow(sysMsg.SUBJECT_NOT_FOUND);
+
+      expect(subjectModelActionMock.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException if new name conflicts with existing subject', async () => {
+      const existingSubject = {
+        id: 'subject-1',
+        name: 'Chemistry',
+        createdAt: new Date('2024-01-03T00:00:00Z'),
+        updatedAt: new Date('2024-01-04T00:00:00Z'),
+      };
+
+      const conflictingSubject = {
+        id: 'subject-2',
+        name: 'Advanced Chemistry',
+        createdAt: new Date('2024-01-05T00:00:00Z'),
+        updatedAt: new Date('2024-01-06T00:00:00Z'),
+      };
+
+      subjectModelActionMock.get
+        .mockResolvedValueOnce(existingSubject) // First call: check if exists
+        .mockResolvedValueOnce(conflictingSubject); // Second call: check for name conflict
+
+      const updatePromise = service.update('subject-1', updateDto);
+
+      await expect(updatePromise).rejects.toBeInstanceOf(ConflictException);
+      await expect(updatePromise).rejects.toThrow(
+        sysMsg.SUBJECT_ALREADY_EXISTS,
+      );
+
+      expect(subjectModelActionMock.update).not.toHaveBeenCalled();
+    });
+
+    it('should not check for conflicts if name is not changed', async () => {
+      const existingSubject = {
+        id: 'subject-1',
+        name: 'Chemistry',
+        createdAt: new Date('2024-01-03T00:00:00Z'),
+        updatedAt: new Date('2024-01-04T00:00:00Z'),
+      };
+
+      const updateDtoSameName: UpdateSubjectDto = {
+        name: 'Chemistry',
+      };
+
+      subjectModelActionMock.get.mockResolvedValueOnce(existingSubject);
+      subjectModelActionMock.update.mockResolvedValue(existingSubject);
+
+      await service.update('subject-1', updateDtoSameName);
+
+      // Should only call get once (to check existence), not for conflict check
+      expect(subjectModelActionMock.get).toHaveBeenCalledTimes(1);
+      expect(subjectModelActionMock.update).toHaveBeenCalled();
     });
   });
 

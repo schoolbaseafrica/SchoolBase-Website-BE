@@ -202,6 +202,7 @@ export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
 export const SUBJECTS_RETRIEVED = 'Subjects retrieved successfully';
 export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
 export const SUBJECT_NOT_FOUND = 'Subject not found';
+export const SUBJECT_UPDATED = 'Subject updated successfully';
 export const SUBJECT_DELETED = 'Subject deleted successfully';
 
 // School Installation messages
