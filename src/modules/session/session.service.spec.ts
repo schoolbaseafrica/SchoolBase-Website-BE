@@ -180,6 +180,7 @@ describe('SessionService', () => {
         where: {
           user_id: 'u1',
           is_active: true,
+          expires_at: expect.any(Object), // MoreThan(now)
         },
       });
     });
@@ -212,23 +213,9 @@ describe('SessionService', () => {
     });
 
     it('should return null when session has expired', async () => {
-      const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // Yesterday
-      const hashedToken = await bcrypt.hash('valid-refresh-token', 10);
-
-      repo.find.mockResolvedValue([
-        {
-          id: 'sid1',
-          user_id: 'u1',
-          refresh_token: hashedToken,
-          expires_at: pastDate,
-          provider: 'jwt',
-          is_active: true,
-          revoked_at: null,
-          user: undefined,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        } as Session,
-      ]);
+      // Since the implementation filters expired sessions at DB level with MoreThan(now),
+      // expired sessions won't be returned by the query
+      repo.find.mockResolvedValue([]);
 
       const result = await service.validateRefreshToken(
         'u1',
@@ -236,6 +223,13 @@ describe('SessionService', () => {
       );
 
       expect(result).toBeNull();
+      expect(repo.find).toHaveBeenCalledWith({
+        where: {
+          user_id: 'u1',
+          is_active: true,
+          expires_at: expect.any(Object), // MoreThan(now)
+        },
+      });
     });
 
     it('should return null when no sessions found', async () => {
