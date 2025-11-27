@@ -77,16 +77,20 @@ export class RoomService {
         throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
       }
 
-      if (updateRoomDto.name) {
-        const duplicate = await this.findByName(
-          this.sanitizedName(updateRoomDto.name),
-        );
+      for (const [key, value] of Object.entries(updateRoomDto)) {
+        if (typeof value === 'string') {
+          if (key === 'name') {
+            const duplicate = await this.findByName(
+              this.sanitizedName(updateRoomDto.name),
+            );
 
-        if (duplicate && duplicate.id !== id) {
-          throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
+            if (duplicate && duplicate.id !== id) {
+              throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
+            }
+          }
+
+          updateRoomDto[key] = this.sanitizedName(updateRoomDto['key']);
         }
-
-        updateRoomDto.name = this.sanitizedName(updateRoomDto.name);
       }
 
       let streamEntities: Stream[] = undefined;
