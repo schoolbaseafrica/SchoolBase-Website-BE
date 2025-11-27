@@ -16,12 +16,12 @@ export class TimetableController {
     return this.timetableService.findAll();
   }
 
-  @Get('stream/:{stream_id}')
+  @Get('stream/:stream_id')
   findByStream() {
     return this.timetableService.findByStream();
   }
 
-  @Get('teacher/:{teacher_id}')
+  @Get('teacher/:teacher_id')
   findByTeacher() {
     return this.timetableService.findByTeacher();
   }

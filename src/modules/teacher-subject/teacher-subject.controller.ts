@@ -16,22 +16,22 @@ export class TeacherSubjectController {
     return this.teacherSubjectService.findAll();
   }
 
-  @Get(':{id}')
+  @Get(':id')
   findOne() {
     return this.teacherSubjectService.findOne();
   }
 
-  @Patch(':{id}')
+  @Patch(':id')
   update() {
     return this.teacherSubjectService.update();
   }
 
-  @Patch(':{id}/archive')
+  @Patch(':id/archive')
   archive() {
     return this.teacherSubjectService.archive();
   }
 
-  @Delete(':{id}')
+  @Delete(':id')
   remove() {
     return this.teacherSubjectService.remove();
   }
