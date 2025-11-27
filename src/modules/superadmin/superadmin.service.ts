@@ -32,19 +32,14 @@ export class SuperadminService {
     this.logger = logger.child({ context: SuperadminService.name });
   }
 
+  // const t:string = '120m';
+
   private async generateTokens(userId: string, email: string) {
-    const { jwt } = config();
     const payload = { sub: userId, email };
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: jwt.secret,
-        expiresIn: '120m',
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: jwt.refreshSecret,
-        expiresIn: '7d',
-      }),
+      this.jwtService.signAsync(payload),
+      this.jwtService.signAsync(payload),
     ]);
 
     return {

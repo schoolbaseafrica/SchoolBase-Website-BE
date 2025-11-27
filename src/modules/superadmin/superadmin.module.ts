@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtModuleOptions } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
@@ -16,9 +16,14 @@ import { SuperadminService } from './superadmin.service';
     TypeOrmModule.forFeature([SuperAdmin]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: async (
+        configService: ConfigService,
+      ): Promise<JwtModuleOptions> => ({
         secret: configService.get<string>('JWT_SECRET'),
-        signOptions: { expiresIn: '120m' },
+        signOptions: {
+          expiresIn: (configService.get<string>('TOKEN_ACCESS_DURATION') ??
+            '120m') as string,
+        },
       }),
       inject: [ConfigService],
     }),
