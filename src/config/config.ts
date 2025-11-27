@@ -6,6 +6,7 @@ export default () => ({
   app: {
     name: process.env.APP_NAME || 'Open School Portal',
     slug: process.env.APP_SLUG,
+    logo_url: process.env.LOGO_URL,
   },
 
   database: {
@@ -56,8 +57,13 @@ export default () => ({
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+
   frontend: {
     url: process.env.FRONTEND_URL,
+  },
+
+  invite: {
+    expiry: process.env.INVITE_EXPIRATION_DAYS,
   },
 
   isTest(): boolean {

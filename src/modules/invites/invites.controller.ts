@@ -1,15 +1,40 @@
-import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  HttpCode,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
 
+import { ApiInviteTags } from './docs/invite.swagger';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { InviteUserDto } from './dto/invite-user.dto';
 import { InviteService } from './invites.service';
 
-@ApiTags('Invites')
+@ApiInviteTags()
 @Controller('auth/invites')
 export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async inviteUser(@Body() inviteUserDto: InviteUserDto) {
+    const result = await this.inviteService.inviteUser(inviteUserDto);
+    return {
+      message: sysMsg.INVITE_SENT,
+      data: result,
+    };
+  }
 
   @Post('accept')
   @HttpCode(HttpStatus.CREATED)
