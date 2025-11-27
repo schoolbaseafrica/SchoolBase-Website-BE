@@ -31,6 +31,8 @@ export const ACCOUNT_NOT_FOUND = 'account not found';
 export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
+export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
+export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -179,6 +181,22 @@ export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
+
+// Room
+export const ROOM_CREATED_SUCCESSFULLY = 'Room created successfully.';
+export const DUPLICATE_ROOM_NAME = 'A room with this name already exists.';
+export const ROOM_RETRIEVED_SUCCESSFULLY =
+  'Room details retrieved successfully.';
+export const ROOM_LIST_RETRIEVED_SUCCESSFULLY =
+  'List of rooms retrieved successfully.';
+export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
+export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
+export const ROOM_NOT_FOUND = 'Room not found.';
+export const INVALID_ROOM_ID = 'Invalid room ID provided.';
+export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
+export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
+export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+
 //department
 export const DEPARTMENT_NOT_FOUND = 'Department not found';
 export const DEPARTMENT_CREATED = 'Department created successfully';
@@ -233,10 +251,6 @@ export const DATABASE_CONFIGURATION_SUCCESS =
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
-
-//user messages
-export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
-export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
 export const STUDENT_FETCHED = 'Student fetched successfully';
 export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
