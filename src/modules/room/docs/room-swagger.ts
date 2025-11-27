@@ -67,3 +67,18 @@ export const ApiFindOneRoom = () =>
     }),
     ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
   );
+
+export const ApiDeleteRoom = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Delete Room',
+      description:
+        'Deletes a single room by its unique ID. Only empty rooms can be deleted.',
+    }),
+    ApiParam({ name: 'id', description: 'Room ID' }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
+    ApiConflictResponse({ description: sysMsg.CANNOT_DELETE_OCCUPIED_ROOM }),
+  );

@@ -208,4 +208,46 @@ describe('RoomService', () => {
       await expect(service.findOne('r1')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('remove', () => {
+    it('deletes a room successfully', async () => {
+      const emptyRoom = { id: 'r1', streams: [] } as Room;
+
+      modelAction.get.mockResolvedValue(emptyRoom);
+
+      const result = await service.remove('r1');
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+
+      expect(modelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        relations: { streams: true },
+      });
+
+      expect(modelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: 'MOCK_MANAGER',
+        },
+      });
+
+      expect(result).toEqual({
+        message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      modelAction.get.mockResolvedValue(null);
+      await expect(service.remove('r1')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ConflictException if room is occupied by streams', async () => {
+      const occupiedRoom = { id: 'r1', streams: [{ id: 's1' }] } as Room;
+      modelAction.get.mockResolvedValue(occupiedRoom);
+
+      await expect(service.remove('r1')).rejects.toThrow(ConflictException);
+      expect(modelAction.delete).not.toHaveBeenCalled();
+    });
+  });
 });

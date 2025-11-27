@@ -80,6 +80,34 @@ export class RoomService {
     return { message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY, ...room };
   }
 
+  async remove(id: string) {
+    const data = await this.datasource.transaction(async (manager) => {
+      const room = await this.roomModelAction.get({
+        identifierOptions: { id },
+        relations: { streams: true },
+      });
+
+      if (!room) {
+        throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+      }
+
+      if (room.streams && room.streams.length > 0) {
+        throw new ConflictException(sysMsg.CANNOT_DELETE_OCCUPIED_ROOM);
+      }
+
+      await this.roomModelAction.delete({
+        identifierOptions: { id },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+
+      return {
+        message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+      };
+    });
+
+    return data;
+  }
+
   private async validateStreams(streams: string[]) {
     const streamRepo = this.datasource.getRepository(Stream);
     const streamEntities = await streamRepo.findBy({

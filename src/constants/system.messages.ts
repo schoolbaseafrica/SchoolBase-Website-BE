@@ -191,8 +191,9 @@ export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
 export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
 export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
+export const CANNOT_DELETE_OCCUPIED_ROOM =
+  'Cannot delete a room that has active streams attached.';
 export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
-export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 
 //department
