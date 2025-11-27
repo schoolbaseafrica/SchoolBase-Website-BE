@@ -10,6 +10,7 @@ import {
 import { DataSource, FindOptionsOrder } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
+import { TermService } from '../academic-term/term.service';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
@@ -37,6 +38,7 @@ export class AcademicSessionService {
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
+    private readonly termService: TermService,
   ) {}
 
   private validateSessionIsModifiable(session: AcademicSession): void {
@@ -48,37 +50,108 @@ export class AcademicSessionService {
   async create(
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
-    const existingSession = await this.sessionModelAction.get({
-      identifierOptions: { name: createSessionDto.name },
-    });
-
-    if (existingSession) {
-      throw new ConflictException(sysMsg.DUPLICATE_SESSION_NAME);
+    // Validate that exactly 3 terms are provided (enforced by DTO but double-check)
+    if (createSessionDto.terms.length !== 3) {
+      throw new BadRequestException('Exactly 3 terms are required.');
     }
 
-    // Convert date strings to Date objects for comparison
-    const start = new Date(createSessionDto.startDate);
+    // Auto-assign term names based on array order: [0]=First, [1]=Second, [2]=Third
+    const firstTerm = createSessionDto.terms[0];
+    const secondTerm = createSessionDto.terms[1];
+    const thirdTerm = createSessionDto.terms[2];
+
+    if (!firstTerm || !thirdTerm) {
+      throw new BadRequestException(
+        'Both First term and Third terms are required.',
+      );
+    }
+
+    // Session start date is first term start date, end date is third term end date
+    const start = new Date(firstTerm.startDate);
+    const end = new Date(thirdTerm.endDate);
+
+    // Validate session dates
     if (start < new Date()) {
       throw new BadRequestException(sysMsg.START_DATE_IN_PAST);
     }
-    const end = new Date(createSessionDto.endDate);
     if (end < new Date()) {
       throw new BadRequestException(sysMsg.END_DATE_IN_PAST);
     }
-    // 4. End date must be after start date.
     if (end <= start) {
       throw new BadRequestException(sysMsg.INVALID_DATE_RANGE);
     }
-    const newSession = await this.sessionModelAction.create({
-      createPayload: {
-        name: createSessionDto.name,
+
+    // Generate session name and academic year from start and end year
+    const startYear = start.getFullYear();
+    const endYear = end.getFullYear();
+    const sessionName = `${startYear}/${endYear}`;
+    const academicYear = `${startYear}/${endYear}`;
+
+    const existingSession = await this.sessionModelAction.get({
+      identifierOptions: { name: sessionName },
+    });
+
+    if (existingSession) {
+      throw new ConflictException(
+        `Academic session ${sessionName} already exists.`,
+      );
+    }
+
+    // Validate individual term dates
+    for (let i = 0; i < createSessionDto.terms.length; i++) {
+      const termDto = createSessionDto.terms[i];
+      const termStart = new Date(termDto.startDate);
+      const termEnd = new Date(termDto.endDate);
+
+      if (termEnd <= termStart) {
+        throw new BadRequestException(sysMsg.TERM_INVALID_DATE_RANGE);
+      }
+    }
+
+    // Validate sequential term dates
+    const firstTermEnd = new Date(firstTerm.endDate);
+    const secondTermStart = new Date(secondTerm.startDate);
+    const secondTermEnd = new Date(secondTerm.endDate);
+    const thirdTermStart = new Date(thirdTerm.startDate);
+
+    if (secondTermStart <= firstTermEnd) {
+      throw new BadRequestException(sysMsg.TERM_SEQUENTIAL_INVALID);
+    }
+
+    if (thirdTermStart <= secondTermEnd) {
+      throw new BadRequestException(sysMsg.TERM_SEQUENTIAL_INVALID);
+    }
+
+    // Use transaction to create session and terms together
+    const newSession = await this.dataSource.transaction(async (manager) => {
+      // Create the academic session
+      const session = manager.create(AcademicSession, {
+        name: sessionName,
+        academicYear: academicYear,
         startDate: start,
         endDate: end,
-      },
-      transactionOptions: {
-        useTransaction: false,
-      },
+        description: createSessionDto.description || null,
+        status: SessionStatus.INACTIVE,
+      });
+
+      const savedSession = await manager.save(AcademicSession, session);
+
+      // Create associated terms using TermService
+      await this.termService.createTermsForSession(
+        savedSession.id,
+        createSessionDto.terms,
+        manager,
+      );
+
+      // Fetch the complete session with terms
+      const completeSession = await manager.findOne(AcademicSession, {
+        where: { id: savedSession.id },
+        relations: ['terms'],
+      });
+
+      return completeSession;
     });
+
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.ACADEMIC_SESSION_CREATED,
@@ -199,33 +272,15 @@ export class AcademicSessionService {
     // LOCK CHECK: Prevent modification of inactive sessions
     this.validateSessionIsModifiable(session);
 
-    // Validate dates if provided
-    if (updateSessionDto.startDate && updateSessionDto.endDate) {
-      const start = new Date(updateSessionDto.startDate);
-      const end = new Date(updateSessionDto.endDate);
-
-      if (end <= start) {
-        throw new BadRequestException(sysMsg.INVALID_DATE_RANGE);
-      }
-    }
-
-    // Check for duplicate name if name is being updated
-    if (updateSessionDto.name && updateSessionDto.name !== session.name) {
-      const existingSession = await this.sessionModelAction.get({
-        identifierOptions: { name: updateSessionDto.name },
-      });
-
-      if (existingSession) {
-        throw new ConflictException(sysMsg.DUPLICATE_SESSION_NAME);
-      }
-    }
-
     const updatePayload: Partial<AcademicSession> = {};
-    if (updateSessionDto.name) updatePayload.name = updateSessionDto.name;
-    if (updateSessionDto.startDate)
-      updatePayload.startDate = new Date(updateSessionDto.startDate);
-    if (updateSessionDto.endDate)
-      updatePayload.endDate = new Date(updateSessionDto.endDate);
+
+    // Update description if provided
+    if (updateSessionDto.description !== undefined) {
+      updatePayload.description = updateSessionDto.description;
+    }
+
+    // Note: Terms are not bulk-updatable to preserve historical integrity.
+    // Individual term dates can be updated via PATCH /academic-term/:id endpoint.
 
     await this.sessionModelAction.update({
       identifierOptions: { id },

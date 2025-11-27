@@ -1,24 +1,28 @@
-import { IsDateString, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsString,
+  MaxLength,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+  ValidateNested,
+  IsOptional,
+} from 'class-validator';
+
+import { CreateTermDto } from '../../academic-term/dto/create-term.dto';
 
 export class CreateAcademicSessionDto {
-  // 3. Session name cannot be empty.
-  @IsNotEmpty({ message: 'Session name is required.' })
-  @IsString({ message: 'Session name must be a string.' })
-  @MaxLength(100, { message: 'Session name cannot exceed 100 characters.' })
-  name: string;
+  @IsOptional()
+  @IsString({ message: 'Description must be a string.' })
+  @MaxLength(1000, { message: 'Description cannot exceed 1000 characters.' })
+  description?: string;
 
-  // Uses ISO date string for validation. Service will convert to Date object.
-  @IsNotEmpty({ message: 'Start date is required.' })
-  @IsDateString(
-    { strict: true },
-    { message: 'Start date must be a valid ISO date string (YYYY-MM-DD).' },
-  )
-  startDate: string;
-
-  @IsNotEmpty({ message: 'End date is required.' })
-  @IsDateString(
-    { strict: true },
-    { message: 'End date must be a valid ISO date string (YYYY-MM-DD).' },
-  )
-  endDate: string;
+  @IsNotEmpty({ message: 'Terms array is required.' })
+  @IsArray({ message: 'Terms must be an array.' })
+  @ArrayMinSize(3, { message: 'Exactly 3 terms are required.' })
+  @ArrayMaxSize(3, { message: 'Exactly 3 terms are required.' })
+  @ValidateNested({ each: true })
+  @Type(() => CreateTermDto)
+  terms: CreateTermDto[];
 }
