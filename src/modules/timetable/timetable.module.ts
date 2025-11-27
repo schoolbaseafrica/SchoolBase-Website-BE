@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { Stream } from '../stream/entities/stream.entity';
+import { Class } from '../class/entities/class.entity';
 import { Subject } from '../subject/entities/subject.entity';
 import { Teacher } from '../teacher/entities/teacher.entity';
 
@@ -12,7 +12,7 @@ import { TimetableController } from './timetable.controller';
 import { TimetableService } from './timetable.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Timetable, Stream, Subject, Teacher])],
+  imports: [TypeOrmModule.forFeature([Timetable, Class, Subject, Teacher])],
   controllers: [TimetableController],
   providers: [
     TimetableService,

@@ -10,7 +10,7 @@ import { Repository, SelectQueryBuilder } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Stream } from '../../stream/entities/stream.entity';
+import { Class } from '../../class/entities/class.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { CreateTimetableDto } from '../dto/timetable.dto';
@@ -21,12 +21,12 @@ import { TimetableValidationService } from './timetable-validation.service';
 
 describe('TimetableValidationService', () => {
   let service: TimetableValidationService;
-  let streamRepository: jest.Mocked<Repository<Stream>>;
+  let classRepository: jest.Mocked<Repository<Class>>;
   let subjectRepository: jest.Mocked<Repository<Subject>>;
   let teacherRepository: jest.Mocked<Repository<Teacher>>;
   let timetableRepository: jest.Mocked<Repository<Timetable>>;
 
-  const mockStreamId = 'stream-123';
+  const mockClassId = 'stream-123';
   const mockSubjectId = 'subject-123';
   const mockTeacherId = 'teacher-123';
   const mockTimetableId = 'timetable-123';
@@ -35,7 +35,7 @@ describe('TimetableValidationService', () => {
     day: DayOfWeek.MONDAY,
     start_time: '09:00:00',
     end_time: '10:00:00',
-    stream_id: mockStreamId,
+    class_id: mockClassId,
     effective_date: '2025-01-01',
     period_type: PeriodType.LESSON,
   };
@@ -49,7 +49,7 @@ describe('TimetableValidationService', () => {
       }),
     } as unknown as Logger;
 
-    const mockStreamRepo = {
+    const mockClassRepo = {
       findOne: jest.fn(),
     };
 
@@ -69,8 +69,8 @@ describe('TimetableValidationService', () => {
       providers: [
         TimetableValidationService,
         {
-          provide: getRepositoryToken(Stream),
-          useValue: mockStreamRepo,
+          provide: getRepositoryToken(Class),
+          useValue: mockClassRepo,
         },
         {
           provide: getRepositoryToken(Subject),
@@ -94,7 +94,7 @@ describe('TimetableValidationService', () => {
     service = module.get<TimetableValidationService>(
       TimetableValidationService,
     );
-    streamRepository = module.get(getRepositoryToken(Stream));
+    classRepository = module.get(getRepositoryToken(Class));
     subjectRepository = module.get(getRepositoryToken(Subject));
     teacherRepository = module.get(getRepositoryToken(Teacher));
     timetableRepository = module.get(getRepositoryToken(Timetable));
@@ -111,9 +111,9 @@ describe('TimetableValidationService', () => {
 
     it('should pass validation for valid timetable', async () => {
       // Setup mocks
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -137,9 +137,9 @@ describe('TimetableValidationService', () => {
 
   describe('Time Range Validation', () => {
     it('should throw BadRequestException when start_time >= end_time', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -159,9 +159,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should throw BadRequestException when start_time equals end_time', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -178,9 +178,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when start_time < end_time', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -197,9 +197,9 @@ describe('TimetableValidationService', () => {
 
   describe('Date Range Validation', () => {
     it('should throw BadRequestException when end_date <= effective_date', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -219,9 +219,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should throw BadRequestException when end_date equals effective_date', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -238,9 +238,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when end_date > effective_date', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -255,9 +255,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when end_date is not provided', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -273,21 +273,21 @@ describe('TimetableValidationService', () => {
   });
 
   describe('Foreign Key Validation', () => {
-    it('should throw NotFoundException when stream does not exist', async () => {
-      streamRepository.findOne.mockResolvedValue(null);
+    it('should throw NotFoundException when class does not exist', async () => {
+      classRepository.findOne.mockResolvedValue(null);
 
       await expect(service.validateTimetableRules(baseDto)).rejects.toThrow(
         NotFoundException,
       );
       await expect(service.validateTimetableRules(baseDto)).rejects.toThrow(
-        sysMsg.STREAM_NOT_FOUND,
+        sysMsg.CLASS_NOT_FOUND,
       );
     });
 
     it('should throw NotFoundException when subject does not exist', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       subjectRepository.findOne.mockResolvedValue(null);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
@@ -307,9 +307,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should throw NotFoundException when teacher does not exist', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       teacherRepository.findOne.mockResolvedValue(null);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
@@ -329,9 +329,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when all foreign keys exist', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       subjectRepository.findOne.mockResolvedValue({
         id: mockSubjectId,
       } as Subject);
@@ -352,9 +352,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when optional foreign keys are not provided', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -369,15 +369,15 @@ describe('TimetableValidationService', () => {
     });
   });
 
-  describe('Stream/Day Overlap Validation', () => {
-    it('should throw ConflictException when stream has overlapping time on same day', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+  describe('Class/Day Overlap Validation', () => {
+    it('should throw ConflictException when class has overlapping time on same day', async () => {
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       const existingTimetable: Timetable = {
         id: 'existing-id',
-        stream_id: mockStreamId,
+        class_id: mockClassId,
         day: DayOfWeek.MONDAY,
         start_time: '09:00:00',
         end_time: '10:00:00',
@@ -407,13 +407,13 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when times do not overlap', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       const existingTimetable: Timetable = {
         id: 'existing-id',
-        stream_id: mockStreamId,
+        class_id: mockClassId,
         day: DayOfWeek.MONDAY,
         start_time: '09:00:00',
         end_time: '10:00:00',
@@ -438,9 +438,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when dates do not overlap', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       // Query builder should return empty array because dates don't overlap
       // (the real query would filter by date range, so no results)
@@ -458,9 +458,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should exclude current timetable when updating', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       // Query builder should return empty array because we're excluding the current timetable
       // (the real query would exclude it, so no results)
@@ -488,13 +488,13 @@ describe('TimetableValidationService', () => {
     });
 
     it('should handle NULL end_date (indefinite schedule)', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       const existingTimetable: Timetable = {
         id: 'existing-id',
-        stream_id: mockStreamId,
+        class_id: mockClassId,
         day: DayOfWeek.MONDAY,
         start_time: '09:00:00',
         end_time: '10:00:00',
@@ -522,9 +522,9 @@ describe('TimetableValidationService', () => {
 
   describe('Teacher Double-Booking Validation', () => {
     it('should throw ConflictException when teacher is double-booked', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       teacherRepository.findOne.mockResolvedValue({
         id: mockTeacherId,
       } as Teacher);
@@ -534,7 +534,7 @@ describe('TimetableValidationService', () => {
       const existingTimetable: Timetable = {
         id: 'existing-id',
         teacher_id: mockTeacherId,
-        stream_id: 'different-stream-id', // Different stream to avoid stream conflict
+        class_id: 'different-class-id', // Different class to avoid class conflict
         day: DayOfWeek.MONDAY,
         start_time: '09:00:00',
         end_time: '10:00:00',
@@ -589,9 +589,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should pass when teacher has no conflicts', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       teacherRepository.findOne.mockResolvedValue({
         id: mockTeacherId,
       } as Teacher);
@@ -624,9 +624,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should skip teacher validation when teacher_id is not provided', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       timetableRepository.createQueryBuilder.mockReturnValue(
         createMockQueryBuilder([]),
       );
@@ -641,9 +641,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should exclude current timetable when updating teacher schedule', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
       teacherRepository.findOne.mockResolvedValue({
         id: mockTeacherId,
       } as Teacher);
@@ -672,9 +672,9 @@ describe('TimetableValidationService', () => {
 
   describe('Edge Cases', () => {
     it('should handle timetables on different days', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       // Query builder should return empty array because different days don't conflict
       // (the real query filters by day, so no results for different day)
@@ -696,9 +696,9 @@ describe('TimetableValidationService', () => {
     });
 
     it('should handle inactive timetables', async () => {
-      streamRepository.findOne.mockResolvedValue({
-        id: mockStreamId,
-      } as Stream);
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
 
       // Query builder filters by is_active = true, so inactive timetables won't be returned
       timetableRepository.createQueryBuilder.mockReturnValue(

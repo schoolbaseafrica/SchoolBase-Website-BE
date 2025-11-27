@@ -11,7 +11,7 @@ import { Repository } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Stream } from '../../stream/entities/stream.entity';
+import { Class } from '../../class/entities/class.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { CreateTimetableDto } from '../dto/timetable.dto';
@@ -26,8 +26,8 @@ export class TimetableValidationService {
   private readonly far_future_date = '9999-12-31';
 
   constructor(
-    @InjectRepository(Stream)
-    private readonly streamRepository: Repository<Stream>,
+    @InjectRepository(Class)
+    private readonly classRepository: Repository<Class>,
     @InjectRepository(Subject)
     private readonly subjectRepository: Repository<Subject>,
     @InjectRepository(Teacher)
@@ -59,9 +59,9 @@ export class TimetableValidationService {
     // Validate foreign keys
     await this.validateForeignKeys(dto);
 
-    // Validate stream/day overlaps
-    await this.validateStreamDayOverlap(
-      dto.stream_id,
+    // Validate class/day overlaps
+    await this.validateClassDayOverlap(
+      dto.class_id,
       dto.day,
       dto.start_time,
       dto.end_time,
@@ -119,14 +119,14 @@ export class TimetableValidationService {
 
   // Validates that all foreign keys exist
   private async validateForeignKeys(dto: CreateTimetableDto): Promise<void> {
-    // Validate stream (required)
-    const stream = await this.streamRepository.findOne({
-      where: { id: dto.stream_id },
+    // Validate class (required)
+    const classEntity = await this.classRepository.findOne({
+      where: { id: dto.class_id },
     });
 
-    if (!stream) {
-      this.logger.warn('Stream not found', { stream_id: dto.stream_id });
-      throw new NotFoundException(sysMsg.STREAM_NOT_FOUND);
+    if (!classEntity) {
+      this.logger.warn('Class not found', { class_id: dto.class_id });
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
 
     // Validate subject (optional)
@@ -155,12 +155,12 @@ export class TimetableValidationService {
   }
 
   /**
-   * Validates that there are no overlapping periods for the same stream on the same day
+   * Validates that there are no overlapping periods for the same class on the same day
    * Uses canonical interval overlap formula: A_start <= B_end AND A_end >= B_start
    * Considers date ranges (effective_date and end_date) for active timetables
    */
-  private async validateStreamDayOverlap(
-    streamId: string,
+  private async validateClassDayOverlap(
+    classId: string,
     day: DayOfWeek,
     startTime: string,
     endTime: string,
@@ -174,7 +174,7 @@ export class TimetableValidationService {
 
     const queryBuilder = this.timetableRepository
       .createQueryBuilder('timetable')
-      .where('timetable.stream_id = :streamId', { streamId })
+      .where('timetable.class_id = :classId', { classId })
       .andWhere('timetable.day = :day', { day })
       .andWhere('timetable.is_active = :isActive', { isActive: true });
 
@@ -218,8 +218,8 @@ export class TimetableValidationService {
           existing.end_time,
         )
       ) {
-        this.logger.warn('Stream day overlap detected', {
-          streamId,
+        this.logger.warn('Class day overlap detected', {
+          classId,
           day,
           existingTimetableId: existing.id,
           newStartTime: startTime,
