@@ -7,6 +7,8 @@ import {
   ApiResponse,
   ApiOkResponse,
   ApiQuery,
+  ApiParam,
+  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -115,4 +117,49 @@ export const ApiFindAllSubjects = () =>
         },
       },
     }),
+  );
+
+/**
+ * Swagger decorators for Find One Subject endpoint
+ */
+export const ApiFindOneSubject = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get Subject by ID',
+      description: 'Retrieves a single subject by its ID.',
+    }),
+    ApiParam({ name: 'id', description: 'Subject ID', type: String }),
+    ApiOkResponse({
+      description: sysMsg.SUBJECT_RETRIEVED,
+      type: SubjectResponseDto,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.SUBJECT_NOT_FOUND }),
+  );
+
+/**
+ * Swagger decorators for Delete Subject endpoint
+ */
+export const ApiDeleteSubject = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Delete Subject',
+      description: 'Deletes a subject by its ID.',
+    }),
+    ApiParam({ name: 'id', description: 'Subject ID', type: String }),
+    ApiOkResponse({
+      description: sysMsg.SUBJECT_DELETED,
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: sysMsg.SUBJECT_DELETED,
+          },
+          data: {
+            type: 'null',
+          },
+        },
+      },
+    }),
+    ApiNotFoundResponse({ description: sysMsg.SUBJECT_NOT_FOUND }),
   );

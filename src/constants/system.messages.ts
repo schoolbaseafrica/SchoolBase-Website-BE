@@ -200,6 +200,9 @@ export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 export const SUBJECT_CREATED = 'Subject created successfully';
 export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
 export const SUBJECTS_RETRIEVED = 'Subjects retrieved successfully';
+export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
+export const SUBJECT_NOT_FOUND = 'Subject not found';
+export const SUBJECT_DELETED = 'Subject deleted successfully';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -268,7 +271,6 @@ export const TIMETABLE_OVERLAP_STREAM =
   'Timetable period overlaps with another period for the same stream on the same day';
 export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
   'Teacher is already scheduled for another class at this time';
-export const SUBJECT_NOT_FOUND = 'Subject not found';
 export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';

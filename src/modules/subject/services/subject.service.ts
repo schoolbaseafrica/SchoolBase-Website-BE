@@ -1,4 +1,9 @@
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
@@ -86,6 +91,50 @@ export class SubjectService {
       data: subjects,
       pagination,
     };
+  }
+
+  // FIND SUBJECT BY ID
+  async findOne(id: string): Promise<IBaseResponse<SubjectResponseDto>> {
+    const subject = await this.subjectModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!subject) {
+      throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+    }
+
+    return {
+      message: sysMsg.SUBJECT_RETRIEVED,
+      data: this.mapToResponseDto(subject),
+    };
+  }
+
+  // DELETE SUBJECT
+  async remove(id: string): Promise<IBaseResponse<void>> {
+    return this.dataSource.transaction(async (manager) => {
+      // Check if subject exists
+      const existingSubject = await this.subjectModelAction.get({
+        identifierOptions: { id },
+      });
+
+      if (!existingSubject) {
+        throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+      }
+
+      // Delete subject
+      await this.subjectModelAction.delete({
+        identifierOptions: { id },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+
+      return {
+        message: sysMsg.SUBJECT_DELETED,
+        data: undefined,
+      };
+    });
   }
 
   private mapToResponseDto(subject: Subject): SubjectResponseDto {

@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -18,6 +20,8 @@ import {
   ApiSubjectBearerAuth,
   ApiCreateSubject,
   ApiFindAllSubjects,
+  ApiFindOneSubject,
+  ApiDeleteSubject,
 } from '../docs/subject.swagger';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { ListSubjectsDto } from '../dto/list-subjects.dto';
@@ -43,5 +47,20 @@ export class SubjectController {
   @ApiFindAllSubjects()
   findAll(@Query() query: ListSubjectsDto) {
     return this.subjectService.findAll(query.page, query.limit);
+  }
+
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiFindOneSubject()
+  findOne(@Param('id') id: string) {
+    return this.subjectService.findOne(id);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiDeleteSubject()
+  remove(@Param('id') id: string) {
+    return this.subjectService.remove(id);
   }
 }
