@@ -21,6 +21,9 @@ export class TeacherSubject extends BaseEntity {
   @Column({ name: 'subject_id' })
   subject_id: string;
 
+  @Column({ name: 'subject_id' })
+  class_id: string;
+
   @Column({ default: true })
   is_active: boolean;
 

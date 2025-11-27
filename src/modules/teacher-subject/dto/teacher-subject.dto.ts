@@ -1,12 +1,15 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { IsUUID, IsBoolean, IsOptional, IsString } from 'class-validator';
 
-export class CreateTeacherSubjectDto {
+export class AssignTeacherToClassSubject {
   @IsUUID()
   teacher_id: string;
 
   @IsUUID()
   subject_id: string;
+
+  @IsUUID()
+  class_id: string;
 
   @IsBoolean()
   @IsOptional()
@@ -18,5 +21,5 @@ export class CreateTeacherSubjectDto {
 }
 
 export class UpdateTeacherSubjectDto extends PartialType(
-  CreateTeacherSubjectDto,
+  AssignTeacherToClassSubject,
 ) {}
