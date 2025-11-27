@@ -138,7 +138,7 @@ export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
 
 // Invites
-export const INVITE_SENT = 'INVITE_SENT';
+export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';

@@ -1,15 +1,26 @@
 import { Controller, Post, Body, HttpStatus, HttpCode } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 
+import { ApiInviteTags } from './docs/invite.swagger';
 import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { InviteUserDto } from './dto/invite-user.dto';
 import { InviteService } from './invites.service';
 
-@ApiTags('Invites')
-@Controller('auth/invites')
+@ApiInviteTags()
+@Controller('invites')
 export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
+
+  @Post()
+  async inviteUser(@Body() inviteUserDto: InviteUserDto) {
+    const result = await this.inviteService.inviteUser(inviteUserDto);
+    return {
+      message: sysMsg.INVITE_SENT,
+      data: result,
+    };
+  }
 
   @Post('accept')
   @HttpCode(HttpStatus.CREATED)
