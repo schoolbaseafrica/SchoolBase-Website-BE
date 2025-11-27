@@ -46,6 +46,19 @@ describe('InviteService', () => {
     accepted: false,
     status: InviteStatus.PENDING,
   };
+  //this is for csv only
+  const mockConfigService = {
+    get: jest.fn((key: string) => {
+      const config: Record<string, string> = {
+        ['frontend.url']: 'https://school.com',
+        ['school.name']: 'Test School',
+        ['school.logoUrl']: 'https://school.com/logo.png',
+        ['mail.from.adress']: 'noreply@school.com',
+        ['mail.from.name']: 'School Admin',
+      };
+      return config[key];
+    }),
+  };
 
   let moduleRef: TestingModule;
   beforeEach(async () => {
@@ -62,23 +75,27 @@ describe('InviteService', () => {
       child: jest.fn().mockReturnThis(),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    moduleRef = await Test.createTestingModule({
       providers: [
         InviteService,
         { provide: InviteModelAction, useValue: { ...mockAction } },
         { provide: UserModelAction, useValue: { ...mockAction } },
         { provide: SchoolModelAction, useValue: { ...mockAction } },
+        { provide: ConfigService, useValue: mockConfigService },
 
-        { provide: ConfigService, useValue: { get: jest.fn() } },
         { provide: EmailService, useValue: { sendMail: jest.fn() } },
         { provide: WINSTON_MODULE_PROVIDER, useValue: mockLoggerObj },
         // Mocks for injected Repositories (used in constructor but not in acceptInvite)
       ],
     }).compile();
+    //comment the old code to add the one that serve both accept invit and upload
+    // service = module.get<InviteService>(InviteService);
+    // inviteModelAction = module.get(InviteModelAction);
+    // userModelAction = module.get(UserModelAction);
 
-    service = module.get<InviteService>(InviteService);
-    inviteModelAction = module.get(InviteModelAction);
-    userModelAction = module.get(UserModelAction);
+    service = moduleRef.get<InviteService>(InviteService);
+    inviteModelAction = moduleRef.get(InviteModelAction);
+    userModelAction = moduleRef.get(UserModelAction);
   });
 
   describe('acceptInvite', () => {
