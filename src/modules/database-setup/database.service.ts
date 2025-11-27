@@ -8,7 +8,7 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -67,7 +67,7 @@ export class DatabaseService {
         synchronize: true,
         logging: false,
         connectTimeoutMS: 10000,
-      });
+      } as DataSourceOptions);
 
       // Initialize connection
       await tempDataSource.initialize();
