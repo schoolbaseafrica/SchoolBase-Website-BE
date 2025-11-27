@@ -6,13 +6,19 @@ import { RoomStatus } from '../enums/room-enum';
 
 @Entity('rooms')
 export class Room extends BaseEntity {
-  @Column({ type: 'varchar', name: 'name', length: 255, unique: true })
+  @Column({
+    type: 'varchar',
+    name: 'name',
+    length: 255,
+    unique: true,
+    nullable: false,
+  })
   name: string;
 
   @Column({ type: 'varchar', name: 'type', length: 255, nullable: false })
   type: string;
 
-  @Column({ type: 'int', name: 'capacity', nullable: true })
+  @Column({ type: 'int', name: 'capacity', nullable: false })
   capacity: number;
 
   @Column({ type: 'varchar', name: 'location', length: 255, nullable: false })
