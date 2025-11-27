@@ -42,6 +42,12 @@ export class StudentResponseDto {
   full_name: string;
 
   @ApiProperty({
+    description: 'Phone number',
+    example: '+234 810 942 3124',
+  })
+  phone: string;
+
+  @ApiProperty({
     description: 'Email address',
     example: 'favourchinaza110@gmail.com',
   })
@@ -93,6 +99,7 @@ export class StudentResponseDto {
     this.message = message;
     this.id = student.id;
     this.registration_number = student.registration_number;
+    this.phone = user.phone;
     this.first_name = user.first_name;
     this.last_name = user.last_name;
     this.middle_name = user.middle_name;

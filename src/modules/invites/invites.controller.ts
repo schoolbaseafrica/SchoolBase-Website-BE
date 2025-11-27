@@ -9,7 +9,7 @@ import { InviteUserDto } from './dto/invite-user.dto';
 import { InviteService } from './invites.service';
 
 @ApiInviteTags()
-@Controller('invites')
+@Controller('auth/invites')
 export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
 
