@@ -440,7 +440,6 @@ describe('ClassService', () => {
 
       const result = await service.getGroupedClasses();
 
-      expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
       expect(result.items).toEqual([]);
       expect(result.pagination).toBeDefined();
       expect(mockClassModelAction.list).toHaveBeenCalled();

@@ -259,9 +259,7 @@ export class ClassService {
     }
 
     return {
-      message: Object.values(grouped).length
-        ? sysMsg.CLASS_FETCHED
-        : sysMsg.NO_CLASS_FOUND,
+      message: sysMsg.CLASS_FETCHED,
       items: Object.values(grouped),
       pagination: paginationMeta,
     };
