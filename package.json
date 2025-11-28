@@ -46,7 +46,6 @@
     "@types/multer": "^2.0.0",
     "@types/qrcode": "^1.5.6",
     "@types/speakeasy": "^2.0.10",
-    "aws-sdk": "^2.1692.0",
     "bcrypt": "^6.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
