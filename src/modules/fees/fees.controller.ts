@@ -22,11 +22,10 @@ export class FeesController {
     @Body() createFeesDto: CreateFeesDto,
     @Request() req: { user: { userId: string } },
   ) {
-    console.log('User object from request:', req.user);
     const fee = await this.feesService.create(createFeesDto, req.user.userId);
     return {
       message: sysMsg.FEE_CREATED_SUCCESSFULLY,
-      data: fee,
+      fee,
     };
   }
 }
