@@ -9,7 +9,7 @@ export async function parseCsv<T>(buffer: Buffer): Promise<T[]> {
     const stream = Readable.from(buffer.toString()); // treat buffer as text
     stream
       .pipe(
-        csvParser({ headers: ['email', 'full_name'], skipLines: 1 }), // ✅ only email + full_name
+        csvParser({ headers: ['full_name', 'email'], skipLines: 1 }), // ✅ only email + full_name
       )
       .on('data', (data) => {
         const cleaned = Object.fromEntries(
