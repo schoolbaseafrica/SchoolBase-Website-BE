@@ -172,6 +172,6 @@ export class RoomService {
   }
 
   private sanitizedField(value: string) {
-    return name.trim().toLowerCase();
+    return value.trim().toLowerCase();
   }
 }
