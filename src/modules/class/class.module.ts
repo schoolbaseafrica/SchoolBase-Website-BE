@@ -6,6 +6,7 @@ import { StudentModule } from '../student/student.module';
 
 import { ClassController } from './controllers/class.controller';
 import { ClassStudent } from './entities/class-student.entity';
+import { ClassSubject } from './entities/class-subject.entity';
 import { ClassTeacher } from './entities/class-teacher.entity';
 import { Class } from './entities/class.entity';
 import { ClassStudentModelAction } from './model-actions/class-student.action';
@@ -15,7 +16,7 @@ import { ClassService } from './services/class.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Class, ClassTeacher, ClassStudent]),
+    TypeOrmModule.forFeature([Class, ClassTeacher, ClassSubject, ClassStudent]),
     AcademicSessionModule,
     StudentModule,
   ],
