@@ -7,6 +7,8 @@ import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
+import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 @Injectable()
@@ -39,7 +41,7 @@ export class RoomService {
         },
       });
 
-      return { message: sysMsg.ROOM_CREATED_SUCCESSFULLY, ...newRoom };
+      return { ...newRoom, message: sysMsg.ROOM_CREATED_SUCCESSFULLY };
     });
 
     return data;
@@ -56,6 +58,39 @@ export class RoomService {
     };
   }
 
+  async update(id: string, updateRoomDto: UpdateRoomDTO) {
+    const data = await this.datasource.transaction(async (manager) => {
+      const existingRoom = await this.findOne(id);
+
+      if (!existingRoom) {
+        throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+      }
+
+      for (const [key, value] of Object.entries(updateRoomDto)) {
+        if (typeof value === 'string') {
+          const sanitizedVal = this.sanitizedField(value);
+          updateRoomDto[key] = sanitizedVal;
+
+          if (key === 'name') {
+            const duplicate = await this.findByName(sanitizedVal);
+
+            if (duplicate && duplicate.id !== id) {
+              throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
+            }
+          }
+        }
+      }
+
+      Object.assign(existingRoom, updateRoomDto);
+
+      const updatedRoom = await manager.save(Room, existingRoom);
+
+      return updatedRoom;
+    });
+
+    return { ...data, message: sysMsg.ROOM_UPDATED_SUCCESSFULLY };
+  }
+
   async findOne(id: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { id },
@@ -66,7 +101,7 @@ export class RoomService {
       throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
     }
 
-    return { message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY, ...room };
+    return { ...room, message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY };
   }
 
   private async findByName(name: string) {

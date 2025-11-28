@@ -11,6 +11,7 @@ import {
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
 
 export const ApiCreateRoom = () =>
   applyDecorators(
@@ -59,6 +60,20 @@ export const ApiFindOneRoom = () =>
     ApiParam({ name: 'id', description: 'Room ID' }),
     ApiOkResponse({
       description: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
+  );
+
+export const ApiUpdateRoom = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Update Room',
+      description: 'Updates details of an existing room.',
+    }),
+    ApiParam({ name: 'id', description: 'Room ID (UUID)', type: 'string' }),
+    ApiBody({ type: UpdateRoomDTO }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
     }),
     ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
   );

@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -18,8 +19,10 @@ import {
   ApiCreateRoom,
   ApiFindAllRooms,
   ApiFindOneRoom,
+  ApiUpdateRoom,
 } from '../docs/room-swagger';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
 import { RoomService } from '../services/room.service';
 
 @Controller('rooms')
@@ -42,6 +45,13 @@ export class RoomController {
   @ApiFindAllRooms()
   async findAll() {
     return this.roomService.findAll();
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateRoom()
+  async update(@Param('id') id: string, @Body() updateRoomDto: UpdateRoomDTO) {
+    return this.roomService.update(id, updateRoomDto);
   }
 
   @Get(':id')

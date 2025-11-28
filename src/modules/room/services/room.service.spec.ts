@@ -5,6 +5,7 @@ import { DataSource } from 'typeorm';
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
 import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
@@ -114,6 +115,104 @@ describe('RoomService', () => {
     it('throws conflict when name already exists', async () => {
       modelAction.get.mockResolvedValue({ id: 'existing' });
       await expect(service.create(dto)).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('update', () => {
+    const mockManager = {
+      save: jest.fn(),
+    };
+
+    const existingRoom: Room = {
+      id: 'r1',
+      name: 'room 1',
+      type: 'Laboratory',
+      capacity: 10,
+      location: 'loc',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Room;
+
+    const updateDto: UpdateRoomDTO = {
+      name: ' Updated Room ',
+    };
+
+    const sanitizedName = 'updated room';
+
+    beforeEach(() => {
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.save.mockClear();
+    });
+
+    it('updates a room successfully when name is unique', async () => {
+      modelAction.get.mockResolvedValueOnce(existingRoom);
+      modelAction.get.mockResolvedValueOnce(null);
+      const savedEntity = { ...existingRoom, name: sanitizedName };
+      mockManager.save.mockResolvedValue(savedEntity);
+
+      const result = await service.update('r1', updateDto);
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+
+      expect(modelAction.get).toHaveBeenNthCalledWith(1, {
+        identifierOptions: { id: 'r1' },
+        relations: { current_class: true },
+      });
+
+      expect(modelAction.get).toHaveBeenNthCalledWith(2, {
+        identifierOptions: { name: sanitizedName },
+      });
+
+      expect(mockManager.save).toHaveBeenCalledWith(
+        Room,
+        expect.objectContaining({
+          id: 'r1',
+          name: sanitizedName,
+        }),
+      );
+
+      expect(result).toEqual({
+        message: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
+        ...savedEntity,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      modelAction.get.mockResolvedValueOnce(null);
+
+      await expect(service.update('r1', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(modelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockManager.save).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException if updated name belongs to a different room', async () => {
+      modelAction.get.mockResolvedValueOnce(existingRoom);
+
+      const conflictRoom = { id: 'r2', name: sanitizedName } as Room;
+      modelAction.get.mockResolvedValueOnce(conflictRoom);
+
+      await expect(service.update('r1', updateDto)).rejects.toThrow(
+        ConflictException,
+      );
+
+      expect(mockManager.save).not.toHaveBeenCalled();
+    });
+
+    it('allows update if the name exists but belongs to the SAME room', async () => {
+      modelAction.get.mockResolvedValueOnce(existingRoom);
+
+      const sameRoom = { id: 'r1', name: sanitizedName } as Room;
+      modelAction.get.mockResolvedValueOnce(sameRoom);
+
+      const savedEntity = { ...existingRoom, name: sanitizedName };
+      mockManager.save.mockResolvedValue(savedEntity);
+
+      await expect(service.update('r1', updateDto)).resolves.not.toThrow();
+
+      expect(mockManager.save).toHaveBeenCalled();
     });
   });
 
