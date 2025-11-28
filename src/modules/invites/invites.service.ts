@@ -126,7 +126,7 @@ export class InviteService {
       this.configService.get<string>('app.logo_url') ||
       'https://via.placeholder.com/100';
 
-    const invite_link = `${frontend_url}/accept-invite?token=${token}`;
+    const invite_link = `${frontend_url}/reset-password?token=${token}`;
     const first_name = inviteDto.full_name?.split(' ')[0] || 'User';
 
     const emailPayload: EmailPayload = {
@@ -228,7 +228,7 @@ export class InviteService {
       throw new BadRequestException(sysMsg.INVALID_BULK_UPLOAD_FILE);
     }
 
-    // Parse CSV rows
+    // ✅ Changed: parseCsv now expects full_name before email
     const rows = await parseCsv<{ email: string; full_name: string }>(
       file.buffer,
     );
@@ -236,7 +236,6 @@ export class InviteService {
     const filteredRows = rows.filter((row) => row.email?.trim());
     const emails = filteredRows.map((row) => row.email.trim().toLowerCase());
 
-    // Check existing invites
     const existing = await this.inviteModelAction.get({
       identifierOptions: { email: In(emails) } as FindOptionsWhere<Invite>,
     });
@@ -261,10 +260,12 @@ export class InviteService {
 
     const createdInvites: InviteUserDto[] = [];
 
-    // Load values from config.ts
     const frontendUrl = this.configService.get<string>('frontend.url');
-    const schoolName = this.configService.get<string>('school.name');
-    const schoolLogoUrl = this.configService.get<string>('school.logoUrl');
+    const schoolName =
+      this.configService.get<string>('school.name') || 'School Base';
+    const schoolLogoUrl =
+      this.configService.get<string>('school.logoUrl') ||
+      'https://via.placeholder.com/100';
     const senderEmail = this.configService.get<string>('mail.from.adress');
     const senderName = this.configService.get<string>('mail.from.name');
 
@@ -274,57 +275,58 @@ export class InviteService {
       );
     }
 
-    for (const row of validRows) {
-      const rawToken = crypto.randomBytes(32).toString('hex');
-      const hashedToken = crypto
-        .createHash('sha256')
-        .update(rawToken)
-        .digest('hex');
+    // ✅ Changed: wrap invite creation + email sending in a transaction
+    await this.dataSource.transaction(async (manager) => {
+      for (const row of validRows) {
+        const rawToken = crypto.randomBytes(32).toString('hex');
+        const hashedToken = crypto
+          .createHash('sha256')
+          .update(rawToken)
+          .digest('hex');
 
-      const invite = await this.inviteModelAction.create({
-        createPayload: {
-          email: row.email.trim().toLowerCase(),
-          full_name: row.full_name?.trim(),
+        const invite = await this.inviteModelAction.create({
+          createPayload: {
+            email: row.email.trim().toLowerCase(),
+            full_name: row.full_name?.trim(),
+            role: selectedType,
+            token_hash: hashedToken,
+            status: InviteStatus.PENDING,
+            accepted: false,
+          },
+          transactionOptions: { useTransaction: true, transaction: manager }, // ✅ Changed: use transaction manager
+        });
+
+        await this.inviteModelAction.save({
+          entity: invite,
+          transactionOptions: { useTransaction: true, transaction: manager }, // ✅ Changed: use transaction manager
+        });
+
+        const inviteLink = `${frontendUrl}/reset-password?token=${rawToken}`;
+        const firstName = invite.full_name?.trim()?.split(' ')?.[0] || 'User';
+
+        // ✅ Changed: email sending is inside transaction — if this fails, DB rolls back
+        await this.emailService.sendMail({
+          from: { email: senderEmail, name: senderName },
+          to: [{ email: invite.email, name: invite.full_name }],
+          subject: `You are invited as ${selectedType}`,
+          templateNameID: EmailTemplateID.INVITE,
+          templateData: {
+            first_name: firstName,
+            invite_link: inviteLink,
+            role: invite.role,
+            school_name: schoolName,
+            logo_url: schoolLogoUrl,
+            copyRightYear: new Date().getFullYear(),
+          },
+        });
+
+        createdInvites.push({
+          email: invite.email,
           role: selectedType,
-          token_hash: hashedToken,
-          status: InviteStatus.PENDING,
-          accepted: false,
-        },
-        transactionOptions: { useTransaction: false },
-      });
-
-      await this.inviteModelAction.save({
-        entity: invite,
-        transactionOptions: { useTransaction: false },
-      });
-
-      const inviteLink = `${frontendUrl}/accept-invite?token=${rawToken}`;
-
-      // Split first name safely
-      const firstName = invite.full_name?.trim()?.split(' ')?.[0] || 'User';
-
-      // SEND EMAIL using nunjucks template
-      await this.emailService.sendMail({
-        from: { email: senderEmail, name: senderName },
-        to: [{ email: invite.email, name: invite.full_name }],
-        subject: `You are invited as ${selectedType}`,
-        templateNameID: EmailTemplateID.INVITE,
-        templateData: {
-          firstName,
-          inviteLink,
-          role: invite.role,
-          schoolName,
-          logoUrl: schoolLogoUrl,
-          copyRightYear: new Date().getFullYear(),
-        },
-      });
-
-      createdInvites.push({
-        email: invite.email,
-        role: selectedType,
-        full_name: invite.full_name,
-      });
-    }
+          full_name: invite.full_name,
+        });
+      }
+    });
 
     return {
       status_code: HttpStatus.OK,
