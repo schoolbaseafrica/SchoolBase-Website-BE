@@ -9,6 +9,6 @@ export enum DayOfWeek {
 }
 
 export enum PeriodType {
-  LESSON = 'LESSON',
+  ACADEMICS = 'ACADEMICS',
   BREAK = 'BREAK',
 }

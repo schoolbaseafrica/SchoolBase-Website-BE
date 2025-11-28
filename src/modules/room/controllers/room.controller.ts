@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -18,6 +19,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import {
   ApiCreateRoom,
+  ApiDeleteRoom,
   ApiFindAllRooms,
   ApiFindOneRoom,
   ApiUpdateRoom,
@@ -58,5 +60,12 @@ export class RoomController {
   @ApiFindOneRoom()
   async findOne(@Param('id') id: string) {
     return this.roomService.findOne(id);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.OK)
+  @ApiDeleteRoom()
+  async remove(@Param('id') id: string) {
+    return this.roomService.remove(id);
   }
 }

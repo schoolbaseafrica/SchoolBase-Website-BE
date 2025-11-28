@@ -14,16 +14,17 @@ import * as sysMsg from '../../../constants/system.messages';
 import { Class } from '../../class/entities/class.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
-import { CreateTimetableDto } from '../dto/timetable.dto';
-import { Timetable } from '../entities/timetable.entity';
+import {
+  CreateTimetableDto,
+  CreateScheduleDto,
+  AddScheduleDto,
+} from '../dto/timetable.dto';
 import { DayOfWeek } from '../enums/timetable.enums';
+import { ScheduleModelAction } from '../model-actions/schedule.model-action';
 
 @Injectable()
 export class TimetableValidationService {
   private readonly logger: Logger;
-
-  // Far future date used to represent NULL end_date in date range overlap calculations.
-  private readonly far_future_date = '9999-12-31';
 
   constructor(
     @InjectRepository(Class)
@@ -32,11 +33,42 @@ export class TimetableValidationService {
     private readonly subjectRepository: Repository<Subject>,
     @InjectRepository(Teacher)
     private readonly teacherRepository: Repository<Teacher>,
-    @InjectRepository(Timetable)
-    private readonly timetableRepository: Repository<Timetable>,
+    private readonly scheduleModelAction: ScheduleModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: TimetableValidationService.name });
+  }
+
+  /**
+   * Validates a single new schedule
+   */
+  async validateNewSchedule(dto: AddScheduleDto): Promise<void> {
+    // Validate class exists
+    await this.validateClass(dto.class_id);
+
+    // Validate time range
+    this.validateTimeRange(dto.start_time, dto.end_time);
+
+    // Validate foreign keys (subject, teacher)
+    await this.validateScheduleForeignKeys([dto]);
+
+    // Validate class/day overlaps
+    await this.validateClassDayOverlap(
+      dto.class_id,
+      dto.day,
+      dto.start_time,
+      dto.end_time,
+    );
+
+    // Validate teacher double-booking (if teacher is assigned)
+    if (dto.teacher_id) {
+      await this.validateTeacherDoubleBooking(
+        dto.teacher_id,
+        dto.day,
+        dto.start_time,
+        dto.end_time,
+      );
+    }
   }
 
   /**
@@ -48,39 +80,42 @@ export class TimetableValidationService {
     dto: CreateTimetableDto,
     excludeTimetableId?: string,
   ): Promise<void> {
-    // Validate time range
-    this.validateTimeRange(dto.start_time, dto.end_time);
+    // Validate class exists
+    await this.validateClass(dto.class_id);
 
-    // Validate date range
-    if (dto.end_date) {
-      this.validateDateRange(dto.effective_date, dto.end_date);
-    }
+    // Validate schedules
+    if (dto.schedules && dto.schedules.length > 0) {
+      // Validate foreign keys for schedules (subjects, teachers)
+      await this.validateScheduleForeignKeys(dto.schedules);
 
-    // Validate foreign keys
-    await this.validateForeignKeys(dto);
+      // Validate internal overlaps (within the new timetable itself)
+      this.validateInternalOverlaps(dto.schedules);
 
-    // Validate class/day overlaps
-    await this.validateClassDayOverlap(
-      dto.class_id,
-      dto.day,
-      dto.start_time,
-      dto.end_time,
-      dto.effective_date,
-      dto.end_date,
-      excludeTimetableId,
-    );
+      // Validate external overlaps (against existing timetables)
+      for (const schedule of dto.schedules) {
+        // Validate time range
+        this.validateTimeRange(schedule.start_time, schedule.end_time);
 
-    // Validate teacher double-booking (if teacher is assigned)
-    if (dto.teacher_id) {
-      await this.validateTeacherDoubleBooking(
-        dto.teacher_id,
-        dto.day,
-        dto.start_time,
-        dto.end_time,
-        dto.effective_date,
-        dto.end_date,
-        excludeTimetableId,
-      );
+        // Validate class/day overlaps
+        await this.validateClassDayOverlap(
+          dto.class_id,
+          schedule.day,
+          schedule.start_time,
+          schedule.end_time,
+          excludeTimetableId,
+        );
+
+        // Validate teacher double-booking (if teacher is assigned)
+        if (schedule.teacher_id) {
+          await this.validateTeacherDoubleBooking(
+            schedule.teacher_id,
+            schedule.day,
+            schedule.start_time,
+            schedule.end_time,
+            excludeTimetableId,
+          );
+        }
+      }
     }
   }
 
@@ -95,121 +130,93 @@ export class TimetableValidationService {
     }
   }
 
-  // Validates that effective_date is before end_date
-  // Uses getTime() for reliable date comparison to avoid timezone issues
-
-  private validateDateRange(effectiveDate: string, endDate: string): void {
-    const effective = this.parseDate(effectiveDate);
-    const end = this.parseDate(endDate);
-
-    if (end.getTime() <= effective.getTime()) {
-      this.logger.warn('Invalid date range', { effectiveDate, endDate });
-      throw new BadRequestException(sysMsg.INVALID_DATE_RANGE_TIMETABLE);
-    }
-  }
-
-  /**
-   * Parses a date string (YYYY-MM-DD) to a Date object in local timezone
-   * This avoids timezone conversion issues when comparing dates
-   */
-  private parseDate(dateString: string): Date {
-    const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day);
-  }
-
-  // Validates that all foreign keys exist
-  private async validateForeignKeys(dto: CreateTimetableDto): Promise<void> {
-    // Validate class (required)
+  private async validateClass(classId: string): Promise<void> {
     const classEntity = await this.classRepository.findOne({
-      where: { id: dto.class_id },
+      where: { id: classId },
     });
 
     if (!classEntity) {
-      this.logger.warn('Class not found', { class_id: dto.class_id });
+      this.logger.warn('Class not found', { class_id: classId });
       throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
+  }
 
-    // Validate subject (optional)
-    if (dto.subject_id) {
-      const subject = await this.subjectRepository.findOne({
-        where: { id: dto.subject_id },
-      });
-
-      if (!subject) {
-        this.logger.warn('Subject not found', { subject_id: dto.subject_id });
-        throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+  private async validateScheduleForeignKeys(
+    schedules: CreateScheduleDto[],
+  ): Promise<void> {
+    for (const schedule of schedules) {
+      if (schedule.subject_id) {
+        const subject = await this.subjectRepository.findOne({
+          where: { id: schedule.subject_id },
+        });
+        if (!subject) {
+          this.logger.warn('Subject not found', {
+            subject_id: schedule.subject_id,
+          });
+          throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+        }
       }
-    }
 
-    // Validate teacher (optional)
-    if (dto.teacher_id) {
-      const teacher = await this.teacherRepository.findOne({
-        where: { id: dto.teacher_id },
-      });
-
-      if (!teacher) {
-        this.logger.warn('Teacher not found', { teacher_id: dto.teacher_id });
-        throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+      if (schedule.teacher_id) {
+        const teacher = await this.teacherRepository.findOne({
+          where: { id: schedule.teacher_id },
+        });
+        if (!teacher) {
+          this.logger.warn('Teacher not found', {
+            teacher_id: schedule.teacher_id,
+          });
+          throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+        }
       }
     }
   }
 
-  /**
-   * Validates that there are no overlapping periods for the same class on the same day
-   * Uses canonical interval overlap formula: A_start <= B_end AND A_end >= B_start
-   * Considers date ranges (effective_date and end_date) for active timetables
-   */
+  private validateInternalOverlaps(schedules: CreateScheduleDto[]): void {
+    for (let i = 0; i < schedules.length; i++) {
+      for (let j = i + 1; j < schedules.length; j++) {
+        const s1 = schedules[i];
+        const s2 = schedules[j];
+
+        if (s1.day === s2.day) {
+          if (
+            this.isTimeOverlapping(
+              s1.start_time,
+              s1.end_time,
+              s2.start_time,
+              s2.end_time,
+            )
+          ) {
+            this.logger.warn('Internal schedule overlap detected', {
+              day: s1.day,
+              start1: s1.start_time,
+              end1: s1.end_time,
+              start2: s2.start_time,
+              end2: s2.end_time,
+            });
+            throw new ConflictException(sysMsg.TIMETABLE_INTERNAL_OVERLAP);
+          }
+        }
+      }
+    }
+  }
+
   private async validateClassDayOverlap(
     classId: string,
     day: DayOfWeek,
     startTime: string,
     endTime: string,
-    effectiveDate: string,
-    endDate: string | undefined,
     excludeTimetableId?: string,
   ): Promise<void> {
-    // Use far future date string if end_date is null (represents indefinite schedule)
-    // Pass date strings directly to TypeORM to avoid time/timezone contamination
-    const endDateString = endDate || this.far_future_date;
+    const existingSchedules = await this.scheduleModelAction.findClassSchedules(
+      classId,
+      day,
+    );
 
-    const queryBuilder = this.timetableRepository
-      .createQueryBuilder('timetable')
-      .where('timetable.class_id = :classId', { classId })
-      .andWhere('timetable.day = :day', { day })
-      .andWhere('timetable.is_active = :isActive', { isActive: true });
+    for (const existing of existingSchedules) {
+      if (excludeTimetableId && existing.timetable.id === excludeTimetableId) {
+        continue;
+      }
 
-    // Exclude current timetable if updating
-    if (excludeTimetableId) {
-      queryBuilder.andWhere('timetable.id != :excludeId', {
-        excludeId: excludeTimetableId,
-      });
-    }
-
-    // --- Date Range Overlap (Canonical Logic) ---
-    // Two intervals [A_start, A_end] and [B_start, B_end] overlap if:
-    // A_start <= B_end AND A_end >= B_start
-    // Where:
-    //   A_start = :effectiveDate (new timetable start - date string)
-    //   A_end = :endDate (new timetable end - date string, or FAR_FUTURE_DATE if null)
-    //   B_start = timetable.effective_date (existing timetable start)
-    //   B_end = timetable.end_date (existing timetable end, or NULL if indefinite)
-    // Note: Passing date strings directly ensures clean 'YYYY-MM-DD' format without time/timezone issues
-    queryBuilder
-      .andWhere(
-        `(
-          timetable.end_date IS NULL
-          OR :effectiveDate <= timetable.end_date
-        )`,
-        { effectiveDate },
-      )
-      .andWhere(`:endDate >= timetable.effective_date`, {
-        endDate: endDateString,
-      });
-
-    const existingTimetables = await queryBuilder.getMany();
-
-    // Check for time overlaps (must be done in application layer)
-    for (const existing of existingTimetables) {
       if (
         this.isTimeOverlapping(
           startTime,
@@ -221,7 +228,7 @@ export class TimetableValidationService {
         this.logger.warn('Class day overlap detected', {
           classId,
           day,
-          existingTimetableId: existing.id,
+          existingScheduleId: existing.id,
           newStartTime: startTime,
           newEndTime: endTime,
           existingStartTime: existing.start_time,
@@ -232,50 +239,21 @@ export class TimetableValidationService {
     }
   }
 
-  /**
-   * Validates that a teacher is not double-booked at the same time
-   * Uses canonical interval overlap formula: A_start <= B_end AND A_end >= B_start
-   * Considers date ranges (effective_date and end_date) for active timetables
-   */
   private async validateTeacherDoubleBooking(
     teacherId: string,
     day: DayOfWeek,
     startTime: string,
     endTime: string,
-    effectiveDate: string,
-    endDate: string | undefined,
     excludeTimetableId?: string,
   ): Promise<void> {
-    const endDateString = endDate || this.far_future_date;
+    const existingSchedules =
+      await this.scheduleModelAction.findTeacherSchedules(teacherId, day);
 
-    const queryBuilder = this.timetableRepository
-      .createQueryBuilder('timetable')
-      .where('timetable.teacher_id = :teacherId', { teacherId })
-      .andWhere('timetable.day = :day', { day })
-      .andWhere('timetable.is_active = :isActive', { isActive: true });
+    for (const existing of existingSchedules) {
+      if (excludeTimetableId && existing.timetable.id === excludeTimetableId) {
+        continue;
+      }
 
-    // Exclude current timetable if updating
-    if (excludeTimetableId) {
-      queryBuilder.andWhere('timetable.id != :excludeId', {
-        excludeId: excludeTimetableId,
-      });
-    }
-
-    queryBuilder
-      .andWhere(
-        `(
-          timetable.end_date IS NULL
-          OR :effectiveDate <= timetable.end_date
-        )`,
-        { effectiveDate },
-      )
-      .andWhere(`:endDate >= timetable.effective_date`, {
-        endDate: endDateString,
-      });
-
-    const existingTimetables = await queryBuilder.getMany();
-
-    for (const existing of existingTimetables) {
       if (
         this.isTimeOverlapping(
           startTime,
@@ -287,7 +265,7 @@ export class TimetableValidationService {
         this.logger.warn('Teacher double-booking detected', {
           teacherId,
           day,
-          existingTimetableId: existing.id,
+          existingScheduleId: existing.id,
           newStartTime: startTime,
           newEndTime: endTime,
           existingStartTime: existing.start_time,
@@ -298,11 +276,6 @@ export class TimetableValidationService {
     }
   }
 
-  /**
-   * Checks if two time ranges overlap
-   * Two time ranges overlap if:
-   * - start1 < end2 AND start2 < end1
-   */
   private isTimeOverlapping(
     start1: string,
     end1: string,
@@ -314,13 +287,9 @@ export class TimetableValidationService {
     const start2Time = this.parseTime(start2);
     const end2Time = this.parseTime(end2);
 
-    // Overlap occurs if: start1 < end2 AND start2 < end1
     return start1Time < end2Time && start2Time < end1Time;
   }
 
-  /**
-   * Parses a time string (HH:MM:SS or HH:MM) to minutes since midnight
-   */
   private parseTime(timeString: string): number {
     const parts = timeString.split(':');
     const hours = parseInt(parts[0], 10);

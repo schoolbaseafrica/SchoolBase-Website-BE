@@ -11,7 +11,6 @@ import {
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateRoomDTO } from '../dto/create-room-dto';
-import { UpdateRoomDTO } from '../dto/update-room-dto';
 
 export const ApiCreateRoom = () =>
   applyDecorators(
@@ -65,16 +64,29 @@ export const ApiFindOneRoom = () =>
     ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
   );
 
+export const ApiDeleteRoom = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Delete Room',
+      description:
+        'Deletes a single room by its unique ID. Only empty rooms can be deleted.',
+    }),
+    ApiParam({ name: 'id', description: 'Room ID' }),
+    ApiOkResponse({
+      description: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+    }),
+    ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
+    ApiConflictResponse({ description: sysMsg.CANNOT_DELETE_OCCUPIED_ROOM }),
+  );
+
 export const ApiUpdateRoom = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Update Room',
       description: 'Updates details of an existing room.',
     }),
-    ApiParam({ name: 'id', description: 'Room ID (UUID)', type: 'string' }),
     ApiBody({
-      type: UpdateRoomDTO,
-      description: 'Room update payload',
+      description: 'Room update payload (partial update)',
       examples: {
         updateCapacity: {
           summary: 'Update Capacity Only',
@@ -83,9 +95,9 @@ export const ApiUpdateRoom = () =>
             capacity: 45,
           },
         },
-        renameAndMove: {
+        relocateRoom: {
           summary: 'Rename and Move',
-          description: 'Example of updating multiple fields.',
+          description: 'Example of updating multiple fields at once.',
           value: {
             name: 'Chemistry Lab B',
             location: 'East Wing',
@@ -103,6 +115,7 @@ export const ApiUpdateRoom = () =>
         },
       },
     }),
+    ApiParam({ name: 'id', description: 'Room ID (UUID)', type: 'string' }),
     ApiOkResponse({
       description: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
     }),

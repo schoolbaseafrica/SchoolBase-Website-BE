@@ -87,7 +87,7 @@ export class RoomService {
 
     return {
       message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
-      rooms: Object.values(payload),
+      rooms: payload,
       meta: { ...filters, ...paginationMeta },
     };
   }
@@ -136,6 +136,31 @@ export class RoomService {
     }
 
     return { ...room, message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY };
+  }
+
+  async remove(id: string) {
+    const data = await this.datasource.transaction(async (manager) => {
+      const room = await this.findOne(id);
+
+      if (!room) {
+        throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+      }
+
+      if (room.current_class) {
+        throw new ConflictException(sysMsg.CANNOT_DELETE_OCCUPIED_ROOM);
+      }
+
+      await this.roomModelAction.delete({
+        identifierOptions: { id },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+
+      return {
+        message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+      };
+    });
+
+    return data;
   }
 
   private async findByName(name: string) {
