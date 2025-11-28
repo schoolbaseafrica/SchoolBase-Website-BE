@@ -23,16 +23,23 @@ export class TermService {
   ): Promise<Term[]> {
     const createdTermEntities: Term[] = [];
     const termNamesByOrder = [TermName.FIRST, TermName.SECOND, TermName.THIRD];
+    const currentDate = new Date();
 
     for (let i = 0; i < termDtos.length; i++) {
       const dto = termDtos[i];
+      const startDate = new Date(dto.startDate);
+      const endDate = new Date(dto.endDate);
+
+      // Determine if this term should be the current active term based on dates
+      const isCurrent = currentDate >= startDate && currentDate <= endDate;
+
       const createdTerm = await this.termModelAction.create({
         createPayload: {
           sessionId: sessionId,
           name: termNamesByOrder[i],
-          startDate: new Date(dto.startDate),
-          endDate: new Date(dto.endDate),
-          isCurrent: false,
+          startDate: startDate,
+          endDate: endDate,
+          isCurrent: isCurrent,
           status: TermStatus.ACTIVE,
         },
         transactionOptions: {
@@ -46,7 +53,47 @@ export class TermService {
     return createdTermEntities;
   }
 
+  /**
+   * Updates the active term status based on current date.
+   * Only one term should be active (isCurrent=true) at a time.
+   * This is automatically called when fetching terms.
+   */
+  private async updateActiveTermStatus(sessionId: string): Promise<void> {
+    const terms = await this.termModelAction.list({
+      filterRecordOptions: { sessionId },
+      order: { startDate: 'ASC' },
+    });
+
+    const currentDate = new Date();
+    let hasActiveTerm = false;
+
+    for (const term of terms.payload) {
+      const isInDateRange =
+        currentDate >= new Date(term.startDate) &&
+        currentDate <= new Date(term.endDate);
+
+      // Only update if the current status doesn't match what it should be
+      if (isInDateRange && !term.isCurrent && !hasActiveTerm) {
+        await this.termModelAction.update({
+          identifierOptions: { id: term.id },
+          updatePayload: { isCurrent: true },
+          transactionOptions: { useTransaction: false },
+        });
+        hasActiveTerm = true;
+      } else if ((!isInDateRange || hasActiveTerm) && term.isCurrent) {
+        await this.termModelAction.update({
+          identifierOptions: { id: term.id },
+          updatePayload: { isCurrent: false },
+          transactionOptions: { useTransaction: false },
+        });
+      }
+    }
+  }
+
   async findTermsBySessionId(sessionId: string): Promise<Term[]> {
+    // Update active term status before returning results
+    await this.updateActiveTermStatus(sessionId);
+
     const { payload: termEntities } = await this.termModelAction.list({
       filterRecordOptions: { sessionId },
       order: { startDate: 'ASC' },
@@ -64,7 +111,15 @@ export class TermService {
       throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
     }
 
-    return termEntity;
+    // Update active term status for the session before returning
+    await this.updateActiveTermStatus(termEntity.sessionId);
+
+    // Fetch the term again to get updated isCurrent status
+    const updatedTermEntity = await this.termModelAction.get({
+      identifierOptions: { id },
+    });
+
+    return updatedTermEntity;
   }
 
   async updateTerm(id: string, updateDto: UpdateTermDto): Promise<Term> {
@@ -127,7 +182,15 @@ export class TermService {
       throw new BadRequestException(sysMsg.TERM_UPDATE_FAILED);
     }
 
-    return updatedTerm;
+    // Update active term status after date changes
+    await this.updateActiveTermStatus(termEntity.sessionId);
+
+    // Fetch the term again to get updated isCurrent status
+    const finalTerm = await this.termModelAction.get({
+      identifierOptions: { id },
+    });
+
+    return finalTerm;
   }
 
   // Internal method: Used by academic-session service to archive terms when session is archived

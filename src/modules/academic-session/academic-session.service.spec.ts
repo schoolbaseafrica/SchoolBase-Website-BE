@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   HttpStatus,
+  NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, EntityManager } from 'typeorm';
@@ -26,6 +27,7 @@ describe('AcademicSessionService', () => {
   const mockCreate = jest.fn();
   const mockSave = jest.fn();
   const mockFindOne = jest.fn();
+  const mockGetRepository = jest.fn();
 
   const mockEntityManager = {
     create: mockCreate,
@@ -49,6 +51,7 @@ describe('AcademicSessionService', () => {
 
     const mockDataSource = {
       transaction: jest.fn((callback) => callback(mockEntityManager)),
+      getRepository: mockGetRepository,
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -203,6 +206,10 @@ describe('AcademicSessionService', () => {
       };
 
       sessionModelAction.get.mockResolvedValue(null);
+      sessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: null,
+      });
 
       await expect(service.create(invalidDto)).rejects.toThrow(
         BadRequestException,
@@ -233,6 +240,10 @@ describe('AcademicSessionService', () => {
       };
 
       sessionModelAction.get.mockResolvedValue(null);
+      sessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: null,
+      });
 
       await expect(service.create(nonSequentialDto)).rejects.toThrow(
         BadRequestException,
@@ -244,11 +255,15 @@ describe('AcademicSessionService', () => {
 
     it('should archive previous active session when creating new one', async () => {
       const prevYear = futureDate.getFullYear() - 1;
+      const pastDate = new Date();
+      pastDate.setFullYear(pastDate.getFullYear() - 1);
+
       const existingSession: AcademicSession = {
         ...mockSession,
         id: 'old-session-id',
         academicYear: `${prevYear}/${prevYear + 1}`,
         name: `${prevYear}/${prevYear + 1}`,
+        endDate: pastDate, // Past date so it's not considered ongoing
       };
 
       sessionModelAction.get.mockResolvedValue(null);
@@ -354,7 +369,7 @@ describe('AcademicSessionService', () => {
       sessionModelAction.get.mockResolvedValue(null);
 
       await expect(service.findOne('non-existent-id')).rejects.toThrow(
-        BadRequestException,
+        NotFoundException,
       );
       await expect(service.findOne('non-existent-id')).rejects.toThrow(
         sysMsg.SESSION_NOT_FOUND,
@@ -404,7 +419,7 @@ describe('AcademicSessionService', () => {
 
       await expect(
         service.update('non-existent-id', { description: 'Test' }),
-      ).rejects.toThrow(BadRequestException);
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException if session is archived', async () => {
@@ -438,50 +453,53 @@ describe('AcademicSessionService', () => {
       updatedAt: new Date(),
     };
 
-    it('should soft delete an active session', async () => {
+    it('should throw ForbiddenException when trying to delete active session', async () => {
       sessionModelAction.get.mockResolvedValue(mockSession);
-      sessionModelAction.update.mockResolvedValue(mockSession);
-      sessionModelAction.delete.mockResolvedValue(undefined);
-      termService.archiveTermsBySessionId.mockResolvedValue(undefined);
 
-      const result = await service.remove('session-id');
-
-      expect(result.status_code).toBe(HttpStatus.OK);
-      expect(result.message).toBe(sysMsg.ACADEMIC_SESSION_DELETED);
-      expect(termService.archiveTermsBySessionId).toHaveBeenCalled();
-      expect(sessionModelAction.update).toHaveBeenCalledWith({
-        identifierOptions: { id: 'session-id' },
-        updatePayload: { status: SessionStatus.ARCHIVED },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: mockEntityManager,
-        },
-      });
-      expect(sessionModelAction.delete).toHaveBeenCalled();
+      await expect(service.remove('session-id')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.remove('session-id')).rejects.toThrow(
+        sysMsg.ACTIVE_SESSION_NO_DELETE,
+      );
     });
 
     it('should throw BadRequestException if session not found', async () => {
       sessionModelAction.get.mockResolvedValue(null);
 
       await expect(service.remove('non-existent-id')).rejects.toThrow(
-        BadRequestException,
+        NotFoundException,
       );
     });
 
-    it('should throw ForbiddenException if session is already archived', async () => {
+    it('should soft delete an archived session', async () => {
       const archivedSession = {
         ...mockSession,
         status: SessionStatus.ARCHIVED,
       };
 
-      sessionModelAction.get.mockResolvedValue(archivedSession);
+      const deletedSession = {
+        ...archivedSession,
+        deletedAt: new Date(),
+      };
 
-      await expect(service.remove('session-id')).rejects.toThrow(
-        ForbiddenException,
-      );
-      await expect(service.remove('session-id')).rejects.toThrow(
-        sysMsg.ARCHIVED_SESSION_NO_DELETE,
-      );
+      sessionModelAction.get.mockResolvedValue(archivedSession);
+      sessionModelAction.delete.mockResolvedValue(undefined);
+
+      const mockRepository = {
+        findOne: jest.fn().mockResolvedValue(deletedSession),
+      };
+      mockGetRepository.mockReturnValue(mockRepository);
+
+      const result = await service.remove('session-id');
+
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.message).toBe(sysMsg.ACADEMIC_SESSION_DELETED);
+      expect(result.data).toEqual(deletedSession);
+      expect(sessionModelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: 'session-id' },
+        transactionOptions: { useTransaction: false },
+      });
     });
   });
 });

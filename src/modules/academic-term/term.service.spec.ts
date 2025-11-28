@@ -244,6 +244,10 @@ describe('TermService', () => {
 
     it('should return a term by id', async () => {
       termModelAction.get.mockResolvedValue(mockTerm);
+      termModelAction.list.mockResolvedValue({
+        payload: [mockTerm],
+        paginationMeta: null,
+      });
 
       const result = await service.findOne('term-1');
 
@@ -291,8 +295,14 @@ describe('TermService', () => {
         endDate: new Date(updateDto.endDate),
       };
 
-      termModelAction.get.mockResolvedValue(mockTerm);
+      termModelAction.get
+        .mockResolvedValueOnce(mockTerm)
+        .mockResolvedValueOnce(updatedTerm);
       termModelAction.update.mockResolvedValue(updatedTerm);
+      termModelAction.list.mockResolvedValue({
+        payload: [updatedTerm],
+        paginationMeta: null,
+      });
 
       const result = await service.updateTerm('term-1', updateDto);
 
@@ -403,6 +413,10 @@ describe('TermService', () => {
 
       termModelAction.get.mockResolvedValue(mockTerm);
       termModelAction.update.mockResolvedValue(updatedTerm);
+      termModelAction.list.mockResolvedValue({
+        payload: [updatedTerm],
+        paginationMeta: null,
+      });
 
       await service.updateTerm('term-1', updateDto);
 
@@ -429,6 +443,10 @@ describe('TermService', () => {
 
       termModelAction.get.mockResolvedValue(mockTerm);
       termModelAction.update.mockResolvedValue(updatedTerm);
+      termModelAction.list.mockResolvedValue({
+        payload: [updatedTerm],
+        paginationMeta: null,
+      });
 
       await service.updateTerm('term-1', updateDto);
 

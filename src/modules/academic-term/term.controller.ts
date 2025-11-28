@@ -51,7 +51,7 @@ export class TermController {
     const terms = await this.termService.findTermsBySessionId(sessionId);
     return {
       status_code: HttpStatus.OK,
-      message: sysMsg.TERMS_RETRIEVED,
+      message: sysMsg.TERM_RETRIEVED,
       data: terms,
     };
   }

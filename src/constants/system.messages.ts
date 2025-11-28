@@ -179,7 +179,11 @@ export const ARCHIVED_SESSION_LOCKED =
   'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
 export const ARCHIVED_SESSION_NO_DELETE =
   'Cannot delete an archived academic session. Archived sessions must be preserved for historical records.';
+export const ACTIVE_SESSION_NO_DELETE =
+  'Cannot delete an active academic session. Please archive the session first before deletion.';
 export const SESSION_ARCHIVED = 'Academic session archived successfully.';
+export const ONGOING_SESSION_EXISTS =
+  'Cannot create a new session while an ongoing session exists. Please wait for the current session to end.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -262,27 +266,21 @@ export const STUDENT_UPDATED = 'Student updated successfully';
 export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Academic Term messages
-export const TERM_CREATED = 'Term created successfully';
-export const TERMS_CREATED = 'Terms created successfully';
-export const TERM_RETRIEVED = 'Term retrieved successfully';
-export const TERMS_RETRIEVED = 'Terms retrieved successfully';
+export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
 export const TERM_UPDATED = 'Term updated successfully';
-export const TERMS_UPDATED = 'Terms updated successfully';
-export const TERM_DELETED = 'Term deleted successfully';
-export const TERMS_DELETED = 'Terms deleted successfully';
 export const TERM_NOT_FOUND = 'Term not found';
 export const TERM_UPDATE_FAILED = 'Failed to update term';
 export const ARCHIVED_TERM_LOCKED =
   'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
 
 // Academic Term - Validation errors
-export const TERM_INVALID_DATE_RANGE = 'End date must be after start date';
+export const TERM_INVALID_DATE_RANGE = 'end date must be after start date';
 export const TERM_START_AFTER_END =
   'Start date must be before the current end date';
 export const TERM_END_BEFORE_START =
   'End date must be after the current start date';
 export const TERM_SEQUENTIAL_INVALID =
-  'Term start date must be after the previous term end date';
+  'start date must be after the previous term end date';
 
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';

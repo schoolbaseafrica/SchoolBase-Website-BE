@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
 import { DataSource, FindOptionsOrder } from 'typeorm';
 
@@ -84,14 +85,30 @@ export class AcademicSessionService {
       );
     }
 
+    // Check if there's an ongoing (active) session that hasn't ended
+    const activeSessions = await this.sessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+
+    const currentDate = new Date();
+    for (const activeSession of activeSessions.payload) {
+      // If the active session's end date is in the future, it's still ongoing
+      if (new Date(activeSession.endDate) > currentDate) {
+        throw new ConflictException(sysMsg.ONGOING_SESSION_EXISTS);
+      }
+    }
+
     // Validate individual term dates
+    const termNames = ['First term', 'Second term', 'Third term'];
     for (let i = 0; i < createSessionDto.terms.length; i++) {
       const termDto = createSessionDto.terms[i];
       const termStart = new Date(termDto.startDate);
       const termEnd = new Date(termDto.endDate);
 
       if (termEnd <= termStart) {
-        throw new BadRequestException(sysMsg.TERM_INVALID_DATE_RANGE);
+        throw new BadRequestException(
+          `${termNames[i]} ${sysMsg.TERM_INVALID_DATE_RANGE}`,
+        );
       }
     }
 
@@ -102,11 +119,15 @@ export class AcademicSessionService {
     const thirdTermStart = new Date(thirdTerm.startDate);
 
     if (secondTermStart <= firstTermEnd) {
-      throw new BadRequestException(sysMsg.TERM_SEQUENTIAL_INVALID);
+      throw new BadRequestException(
+        `${termNames[1]} ${sysMsg.TERM_SEQUENTIAL_INVALID}`,
+      );
     }
 
     if (thirdTermStart <= secondTermEnd) {
-      throw new BadRequestException(sysMsg.TERM_SEQUENTIAL_INVALID);
+      throw new BadRequestException(
+        `${termNames[2]} ${sysMsg.TERM_SEQUENTIAL_INVALID}`,
+      );
     }
 
     // Use transaction to create session and terms together
@@ -196,7 +217,7 @@ export class AcademicSessionService {
     });
 
     if (!session) {
-      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+      throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
     }
 
     return {
@@ -212,7 +233,7 @@ export class AcademicSessionService {
     });
 
     if (!session) {
-      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+      throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
     }
 
     // LOCK CHECK: Prevent modification of archived sessions
@@ -251,43 +272,31 @@ export class AcademicSessionService {
     });
 
     if (!session) {
-      throw new BadRequestException(sysMsg.SESSION_NOT_FOUND);
+      throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
     }
 
-    // LOCK CHECK: Prevent deletion of archived sessions (preserved for historical records)
-    if (session.status === SessionStatus.ARCHIVED) {
-      throw new ForbiddenException(sysMsg.ARCHIVED_SESSION_NO_DELETE);
+    // LOCK CHECK: Prevent deletion of active sessions (must be archived first)
+    if (session.status === SessionStatus.ACTIVE) {
+      throw new ForbiddenException(sysMsg.ACTIVE_SESSION_NO_DELETE);
     }
 
-    // Soft delete: Archives the session and its terms instead of permanently deleting
-    await this.dataSource.transaction(async (manager) => {
-      // Archive terms first
-      await this.termService.archiveTermsBySessionId(session.id, manager);
+    // Soft delete the archived session (sets deletedAt timestamp)
+    await this.sessionModelAction.delete({
+      identifierOptions: { id },
+      transactionOptions: { useTransaction: false },
+    });
 
-      // Archive the session
-      await this.sessionModelAction.update({
-        identifierOptions: { id },
-        updatePayload: { status: SessionStatus.ARCHIVED },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
-
-      // Soft delete the session (sets deletedAt timestamp)
-      await this.sessionModelAction.delete({
-        identifierOptions: { id },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
+    // Retrieve the soft-deleted session to return in response
+    const sessionRepository = this.dataSource.getRepository(AcademicSession);
+    const deletedSession = await sessionRepository.findOne({
+      where: { id },
+      withDeleted: true,
     });
 
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.ACADEMIC_SESSION_DELETED,
-      data: null,
+      data: deletedSession,
     };
   }
 }
