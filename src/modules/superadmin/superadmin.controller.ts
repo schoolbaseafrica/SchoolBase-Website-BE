@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 
 import { RateLimit } from '../../common/decorators/rate-limit.decorator';
 import { RateLimitGuard } from '../../common/guards/rate-limit.guard';
@@ -27,12 +34,14 @@ export class SuperadminController {
 
   @Post('login')
   @ApiLoginSuperadmin()
+  @HttpCode(HttpStatus.OK)
   async login(@Body() loginSuperadminDto: LoginSuperadminDto) {
     return this.superadminService.login(loginSuperadminDto);
   }
 
   @Post('logout')
   @ApiLogoutSuperadmin()
+  @HttpCode(HttpStatus.OK)
   async logout(@Body() logoutDto: LogoutDto) {
     return this.superadminService.logout(logoutDto);
   }

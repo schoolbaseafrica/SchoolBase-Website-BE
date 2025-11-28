@@ -17,7 +17,6 @@ import * as sysMsg from '../../constants/system.messages';
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
-import { Role } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
 import { SuperadminSessionService } from './session/superadmin-session.service';
 
@@ -59,17 +58,16 @@ export class SuperadminService {
     const { password, confirm_password, email, ...restData } =
       createSuperadminDto;
 
-    // Check if a superadmin already exists.
-    const any_superadmin = await this.superadminModelAction.get({
-      identifierOptions: { role: Role.SUPERADMIN },
-    });
-
-    if (any_superadmin) {
-      throw new UnauthorizedException(sysMsg.SUPERADMIN_ALREADY_EXISTS);
-    }
-
     if (!password || !confirm_password) {
       throw new ConflictException(sysMsg.SUPERADMIN_PASSWORDS_REQUIRED);
+    }
+
+    const existing = await this.superadminModelAction.get({
+      identifierOptions: { email: createSuperadminDto.email },
+    });
+
+    if (existing) {
+      throw new ConflictException(sysMsg.SUPERADMIN_EMAIL_EXISTS);
     }
 
     const passwordHash: string = await bcrypt.hash(password, 10);
@@ -82,7 +80,6 @@ export class SuperadminService {
             email,
             password: passwordHash,
             is_active: createSuperadminDto.school_name ? true : false,
-            role: Role.SUPERADMIN,
           },
           transactionOptions: { useTransaction: true, transaction: manager },
         });
@@ -126,7 +123,7 @@ export class SuperadminService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException(sysMsg.SUPERADMIN_INVALID_PASSWORD);
+      throw new UnauthorizedException(sysMsg.INVALID_CREDENTIALS);
     }
 
     const tokens = await this.generateTokens(superadmin.id, superadmin.email);
@@ -150,7 +147,6 @@ export class SuperadminService {
         last_name: superadmin.last_name,
         school_name: superadmin.school_name,
         ...tokens,
-        role: superadmin.role,
         session_id: sessionInfo?.session_id,
         session_expires_at: sessionInfo?.expires_at,
       },
