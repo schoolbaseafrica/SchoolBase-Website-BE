@@ -24,23 +24,50 @@ export const AcademicSessionSwagger = {
             schema: {
               type: 'object',
               properties: {
-                name: { type: 'string', maxLength: 100, example: '2024/2025' },
-                startDate: {
+                description: {
                   type: 'string',
-                  format: 'date',
-                  example: '2024-09-01',
+                  maxLength: 1000,
+                  example: 'Academic year 2024/2025',
                 },
-                endDate: {
-                  type: 'string',
-                  format: 'date',
-                  example: '2025-06-30',
+                terms: {
+                  type: 'array',
+                  minItems: 3,
+                  maxItems: 3,
+                  items: {
+                    type: 'object',
+                    properties: {
+                      startDate: {
+                        type: 'string',
+                        format: 'date',
+                        example: '2024-09-01',
+                      },
+                      endDate: {
+                        type: 'string',
+                        format: 'date',
+                        example: '2024-12-15',
+                      },
+                    },
+                    required: ['startDate', 'endDate'],
+                  },
                 },
               },
-              required: ['name', 'startDate', 'endDate'],
+              required: ['terms'],
               example: {
-                name: '2024/2025',
-                startDate: '2024-09-01',
-                endDate: '2025-06-30',
+                description: 'Academic year 2024/2025',
+                terms: [
+                  {
+                    startDate: '2024-09-01',
+                    endDate: '2024-12-15',
+                  },
+                  {
+                    startDate: '2025-01-06',
+                    endDate: '2025-03-28',
+                  },
+                  {
+                    startDate: '2025-04-14',
+                    endDate: '2025-06-30',
+                  },
+                ],
               },
             },
           },
@@ -54,23 +81,99 @@ export const AcademicSessionSwagger = {
               schema: {
                 type: 'object',
                 properties: {
-                  id: { type: 'string', format: 'uuid' },
-                  name: { type: 'string' },
-                  startDate: { type: 'string', format: 'date' },
-                  endDate: { type: 'string', format: 'date' },
-                  status: { type: 'string', enum: ['Active', 'Inactive'] },
-                  createdAt: { type: 'string', format: 'date-time' },
-                  updatedAt: { type: 'string', format: 'date-time' },
+                  status_code: { type: 'number', example: 200 },
+                  message: {
+                    type: 'string',
+                    example: 'Academic session created successfully',
+                  },
+                  data: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string', format: 'uuid' },
+                      academicYear: { type: 'string', example: '2024/2025' },
+                      name: { type: 'string', example: '2024/2025' },
+                      startDate: { type: 'string', format: 'date' },
+                      endDate: { type: 'string', format: 'date' },
+                      description: { type: 'string', nullable: true },
+                      status: { type: 'string', enum: ['Active', 'Archived'] },
+                      terms: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            id: { type: 'string', format: 'uuid' },
+                            sessionId: { type: 'string', format: 'uuid' },
+                            name: {
+                              type: 'string',
+                              enum: ['First term', 'Second term', 'Third term'],
+                            },
+                            startDate: { type: 'string', format: 'date' },
+                            endDate: { type: 'string', format: 'date' },
+                            status: {
+                              type: 'string',
+                              enum: ['Active', 'Archived'],
+                            },
+                            isCurrent: { type: 'boolean' },
+                            createdAt: { type: 'string', format: 'date-time' },
+                            updatedAt: { type: 'string', format: 'date-time' },
+                          },
+                        },
+                      },
+                      createdAt: { type: 'string', format: 'date-time' },
+                      updatedAt: { type: 'string', format: 'date-time' },
+                    },
+                  },
                 },
               },
               example: {
-                id: '550e8400-e29b-41d4-a716-446655440000',
-                name: '2024/2025',
-                startDate: '2024-09-01',
-                endDate: '2025-06-30',
-                status: 'Inactive',
-                createdAt: '2024-01-15T10:30:00Z',
-                updatedAt: '2024-01-15T10:30:00Z',
+                status_code: 200,
+                message: 'Academic session created successfully',
+                data: {
+                  id: '550e8400-e29b-41d4-a716-446655440000',
+                  academicYear: '2024/2025',
+                  name: '2024/2025',
+                  startDate: '2024-09-01',
+                  endDate: '2025-06-30',
+                  description: 'Academic year 2024/2025',
+                  status: 'Active',
+                  terms: [
+                    {
+                      id: 'term-id-1',
+                      sessionId: '550e8400-e29b-41d4-a716-446655440000',
+                      name: 'First term',
+                      startDate: '2024-09-01',
+                      endDate: '2024-12-15',
+                      status: 'Active',
+                      isCurrent: true,
+                      createdAt: '2024-01-15T10:30:00Z',
+                      updatedAt: '2024-01-15T10:30:00Z',
+                    },
+                    {
+                      id: 'term-id-2',
+                      sessionId: '550e8400-e29b-41d4-a716-446655440000',
+                      name: 'Second term',
+                      startDate: '2025-01-06',
+                      endDate: '2025-03-28',
+                      status: 'Active',
+                      isCurrent: false,
+                      createdAt: '2024-01-15T10:30:00Z',
+                      updatedAt: '2024-01-15T10:30:00Z',
+                    },
+                    {
+                      id: 'term-id-3',
+                      sessionId: '550e8400-e29b-41d4-a716-446655440000',
+                      name: 'Third term',
+                      startDate: '2025-04-14',
+                      endDate: '2025-06-30',
+                      status: 'Active',
+                      isCurrent: false,
+                      createdAt: '2024-01-15T10:30:00Z',
+                      updatedAt: '2024-01-15T10:30:00Z',
+                    },
+                  ],
+                  createdAt: '2024-01-15T10:30:00Z',
+                  updatedAt: '2024-01-15T10:30:00Z',
+                },
               },
             },
           },
@@ -79,7 +182,8 @@ export const AcademicSessionSwagger = {
           description: 'Invalid date range or date in the past.',
         },
         ['409']: {
-          description: 'Session name already exists.',
+          description:
+            'Academic year already exists or there is an ongoing session.',
         },
       },
     },
@@ -121,18 +225,42 @@ export const AcademicSessionSwagger = {
               schema: {
                 type: 'object',
                 properties: {
+                  status_code: { type: 'number', example: 200 },
+                  message: {
+                    type: 'string',
+                    example: 'Academic sessions retrieved successfully',
+                  },
                   data: {
                     type: 'array',
                     items: {
                       type: 'object',
                       properties: {
                         id: { type: 'string', format: 'uuid' },
-                        name: { type: 'string' },
+                        academicYear: { type: 'string', example: '2024/2025' },
+                        name: { type: 'string', example: '2024/2025' },
                         startDate: { type: 'string', format: 'date' },
                         endDate: { type: 'string', format: 'date' },
+                        description: { type: 'string', nullable: true },
                         status: {
                           type: 'string',
-                          enum: ['Active', 'Inactive'],
+                          enum: ['Active', 'Archived'],
+                        },
+                        terms: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string', format: 'uuid' },
+                              name: { type: 'string' },
+                              startDate: { type: 'string', format: 'date' },
+                              endDate: { type: 'string', format: 'date' },
+                              status: {
+                                type: 'string',
+                                enum: ['Active', 'Archived'],
+                              },
+                              isCurrent: { type: 'boolean' },
+                            },
+                          },
                         },
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' },
@@ -168,22 +296,30 @@ export const AcademicSessionSwagger = {
                 },
               },
               example: {
+                status_code: 200,
+                message: 'Academic sessions retrieved successfully',
                 data: [
                   {
                     id: '550e8400-e29b-41d4-a716-446655440000',
+                    academicYear: '2024/2025',
                     name: '2024/2025',
                     startDate: '2024-09-01',
                     endDate: '2025-06-30',
-                    status: 'Inactive',
+                    description: null,
+                    status: 'Archived',
+                    terms: [],
                     createdAt: '2024-01-15T10:30:00Z',
                     updatedAt: '2024-01-15T10:30:00Z',
                   },
                   {
                     id: '660e8400-e29b-41d4-a716-446655440001',
+                    academicYear: '2025/2026',
                     name: '2025/2026',
                     startDate: '2025-09-01',
                     endDate: '2026-06-30',
+                    description: 'Current academic session',
                     status: 'Active',
+                    terms: [],
                     createdAt: '2024-01-15T10:30:00Z',
                     updatedAt: '2024-01-15T10:30:00Z',
                   },
@@ -298,9 +434,21 @@ export const AcademicSessionSwagger = {
           example1: {
             summary: '2024/2025 Academic Session',
             value: {
-              name: '2024/2025',
-              startDate: '2024-09-01',
-              endDate: '2025-06-30',
+              description: 'Academic year 2024/2025',
+              terms: [
+                {
+                  startDate: '2024-09-01',
+                  endDate: '2024-12-15',
+                },
+                {
+                  startDate: '2025-01-06',
+                  endDate: '2025-03-28',
+                },
+                {
+                  startDate: '2025-04-14',
+                  endDate: '2025-06-30',
+                },
+              ],
             },
           },
         },

@@ -132,29 +132,28 @@ export class AcademicSessionService {
 
     // Use transaction to create session and terms together
     const newSession = await this.dataSource.transaction(async (manager) => {
-      // Get all currently active sessions to archive their terms
+      // Get all currently active sessions to archive them
       const activeSessions = await this.sessionModelAction.list({
         filterRecordOptions: { status: SessionStatus.ACTIVE },
       });
 
-      // Archive all currently active sessions and their terms (previous session becomes read-only)
+      // Archive all currently active sessions (previous sessions become read-only)
       for (const activeSession of activeSessions.payload) {
+        await this.sessionModelAction.update({
+          identifierOptions: { id: activeSession.id },
+          updatePayload: { status: SessionStatus.ARCHIVED },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+
         // Archive the terms of the active session
         await this.termService.archiveTermsBySessionId(
           activeSession.id,
           manager,
         );
       }
-
-      // Archive the session itself
-      await this.sessionModelAction.update({
-        updatePayload: { status: SessionStatus.ARCHIVED },
-        identifierOptions: { status: SessionStatus.ACTIVE },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
 
       // Create the academic session as ACTIVE (current session)
       const session = manager.create(AcademicSession, {

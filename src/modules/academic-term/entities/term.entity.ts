@@ -1,4 +1,10 @@
-import { Column, Entity, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  JoinColumn,
+  DeleteDateColumn,
+} from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
@@ -46,4 +52,7 @@ export class Term extends BaseEntity {
 
   @Column({ name: 'is_current', default: false })
   isCurrent: boolean;
+
+  @DeleteDateColumn({ name: 'deleted_at', type: 'timestamp with time zone' })
+  deletedAt?: Date;
 }
