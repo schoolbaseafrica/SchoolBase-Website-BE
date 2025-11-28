@@ -27,6 +27,7 @@ describe('TimetableService', () => {
     timetableModelAction = {
       get: jest.fn(),
       create: jest.fn(),
+      findTimetableByClassId: jest.fn(),
     } as unknown as jest.Mocked<TimetableModelAction>;
 
     validationService = {
@@ -146,27 +147,21 @@ describe('TimetableService', () => {
         class_id: mockClassId,
         schedules: [],
       };
-      timetableModelAction.get.mockResolvedValue({
+      timetableModelAction.findTimetableByClassId.mockResolvedValue({
         id: mockTimetableId,
         ...mockTimetable,
       } as Timetable);
 
       const result = await service.findByClass(mockClassId);
 
-      expect(timetableModelAction.get).toHaveBeenCalledWith({
-        identifierOptions: { class_id: mockClassId },
-        relations: {
-          schedules: {
-            subject: true,
-            teacher: true,
-          },
-        },
-      });
+      expect(timetableModelAction.findTimetableByClassId).toHaveBeenCalledWith(
+        mockClassId,
+      );
       expect(result).toEqual(mockTimetable);
     });
 
     it('should return empty structure if timetable not found', async () => {
-      timetableModelAction.get.mockResolvedValue(null);
+      timetableModelAction.findTimetableByClassId.mockResolvedValue(null);
 
       const result = await service.findByClass(mockClassId);
 
