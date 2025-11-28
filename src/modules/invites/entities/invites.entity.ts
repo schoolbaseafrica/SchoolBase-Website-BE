@@ -28,8 +28,8 @@ export class Invite extends BaseEntity {
   @CreateDateColumn()
   invited_at: Date;
 
-  @Column({ type: 'timestamp' })
-  expires_at: Date;
+  @Column({ type: 'timestamp', nullable: true })
+  expires_at?: Date;
 
   @Column()
   role: string;
@@ -45,8 +45,8 @@ export class Invite extends BaseEntity {
   status: InviteStatus;
 
   @Index()
-  @Column()
-  token_hash: string;
+  @Column({ nullable: true })
+  token_hash?: string;
 
   @Column({ type: 'uuid', nullable: true })
   school_id: string;

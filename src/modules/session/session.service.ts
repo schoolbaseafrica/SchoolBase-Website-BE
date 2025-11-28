@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 
 import { CannotRevokeOtherSessionsException } from '../../common/exceptions/domain.exceptions';
 import * as sysMsg from '../../constants/system.messages';
@@ -107,5 +107,36 @@ export class SessionService {
     return {
       revoked_count: result.affected || 0,
     };
+  }
+
+  async validateRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<Session | null> {
+    // Get all active sessions for the user
+    const now = new Date();
+    const validSessions = await this.sessionRepository.find({
+      where: {
+        user_id: userId,
+        is_active: true,
+        expires_at: MoreThan(now),
+      },
+    });
+    // Try to match the refresh token against stored hashes
+    const comparisonResults = await Promise.all(
+      validSessions.map((session) =>
+        bcrypt.compare(refreshToken, session.refresh_token),
+      ),
+    );
+
+    const matchingSessionIndex = comparisonResults.findIndex(
+      (isMatch) => isMatch,
+    );
+
+    if (matchingSessionIndex !== -1) {
+      return validSessions[matchingSessionIndex];
+    }
+
+    return null;
   }
 }

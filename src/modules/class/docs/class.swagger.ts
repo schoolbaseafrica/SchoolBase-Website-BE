@@ -179,5 +179,70 @@ export const ClassSwagger = {
         },
       },
     },
+    getClassById: {
+      operation: {
+        summary: 'Get class by ID',
+        description: 'Returns details of a class by its unique ID.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Class found',
+          type: ClassResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class not found',
+        },
+      },
+    },
+    getTotalClasses: {
+      operation: {
+        summary: 'Get total number of classes',
+        description:
+          'Returns the total count of classes in the system. Supports filtering by sessionId, name, and arm via query parameters.',
+      },
+      parameters: {
+        sessionId: {
+          name: 'sessionId',
+          in: 'query',
+          required: false,
+          description: 'Academic session ID to filter by',
+          schema: { type: 'string' },
+        },
+        name: {
+          name: 'name',
+          in: 'query',
+          required: false,
+          description: 'Class name to filter by',
+          schema: { type: 'string' },
+        },
+        arm: {
+          name: 'arm',
+          in: 'query',
+          required: false,
+          description: 'Class arm to filter by',
+          schema: { type: 'string' },
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Total number of classes',
+          schema: {
+            type: 'object',
+            properties: {
+              total: { type: 'integer', example: 42 },
+            },
+          },
+        },
+      },
+    },
   },
 };

@@ -1,13 +1,12 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { UpdateRoomDTO } from '../dto/update-room-dto';
 import { Room } from '../entities/room.entity';
-import { RoomStatus, RoomType } from '../enums/room-enum';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 import { RoomService } from './room.service';
@@ -78,13 +77,9 @@ describe('RoomService', () => {
   describe('create', () => {
     const dto: CreateRoomDTO = {
       name: '  Main Hall  ',
-      type: RoomType.PHYSICAL,
+      type: 'Laboratory',
       capacity: 120,
       location: 'West Block',
-      building: 'B',
-      floor: '2',
-      description: 'Lecture hall',
-      streams: [],
     };
 
     it('creates a room when name is free', async () => {
@@ -104,7 +99,6 @@ describe('RoomService', () => {
       expect(modelAction.create).toHaveBeenCalledWith({
         createPayload: expect.objectContaining({
           name: 'main hall',
-          streams: [],
         }),
         transactionOptions: {
           useTransaction: true,
@@ -122,51 +116,103 @@ describe('RoomService', () => {
       modelAction.get.mockResolvedValue({ id: 'existing' });
       await expect(service.create(dto)).rejects.toThrow(ConflictException);
     });
+  });
 
-    it('throws NotFoundException if invalid stream IDs are supplied', async () => {
-      const withStreams: CreateRoomDTO = { ...dto, streams: ['s1', 's2'] };
+  describe('update', () => {
+    const mockManager = {
+      save: jest.fn(),
+    };
 
-      modelAction.get.mockResolvedValue(null);
-      streamRepo.findBy.mockResolvedValue([{ id: 's1' } as Stream]);
+    const existingRoom: Room = {
+      id: 'r1',
+      name: 'room 1',
+      type: 'Laboratory',
+      capacity: 10,
+      location: 'loc',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Room;
 
-      await expect(service.create(withStreams)).rejects.toThrow(
+    const updateDto: UpdateRoomDTO = {
+      name: ' Updated Room ',
+    };
+
+    const sanitizedName = 'updated room';
+
+    beforeEach(() => {
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.save.mockClear();
+    });
+
+    it('updates a room successfully when name is unique', async () => {
+      modelAction.get.mockResolvedValueOnce(existingRoom);
+      modelAction.get.mockResolvedValueOnce(null);
+      const savedEntity = { ...existingRoom, name: sanitizedName };
+      mockManager.save.mockResolvedValue(savedEntity);
+
+      const result = await service.update('r1', updateDto);
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+
+      expect(modelAction.get).toHaveBeenNthCalledWith(1, {
+        identifierOptions: { id: 'r1' },
+        relations: { current_class: true },
+      });
+
+      expect(modelAction.get).toHaveBeenNthCalledWith(2, {
+        identifierOptions: { name: sanitizedName },
+      });
+
+      expect(mockManager.save).toHaveBeenCalledWith(
+        Room,
+        expect.objectContaining({
+          id: 'r1',
+          name: sanitizedName,
+        }),
+      );
+
+      expect(result).toEqual({
+        message: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
+        ...savedEntity,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      modelAction.get.mockResolvedValueOnce(null);
+
+      await expect(service.update('r1', updateDto)).rejects.toThrow(
         NotFoundException,
       );
 
-      expect(streamRepo.findBy).toHaveBeenCalledWith({ id: In(['s1', 's2']) });
+      expect(modelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockManager.save).not.toHaveBeenCalled();
     });
 
-    it('creates a room with valid Stream relationships', async () => {
-      const withStreams: CreateRoomDTO = { ...dto, streams: ['s1'] };
-      const mockStream = { id: 's1' } as Stream;
+    it('throws ConflictException if updated name belongs to a different room', async () => {
+      modelAction.get.mockResolvedValueOnce(existingRoom);
 
-      modelAction.get.mockResolvedValue(null);
-      streamRepo.findBy.mockResolvedValue([mockStream]);
+      const conflictRoom = { id: 'r2', name: sanitizedName } as Room;
+      modelAction.get.mockResolvedValueOnce(conflictRoom);
 
-      const expectedRoom = {
-        id: 'room-10',
-        name: 'main hall',
-        streams: [mockStream],
-      };
-      modelAction.create.mockResolvedValue(expectedRoom);
+      await expect(service.update('r1', updateDto)).rejects.toThrow(
+        ConflictException,
+      );
 
-      const result = await service.create(withStreams);
+      expect(mockManager.save).not.toHaveBeenCalled();
+    });
 
-      expect(modelAction.create).toHaveBeenCalledWith({
-        createPayload: expect.objectContaining({
-          name: 'main hall',
-          streams: [mockStream],
-        }),
-        transactionOptions: {
-          useTransaction: true,
-          transaction: 'MOCK_MANAGER',
-        },
-      });
+    it('allows update if the name exists but belongs to the SAME room', async () => {
+      modelAction.get.mockResolvedValueOnce(existingRoom);
 
-      expect(result).toEqual({
-        message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
-        ...expectedRoom,
-      });
+      const sameRoom = { id: 'r1', name: sanitizedName } as Room;
+      modelAction.get.mockResolvedValueOnce(sameRoom);
+
+      const savedEntity = { ...existingRoom, name: sanitizedName };
+      mockManager.save.mockResolvedValue(savedEntity);
+
+      await expect(service.update('r1', updateDto)).resolves.not.toThrow();
+
+      expect(mockManager.save).toHaveBeenCalled();
     });
   });
 
@@ -178,7 +224,7 @@ describe('RoomService', () => {
       const result = await service.findAll();
 
       expect(modelAction.list).toHaveBeenCalledWith({
-        relations: { streams: true },
+        relations: { current_class: true },
       });
       expect(result).toEqual({
         message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
@@ -187,142 +233,16 @@ describe('RoomService', () => {
     });
   });
 
-  describe('update', () => {
-    const existingRoom: Room = {
-      id: 'r1',
-      name: 'room 1',
-      streams: [],
-      type: RoomType.PHYSICAL,
-      status: RoomStatus.AVAILABLE,
-      capacity: 10,
-      location: 'loc',
-      building: 'b',
-      floor: '1',
-      description: 'desc',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as Room;
-
-    type FindOneResponse = Awaited<ReturnType<RoomService['findOne']>>;
-
-    it('updates a room with valid data', async () => {
-      const updateDto: UpdateRoomDTO = {
-        name: ' Updated Room ',
-        streams: ['s1'],
-      };
-
-      const findOneResponse: FindOneResponse = {
-        message: '',
-        ...existingRoom,
-      };
-
-      jest.spyOn(service, 'findOne').mockResolvedValue(findOneResponse);
-      modelAction.get.mockResolvedValue(null);
-
-      const mockStream = { id: 's1' } as Stream;
-      streamRepo.findBy.mockResolvedValue([mockStream]);
-
-      const updatedEntity = {
-        ...existingRoom,
-        name: 'updated room',
-        streams: [mockStream],
-      };
-
-      const mockManager = {
-        save: jest.fn().mockResolvedValue(updatedEntity),
-      };
-
-      dataSource.transaction.mockImplementation(async (cb) => {
-        return cb(mockManager);
-      });
-
-      const result = await service.update('r1', updateDto);
-
-      expect(dataSource.transaction).toHaveBeenCalled();
-      expect(service.findOne).toHaveBeenCalledWith('r1');
-
-      expect(modelAction.get).toHaveBeenCalledWith({
-        identifierOptions: { name: 'updated room' },
-      });
-
-      expect(streamRepo.findBy).toHaveBeenCalledWith({ id: In(['s1']) });
-
-      expect(modelAction.update).not.toHaveBeenCalled();
-
-      expect(mockManager.save).toHaveBeenCalledWith(
-        Room,
-        expect.objectContaining({
-          name: 'updated room',
-          streams: [mockStream],
-        }),
-      );
-
-      expect(result).toEqual({
-        message: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
-        ...updatedEntity,
-      });
-    });
-
-    it('throws NotFoundException if room does not exist', async () => {
-      jest
-        .spyOn(service, 'findOne')
-        .mockRejectedValue(new NotFoundException(sysMsg.ROOM_NOT_FOUND));
-
-      await expect(service.update('r1', { name: 'X' })).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('throws ConflictException if updated name already exists on DIFFERENT room', async () => {
-      const updateDto: UpdateRoomDTO = { name: 'Duplicate Room' };
-      const duplicateRoom = { id: 'r2', name: 'duplicate room' } as Room;
-
-      const findOneResponse: FindOneResponse = {
-        message: '',
-        ...existingRoom,
-      };
-      jest.spyOn(service, 'findOne').mockResolvedValue(findOneResponse);
-
-      modelAction.get.mockResolvedValue(duplicateRoom);
-
-      await expect(service.update('r1', updateDto)).rejects.toThrow(
-        ConflictException,
-      );
-    });
-
-    it('allows update if name exists but belongs to SAME room', async () => {
-      const updateDto: UpdateRoomDTO = { name: 'Same Name' };
-      const sameRoom = { id: 'r1', name: 'same name' } as Room;
-
-      const findOneResponse: FindOneResponse = {
-        message: '',
-        ...existingRoom,
-      };
-      jest.spyOn(service, 'findOne').mockResolvedValue(findOneResponse);
-
-      modelAction.get.mockResolvedValue(sameRoom);
-
-      const mockManager = {
-        save: jest.fn().mockResolvedValue(sameRoom),
-      };
-      dataSource.transaction.mockImplementation(async (cb) => {
-        return cb(mockManager);
-      });
-
-      await expect(service.update('r1', updateDto)).resolves.not.toThrow();
-    });
-  });
-
   describe('findOne', () => {
     it('returns a room when found', async () => {
-      const room: Room = { id: 'r1', name: 'Room 1', streams: [] } as Room;
+      const room: Room = { id: 'r1', name: 'Room 1' } as Room;
       modelAction.get.mockResolvedValue(room);
 
       const result = await service.findOne('r1');
 
       expect(modelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'r1' },
-        relations: { streams: true },
+        relations: { current_class: true },
       });
       expect(result).toEqual({
         message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,

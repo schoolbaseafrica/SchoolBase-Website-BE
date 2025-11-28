@@ -4,7 +4,6 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  HttpStatus,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
@@ -27,6 +26,7 @@ import { ClassModelAction } from '../model-actions/class.actions';
 import {
   ICreateClassResponse,
   IUpdateClassResponse,
+  IGetClassByIdResponse,
 } from '../types/base-response.interface';
 
 @Injectable()
@@ -134,16 +134,13 @@ export class ClassService {
     });
 
     return {
-      status_code: HttpStatus.CREATED,
       message: sysMsg.CLASS_CREATED,
-      data: {
-        id: createdClass.id,
-        name: createdClass.name,
-        arm: createdClass.arm,
-        academicSession: {
-          id: academicSession.id,
-          name: academicSession.name,
-        },
+      id: createdClass.id,
+      name: createdClass.name,
+      arm: createdClass.arm,
+      academicSession: {
+        id: academicSession.id,
+        name: academicSession.name,
       },
     };
   }
@@ -174,7 +171,7 @@ export class ClassService {
       relations: { academicSession: true },
     });
     if (!existingClass) {
-      throw new NotFoundException(`Class with ID ${classId} not found`);
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
 
     // 2. Prepare new values
@@ -267,6 +264,53 @@ export class ClassService {
         : sysMsg.NO_CLASS_FOUND,
       items: Object.values(grouped),
       pagination: paginationMeta,
+    };
+  }
+
+  /**
+   * Fetches a class by its ID.
+   */
+  async getClassById(classId: string): Promise<IGetClassByIdResponse> {
+    const classEntity = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+    if (!classEntity) {
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    }
+    return {
+      message: sysMsg.CLASS_FETCHED,
+      id: classEntity.id,
+      name: classEntity.name,
+      arm: classEntity.arm,
+      academicSession: {
+        id: classEntity.academicSession.id,
+        name: classEntity.academicSession.name,
+      },
+    };
+  }
+
+  /**
+   * Fetches Total Number of Classes in the System.
+   */
+  async getTotalClasses(
+    sessionId: string,
+    name?: string,
+    arm?: string,
+  ): Promise<{ message: string; total: number }> {
+    const filter: Record<string, unknown> = {
+      academicSession: { id: sessionId },
+    };
+    if (name) filter.name = name;
+    if (arm) filter.arm = arm;
+
+    const { paginationMeta } = await this.classModelAction.list({
+      filterRecordOptions: filter,
+      paginationPayload: { page: 1, limit: 1 },
+    });
+    return {
+      message: sysMsg.TOTAL_CLASSES_FETCHED,
+      total: paginationMeta.total,
     };
   }
 }

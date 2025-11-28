@@ -59,3 +59,26 @@ export const DocsGetGroupedClasses = () => {
     ApiOkResponse(responses.ok),
   );
 };
+
+export const DocsGetClassById = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getClassById;
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
+
+export const DocsGetTotalClasses = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getTotalClasses;
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiQuery(parameters.sessionId),
+    ApiQuery(parameters.name),
+    ApiQuery(parameters.arm),
+    ApiResponse(responses.ok),
+  );
+};

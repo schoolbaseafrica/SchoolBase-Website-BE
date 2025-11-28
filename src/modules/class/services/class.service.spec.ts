@@ -1,8 +1,7 @@
 import {
-  ConflictException,
-  HttpStatus,
-  NotFoundException,
   BadRequestException,
+  ConflictException,
+  NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -264,9 +263,8 @@ describe('ClassService', () => {
         },
       });
 
-      expect(result.status_code).toBe(HttpStatus.CREATED);
-      expect(result.data.name).toBe(createClassDto.name);
-      expect(result.data.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
+      expect(result.name).toBe(createClassDto.name);
+      expect(result.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
     });
 
     it('should throw ConflictException if the class already exists in the active session', async () => {
@@ -446,6 +444,96 @@ describe('ClassService', () => {
       expect(result.items).toEqual([]);
       expect(result.pagination).toBeDefined();
       expect(mockClassModelAction.list).toHaveBeenCalled();
+    });
+  });
+
+  describe('getClassById', () => {
+    const classId = 'class-uuid-1';
+    const mockAcademicSession = {
+      id: 'session-uuid-1',
+      name: '2026/2027',
+    };
+    const existingClass = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      academicSession: mockAcademicSession,
+    } as unknown as Class;
+
+    it('should return the correct flattened response for getClassById', async () => {
+      classModelAction.get.mockResolvedValue(existingClass);
+      const result = await service.getClassById(classId);
+      expect(result).toEqual({
+        message: sysMsg.CLASS_FETCHED,
+        id: classId,
+        name: 'JSS1',
+        arm: 'A',
+        academicSession: {
+          id: 'session-uuid-1',
+          name: '2026/2027',
+        },
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+      await expect(service.getClassById('wrong-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getTotalClasses', () => {
+    it('should return the total number of classes filtered by sessionId, name, and arm', async () => {
+      // Arrange
+      const sessionId = 'session-uuid-1';
+      const name = 'JSS1';
+      const arm = 'A';
+      const mockTotal = 5;
+
+      // Mock the list method to return the expected paginationMeta
+      classModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: mockTotal },
+      });
+
+      // Act
+      const result = await service.getTotalClasses(sessionId, name, arm);
+
+      // Assert
+      expect(classModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          academicSession: { id: sessionId },
+          name,
+          arm,
+        },
+        paginationPayload: { page: 1, limit: 1 },
+      });
+      expect(result).toEqual({
+        message: sysMsg.TOTAL_CLASSES_FETCHED,
+        total: mockTotal,
+      });
+    });
+
+    it('should return zero if no classes match the filter', async () => {
+      // Arrange
+      classModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      // Act
+      const result = await service.getTotalClasses(
+        'session-uuid-2',
+        'JSS9',
+        'B',
+      );
+
+      // Assert
+      expect(result).toEqual({
+        message: sysMsg.TOTAL_CLASSES_FETCHED,
+        total: 0,
+      });
     });
   });
 });

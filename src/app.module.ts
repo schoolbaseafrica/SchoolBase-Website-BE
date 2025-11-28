@@ -16,7 +16,6 @@ import { ClassModule } from './modules/class/class.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
-import { DepartmentModule } from './modules/department/department.module';
 import { EmailModule } from './modules/email/email.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
@@ -27,7 +26,9 @@ import { StreamModule } from './modules/stream/stream.module';
 import { StudentModule } from './modules/student/student.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
+import { TeacherSubjectModule } from './modules/teacher-subject/teacher-subject.module';
 import { TermModule } from './modules/term/term.module';
+import { TimetableModule } from './modules/timetable/timetable.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
@@ -67,7 +68,6 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ClassModule,
     InviteModule,
     AcademicSessionModule,
-    DepartmentModule,
     SubjectModule,
     UploadModule,
     TermModule,
@@ -77,6 +77,8 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     StudentModule,
     DashboardModule,
     DatabaseModule,
+    TimetableModule,
+    TeacherSubjectModule,
   ],
   controllers: [AppController],
   providers: [

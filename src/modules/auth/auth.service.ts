@@ -151,6 +151,7 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: RefreshTokenDto) {
+    // Verify the refresh token signature
     const payload = await this.jwtService.verifyAsync(
       refreshToken.refresh_token,
       {
@@ -158,15 +159,37 @@ export class AuthService {
       },
     );
 
+    // Validate refresh token against stored session
+    let oldSession = null;
+    if (this.sessionService) {
+      oldSession = await this.sessionService.validateRefreshToken(
+        payload.sub,
+        refreshToken.refresh_token,
+      );
+
+      if (!oldSession) {
+        this.logger.warn(
+          `Refresh token validation failed for user: ${payload.sub}`,
+        );
+        throw new UnauthorizedException(
+          'Invalid or expired refresh token. Please login again.',
+        );
+      }
+    }
+
+    // Generate new tokens
     const tokens = await this.generateTokens(
       payload.sub,
       payload.email,
       payload.role,
     );
 
-    // Create session in DB
+    // Update session with new refresh token
     let sessionInfo = null;
-    if (this.sessionService && tokens.refresh_token) {
+    if (this.sessionService && tokens.refresh_token && oldSession) {
+      // Revoke old session and create new one
+      await this.sessionService.revokeSession(oldSession.id, payload.sub);
+
       sessionInfo = await this.sessionService.createSession(
         payload.sub,
         tokens.refresh_token,
@@ -339,7 +362,7 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: jwt.secret,
-        expiresIn: '15m',
+        expiresIn: '4h',
       }),
       this.jwtService.signAsync(payload, {
         secret: jwt.refreshSecret,
