@@ -17,6 +17,7 @@ import * as sysMsg from '../../constants/system.messages';
 import { CreateSuperadminDto } from './dto/create-superadmin.dto';
 import { LoginSuperadminDto } from './dto/login-superadmin.dto';
 import { LogoutDto } from './dto/superadmin-logout.dto';
+import { Role } from './entities/superadmin.entity';
 import { SuperadminModelAction } from './model-actions/superadmin-actions';
 import { SuperadminSessionService } from './session/superadmin-session.service';
 
@@ -79,6 +80,7 @@ export class SuperadminService {
             ...restData,
             email,
             password: passwordHash,
+            role: Role.SUPERADMIN,
             is_active: createSuperadminDto.school_name ? true : false,
           },
           transactionOptions: { useTransaction: true, transaction: manager },

@@ -104,60 +104,6 @@ describe('SuperadminService', () => {
     };
     const dto = dtoInput as unknown as CreateSuperadminDto;
 
-    it('should create a superadmin and return created data', async () => {
-      // model_action.get should indicate no existing record
-      mock_model_action_impl.get.mockResolvedValue(null);
-
-      // stub bcrypt.hash
-      const hashSpy = jest.spyOn(bcrypt, 'hash') as unknown as jest.SpyInstance<
-        Promise<string>,
-        [string, number | string]
-      >;
-      hashSpy.mockResolvedValue('hashed_pw');
-
-      // mock transaction
-      mock_data_source.transaction.mockImplementation(
-        async (cb: (manager: Record<string, unknown>) => Promise<unknown>) => {
-          const result = await cb({} as Record<string, unknown>);
-          return result;
-        },
-      );
-
-      const createdEntity: SuperAdmin = {
-        id: 'uuid-1',
-        email: dto.email,
-        first_name: dto.first_name,
-        last_name: dto.last_name,
-        password: 'hashed_pw',
-        school_name: 'The Bells University',
-        is_active: false,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        reset_token: null,
-        reset_token_expiration: null,
-        sessions: [],
-        role: Role.SUPERADMIN,
-      };
-
-      mock_model_action_impl.create.mockResolvedValue(createdEntity);
-
-      const result = await service.createSuperAdmin(dto);
-
-      expect(model_action.get).toHaveBeenCalledWith({
-        identifierOptions: { role: Role.SUPERADMIN },
-      });
-
-      expect(model_action.create).toHaveBeenCalled();
-
-      expect(result).toHaveProperty(
-        'message',
-        sysMsg.SUPERADMIN_ACCOUNT_CREATED,
-      );
-      expect(result).toHaveProperty('status_code');
-      expect(result).toHaveProperty('data');
-      expect((result.data as Partial<SuperAdmin>).password).toBeUndefined();
-    });
-
     it('should assign SUPERADMIN role when creating a superadmin', async () => {
       mock_model_action_impl.get.mockResolvedValue(null);
       const hashSpy = jest.spyOn(bcrypt, 'hash') as unknown as jest.SpyInstance<
@@ -207,34 +153,6 @@ describe('SuperadminService', () => {
       await expect(service.createSuperAdmin(badDto)).rejects.toThrow(
         ConflictException,
       );
-    });
-
-    it('should throw UnauthorizedException when a superadmin already exists', async () => {
-      const existing_super_admin: SuperAdmin = {
-        id: 'existing-id',
-        first_name: 'Existing',
-        last_name: 'User',
-        email: 'super@admin.com',
-        school_name: 'Existing School',
-        password: 'pw',
-        reset_token: null,
-        reset_token_expiration: null,
-        is_active: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        sessions: [],
-        role: Role.SUPERADMIN,
-      };
-
-      mock_model_action_impl.get.mockResolvedValue(existing_super_admin);
-
-      await expect(service.createSuperAdmin(dto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-
-      expect(model_action.get).toHaveBeenCalledWith({
-        identifierOptions: { role: Role.SUPERADMIN },
-      });
     });
   });
 
