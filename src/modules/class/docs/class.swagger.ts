@@ -2,6 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { ClassResponseDto } from '../dto/create-class.dto';
+import { StudentAssignmentResponseDto } from '../dto/student-assignment.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -256,6 +257,67 @@ export const ClassSwagger = {
               total: { type: 'integer', example: 42 },
             },
           },
+        },
+      },
+    },
+    assignStudents: {
+      operation: {
+        summary: 'Assign students to a class',
+        description:
+          'Assigns multiple students to a specific class. Students are automatically assigned to the class in the same academic session the class belongs to. Students already assigned will be skipped.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Students assigned successfully',
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Successfully assigned 3 student(s) to class',
+              },
+              assigned: { type: 'number', example: 3 },
+              classId: { type: 'string' },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class or student not found',
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Validation failed: invalid student IDs or empty array.',
+        },
+      },
+    },
+    getStudents: {
+      operation: {
+        summary: 'Get students assigned to a class',
+        description:
+          "Returns a list of students assigned to a specific class ID. Returns students from the class's academic session by default, but can be filtered by a different sessionId if provided.",
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          description: 'List of assigned students',
+          type: StudentAssignmentResponseDto,
+          isArray: true,
+        },
+        notFound: {
+          description: 'Class not found',
         },
       },
     },

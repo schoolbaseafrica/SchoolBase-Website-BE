@@ -82,3 +82,28 @@ export const DocsGetTotalClasses = () => {
     ApiResponse(responses.ok),
   );
 };
+
+export const DocsAssignStudents = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.assignStudents;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+    ApiResponse(responses.badRequest),
+  );
+};
+
+export const DocsGetClassStudents = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getStudents;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};

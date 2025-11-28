@@ -14,6 +14,7 @@ import { Room } from '../../room/entities/room.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 import { Timetable } from '../../timetable/entities/timetable.entity';
 
+import { ClassStudent } from './class-student.entity';
 import { ClassTeacher } from './class-teacher.entity';
 
 @Unique(['name', 'arm', 'academicSession'])
@@ -37,6 +38,9 @@ export class Class extends BaseEntity {
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.class)
   teacher_assignment: ClassTeacher[];
+
+  @OneToMany(() => ClassStudent, (assignment) => assignment.class)
+  student_assignments: ClassStudent[];
 
   @OneToMany(() => Stream, (stream) => stream.class)
   streams: Stream[];
