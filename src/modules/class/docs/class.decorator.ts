@@ -82,3 +82,15 @@ export const DocsGetTotalClasses = () => {
     ApiResponse(responses.ok),
   );
 };
+export const DocsDeleteClass = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.deleteClass;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiResponse(responses.ok),
+    ApiResponse(responses.badRequest),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};

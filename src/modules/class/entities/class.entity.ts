@@ -47,4 +47,10 @@ export class Class extends BaseEntity {
 
   @OneToMany(() => ClassSubject, (cs) => cs.class)
   classSubjects: ClassSubject[];
+
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date | null;
 }

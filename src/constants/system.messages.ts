@@ -237,6 +237,9 @@ export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
   'One or more classes are not in the active academic session';
+export const CLASS_DELETED = 'Class deleted successfully';
+export const CANNOT_DELETE_PAST_SESSION_CLASS =
+  'Only classes from the active session can be deleted.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
