@@ -5,11 +5,13 @@ import {
   ManyToOne,
   JoinColumn,
   Unique,
+  OneToOne,
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
 import { Stream } from '../../stream/entities/stream.entity';
+import { Timetable } from '../../timetable/entities/timetable.entity';
 
 import { ClassTeacher } from './class-teacher.entity';
 
@@ -34,4 +36,7 @@ export class Class extends BaseEntity {
 
   @OneToMany(() => Stream, (stream) => stream.class)
   streams: Stream[];
+
+  @OneToOne(() => Timetable, (timetable) => timetable.class)
+  timetable?: Timetable;
 }
