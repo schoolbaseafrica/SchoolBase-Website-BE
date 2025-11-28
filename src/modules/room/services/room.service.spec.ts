@@ -319,4 +319,55 @@ describe('RoomService', () => {
       await expect(service.findOne('r1')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('remove', () => {
+    it('deletes a room successfully when it is empty', async () => {
+      const emptyRoom = { id: 'r1', current_class: null } as Room;
+
+      modelAction.get.mockResolvedValue(emptyRoom);
+      modelAction.delete.mockResolvedValue({ raw: [], affected: 1 });
+
+      const result = await service.remove('r1');
+
+      expect(dataSource.transaction).toHaveBeenCalled();
+
+      expect(modelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        relations: { current_class: true },
+      });
+
+      expect(modelAction.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: 'r1' },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: 'MOCK_MANAGER',
+        },
+      });
+
+      expect(result).toEqual({
+        message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+      });
+    });
+
+    it('throws NotFoundException if room does not exist', async () => {
+      modelAction.get.mockResolvedValue(null);
+
+      await expect(service.remove('r1')).rejects.toThrow(NotFoundException);
+
+      expect(modelAction.delete).not.toHaveBeenCalled();
+    });
+
+    it('throws ConflictException if room is currently occupied by a class', async () => {
+      const occupiedRoom = {
+        id: 'r1',
+        current_class: { id: 'c1', title: 'Math' },
+      } as unknown as Room;
+
+      modelAction.get.mockResolvedValue(occupiedRoom);
+
+      await expect(service.remove('r1')).rejects.toThrow(ConflictException);
+
+      expect(modelAction.delete).not.toHaveBeenCalled();
+    });
+  });
 });

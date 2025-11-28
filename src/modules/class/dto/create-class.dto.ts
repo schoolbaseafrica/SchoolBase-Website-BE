@@ -33,6 +33,17 @@ export class CreateClassDto {
     typeof value === 'string' ? value.trim().toUpperCase() : value,
   )
   arm?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    isArray: true,
+    description: 'Array of teacher IDs to assign to the class (optional)',
+    required: false,
+    example: ['teacher-uuid-1', 'teacher-uuid-2'],
+  })
+  @IsOptional()
+  @IsString({ each: true })
+  teacherIds?: string[];
 }
 
 export class AcademicSessionDto {
@@ -55,6 +66,15 @@ export class ClassResponseDto {
 
   @ApiProperty({ type: () => AcademicSessionDto, required: false })
   academicSession?: AcademicSessionDto;
+
+  @ApiPropertyOptional({
+    type: String,
+    isArray: true,
+    description: 'Array of teacher IDs assigned to the class',
+    required: false,
+    example: ['teacher-uuid-1', 'teacher-uuid-2'],
+  })
+  teacherIds?: string[];
 }
 
 export class ClassItemDto {
