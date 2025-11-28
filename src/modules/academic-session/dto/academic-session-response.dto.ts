@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+import { TermResponseDto } from '../../academic-term/dto/academic-term-response.dto';
+
 export class AcademicSessionResponseDto {
   @ApiProperty({
     example: 'session_1_id',
@@ -17,11 +19,11 @@ export class AcademicSessionResponseDto {
     required: false,
   })
   description?: string;
-  // @ApiProperty({ example: 'ACTIVE', description: 'Status of the session' })
-  // status: string;
-  // @ApiProperty({
-  //   type: [TermResponseDto],
-  //   description: 'Array of the 3 terms associated with this session',
-  // })
-  // terms: TermResponseDto[];
+  @ApiProperty({ example: 'ACTIVE', description: 'Status of the session' })
+  status: string;
+  @ApiProperty({
+    type: [TermResponseDto],
+    description: 'Array of the 3 terms associated with this session',
+  })
+  terms: TermResponseDto[];
 }

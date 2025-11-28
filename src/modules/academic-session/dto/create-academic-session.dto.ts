@@ -3,20 +3,28 @@ import {
   IsNotEmpty,
   IsString,
   MaxLength,
-  IsArray,
-  ArrayMinSize,
-  ArrayMaxSize,
   ValidateNested,
   IsOptional,
 } from 'class-validator';
 
 import { CreateTermDto } from '../../academic-term/dto/create-term.dto';
 
-export type SessionTerms = {
+export class SessionTerms {
+  @ValidateNested()
+  @Type(() => CreateTermDto)
+  @IsNotEmpty({ message: 'First term is required.' })
   first_term: CreateTermDto;
+
+  @ValidateNested()
+  @Type(() => CreateTermDto)
+  @IsNotEmpty({ message: 'Second term is required.' })
   second_term: CreateTermDto;
+
+  @ValidateNested()
+  @Type(() => CreateTermDto)
+  @IsNotEmpty({ message: 'Third term is required.' })
   third_term: CreateTermDto;
-};
+}
 
 export class CreateAcademicSessionDto {
   @IsOptional()
@@ -24,11 +32,8 @@ export class CreateAcademicSessionDto {
   @MaxLength(1000, { message: 'Description cannot exceed 1000 characters.' })
   description?: string;
 
-  @IsNotEmpty({ message: 'Terms array is required.' })
-  @IsArray({ message: 'Terms must be an array.' })
-  @ArrayMinSize(3, { message: 'Exactly 3 terms are required.' })
-  @ArrayMaxSize(3, { message: 'Exactly 3 terms are required.' })
-  @ValidateNested({ each: true })
-  @Type(() => CreateTermDto)
+  @IsNotEmpty({ message: 'Terms object is required.' })
+  @ValidateNested()
+  @Type(() => SessionTerms)
   terms: SessionTerms;
 }
