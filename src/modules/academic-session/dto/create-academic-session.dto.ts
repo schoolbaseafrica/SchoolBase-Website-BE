@@ -12,6 +12,12 @@ import {
 
 import { CreateTermDto } from '../../academic-term/dto/create-term.dto';
 
+export type SessionTerms = {
+  first_term: CreateTermDto;
+  second_term: CreateTermDto;
+  third_term: CreateTermDto;
+};
+
 export class CreateAcademicSessionDto {
   @IsOptional()
   @IsString({ message: 'Description must be a string.' })
@@ -24,5 +30,5 @@ export class CreateAcademicSessionDto {
   @ArrayMaxSize(3, { message: 'Exactly 3 terms are required.' })
   @ValidateNested({ each: true })
   @Type(() => CreateTermDto)
-  terms: CreateTermDto[];
+  terms: SessionTerms;
 }

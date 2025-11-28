@@ -1,4 +1,7 @@
+import { HttpStatus } from '@nestjs/common';
+
 import * as sysMsg from '../../../constants/system.messages';
+import { AcademicSessionResponseDto } from '../dto/academic-session-response.dto';
 import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
 
 /**
@@ -14,176 +17,40 @@ export const AcademicSessionSwagger = {
     'Endpoints for creating, retrieving, updating, and deleting academic sessions.',
   endpoints: {
     create: {
-      summary: 'Create Academic Session',
-      description:
-        'Creates a new academic session. Session name must be unique. Start and end dates must be in the future, and end date must be after start date.',
-      requestBody: {
-        required: true,
-        content: {
-          ['application/json']: {
-            schema: {
-              type: 'object',
-              properties: {
-                description: {
-                  type: 'string',
-                  maxLength: 1000,
-                  example: 'Academic year 2024/2025',
-                },
-                terms: {
-                  type: 'array',
-                  minItems: 3,
-                  maxItems: 3,
-                  items: {
-                    type: 'object',
-                    properties: {
-                      startDate: {
-                        type: 'string',
-                        format: 'date',
-                        example: '2024-09-01',
-                      },
-                      endDate: {
-                        type: 'string',
-                        format: 'date',
-                        example: '2024-12-15',
-                      },
-                    },
-                    required: ['startDate', 'endDate'],
-                  },
-                },
-              },
-              required: ['terms'],
-              example: {
-                description: 'Academic year 2024/2025',
-                terms: [
-                  {
-                    startDate: '2024-09-01',
-                    endDate: '2024-12-15',
-                  },
-                  {
-                    startDate: '2025-01-06',
-                    endDate: '2025-03-28',
-                  },
-                  {
-                    startDate: '2025-04-14',
-                    endDate: '2025-06-30',
-                  },
-                ],
-              },
-            },
-          },
+      operation: {
+        summary: 'Create Academic Session (Admin)',
+        description:
+          'Creates a new academic session with exactly 3 terms. Session name (academic year) must be unique. The session start date is the start of the first term, and the end date is the end of the third term. Active sessions cannot overlap.',
+      },
+      body: {
+        description: {
+          name: 'description',
+          description:
+            'Optional description for the academic session (max 1000 characters).',
+          required: false,
+        },
+        terms: {
+          name: 'terms',
+          description:
+            'Array of exactly 3 term objects. Terms must be sequential and dates valid. Each term requires startDate, endDate, and optional name.',
+          required: true,
         },
       },
       responses: {
-        ['201']: {
-          description: 'Academic session created successfully.',
-          content: {
-            ['application/json']: {
-              schema: {
-                type: 'object',
-                properties: {
-                  status_code: { type: 'number', example: 200 },
-                  message: {
-                    type: 'string',
-                    example: 'Academic session created successfully',
-                  },
-                  data: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string', format: 'uuid' },
-                      academicYear: { type: 'string', example: '2024/2025' },
-                      name: { type: 'string', example: '2024/2025' },
-                      startDate: { type: 'string', format: 'date' },
-                      endDate: { type: 'string', format: 'date' },
-                      description: { type: 'string', nullable: true },
-                      status: { type: 'string', enum: ['Active', 'Archived'] },
-                      terms: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          properties: {
-                            id: { type: 'string', format: 'uuid' },
-                            sessionId: { type: 'string', format: 'uuid' },
-                            name: {
-                              type: 'string',
-                              enum: ['First term', 'Second term', 'Third term'],
-                            },
-                            startDate: { type: 'string', format: 'date' },
-                            endDate: { type: 'string', format: 'date' },
-                            status: {
-                              type: 'string',
-                              enum: ['Active', 'Archived'],
-                            },
-                            isCurrent: { type: 'boolean' },
-                            createdAt: { type: 'string', format: 'date-time' },
-                            updatedAt: { type: 'string', format: 'date-time' },
-                          },
-                        },
-                      },
-                      createdAt: { type: 'string', format: 'date-time' },
-                      updatedAt: { type: 'string', format: 'date-time' },
-                    },
-                  },
-                },
-              },
-              example: {
-                status_code: 200,
-                message: 'Academic session created successfully',
-                data: {
-                  id: '550e8400-e29b-41d4-a716-446655440000',
-                  academicYear: '2024/2025',
-                  name: '2024/2025',
-                  startDate: '2024-09-01',
-                  endDate: '2025-06-30',
-                  description: 'Academic year 2024/2025',
-                  status: 'Active',
-                  terms: [
-                    {
-                      id: 'term-id-1',
-                      sessionId: '550e8400-e29b-41d4-a716-446655440000',
-                      name: 'First term',
-                      startDate: '2024-09-01',
-                      endDate: '2024-12-15',
-                      status: 'Active',
-                      isCurrent: true,
-                      createdAt: '2024-01-15T10:30:00Z',
-                      updatedAt: '2024-01-15T10:30:00Z',
-                    },
-                    {
-                      id: 'term-id-2',
-                      sessionId: '550e8400-e29b-41d4-a716-446655440000',
-                      name: 'Second term',
-                      startDate: '2025-01-06',
-                      endDate: '2025-03-28',
-                      status: 'Active',
-                      isCurrent: false,
-                      createdAt: '2024-01-15T10:30:00Z',
-                      updatedAt: '2024-01-15T10:30:00Z',
-                    },
-                    {
-                      id: 'term-id-3',
-                      sessionId: '550e8400-e29b-41d4-a716-446655440000',
-                      name: 'Third term',
-                      startDate: '2025-04-14',
-                      endDate: '2025-06-30',
-                      status: 'Active',
-                      isCurrent: false,
-                      createdAt: '2024-01-15T10:30:00Z',
-                      updatedAt: '2024-01-15T10:30:00Z',
-                    },
-                  ],
-                  createdAt: '2024-01-15T10:30:00Z',
-                  updatedAt: '2024-01-15T10:30:00Z',
-                },
-              },
-            },
-          },
+        created: {
+          status: HttpStatus.CREATED,
+          description: sysMsg.ACADEMIC_SESSION_CREATED,
+          type: AcademicSessionResponseDto,
         },
-        ['400']: {
-          description: 'Invalid date range or date in the past.',
-        },
-        ['409']: {
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
           description:
-            'Academic year already exists or there is an ongoing session.',
+            'Validation failed: dates invalid, terms not sequential, or other business rules failed.',
+        },
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description:
+            'Conflict occurred: session with same academic year exists or ongoing session already active.',
         },
       },
     },

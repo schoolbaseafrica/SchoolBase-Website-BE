@@ -9,6 +9,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DataSource, EntityManager } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
+import { CreateTermDto } from '../academic-term/dto/create-term.dto';
 import { TermService } from '../academic-term/term.service';
 
 import { AcademicSessionService } from './academic-session.service';
@@ -100,13 +101,16 @@ describe('AcademicSessionService', () => {
         startDate: `${futureDate.getFullYear() + 1}-04-14`,
         endDate: `${futureDate.getFullYear() + 1}-07-20`,
       },
-    ];
+    ] as [CreateTermDto, CreateTermDto, CreateTermDto];
 
     const createDto: CreateAcademicSessionDto = {
       description: 'Test Academic Session',
-      terms: validTerms,
+      terms: {
+        first_term: validTerms[0],
+        second_term: validTerms[1],
+        third_term: validTerms[2],
+      },
     };
-
     const mockSession: AcademicSession = {
       id: 'session-id',
       academicYear: `${futureDate.getFullYear()}/${futureDate.getFullYear() + 1}`,
@@ -160,22 +164,12 @@ describe('AcademicSessionService', () => {
     it('should throw BadRequestException if start date is in the past', async () => {
       const pastDto: CreateAcademicSessionDto = {
         description: 'Past session',
-        terms: [
-          {
-            startDate: '2020-01-01',
-            endDate: '2020-12-31',
-          },
-          {
-            startDate: '2021-01-01',
-            endDate: '2021-12-31',
-          },
-          {
-            startDate: '2022-01-01',
-            endDate: '2022-12-31',
-          },
-        ],
+        terms: {
+          first_term: { startDate: '2020-01-01', endDate: '2020-12-31' },
+          second_term: { startDate: '2021-01-01', endDate: '2021-12-31' },
+          third_term: { startDate: '2022-01-01', endDate: '2022-12-31' },
+        },
       };
-
       sessionModelAction.get.mockResolvedValue(null);
 
       await expect(service.create(pastDto)).rejects.toThrow(
@@ -189,20 +183,11 @@ describe('AcademicSessionService', () => {
     it('should throw BadRequestException for invalid term date ranges', async () => {
       const invalidDto: CreateAcademicSessionDto = {
         description: 'Invalid session',
-        terms: [
-          {
-            startDate: '2025-12-01',
-            endDate: '2025-11-01', // End before start
-          },
-          {
-            startDate: '2026-01-01',
-            endDate: '2026-12-31',
-          },
-          {
-            startDate: '2027-01-01',
-            endDate: '2027-12-31',
-          },
-        ],
+        terms: {
+          first_term: { startDate: '2025-12-01', endDate: '2025-11-01' },
+          second_term: { startDate: '2026-01-01', endDate: '2026-12-31' },
+          third_term: { startDate: '2027-01-01', endDate: '2027-12-31' },
+        },
       };
 
       sessionModelAction.get.mockResolvedValue(null);
@@ -223,20 +208,20 @@ describe('AcademicSessionService', () => {
       const nextYear = futureDate.getFullYear() + 2;
       const nonSequentialDto: CreateAcademicSessionDto = {
         description: 'Non-sequential terms',
-        terms: [
-          {
+        terms: {
+          first_term: {
             startDate: `${nextYear}-01-01`,
             endDate: `${nextYear}-03-31`,
           },
-          {
-            startDate: `${nextYear}-03-30`, // Overlaps with first term
+          second_term: {
+            startDate: `${nextYear}-03-30`,
             endDate: `${nextYear}-06-30`,
           },
-          {
+          third_term: {
             startDate: `${nextYear}-07-01`,
             endDate: `${nextYear}-12-31`,
           },
-        ],
+        },
       };
 
       sessionModelAction.get.mockResolvedValue(null);

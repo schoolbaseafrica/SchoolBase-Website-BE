@@ -51,9 +51,11 @@ export class AcademicSessionService {
     createSessionDto: CreateAcademicSessionDto,
   ): Promise<ICreateSessionResponse> {
     // Auto-assign term names based on array order: [0]=First, [1]=Second, [2]=Third
-    const firstTerm = createSessionDto.terms[0];
-    const secondTerm = createSessionDto.terms[1];
-    const thirdTerm = createSessionDto.terms[2];
+    const {
+      first_term: firstTerm,
+      second_term: secondTerm,
+      third_term: thirdTerm,
+    } = createSessionDto.terms;
 
     // Session start date is first term start date, end date is third term end date
     const start = new Date(firstTerm.startDate);
@@ -100,8 +102,9 @@ export class AcademicSessionService {
 
     // Validate individual term dates
     const termNames = ['First term', 'Second term', 'Third term'];
-    for (let i = 0; i < createSessionDto.terms.length; i++) {
-      const termDto = createSessionDto.terms[i];
+    const termDtos = [firstTerm, secondTerm, thirdTerm];
+
+    termDtos.forEach((termDto, i) => {
       const termStart = new Date(termDto.startDate);
       const termEnd = new Date(termDto.endDate);
 
@@ -110,7 +113,7 @@ export class AcademicSessionService {
           `${termNames[i]} ${sysMsg.TERM_INVALID_DATE_RANGE}`,
         );
       }
-    }
+    });
 
     // Validate sequential term dates
     const firstTermEnd = new Date(firstTerm.endDate);
@@ -132,28 +135,29 @@ export class AcademicSessionService {
 
     // Use transaction to create session and terms together
     const newSession = await this.dataSource.transaction(async (manager) => {
-      // Get all currently active sessions to archive them
+      // Get all currently active sessions to archive their terms
       const activeSessions = await this.sessionModelAction.list({
         filterRecordOptions: { status: SessionStatus.ACTIVE },
       });
 
-      // Archive all currently active sessions (previous sessions become read-only)
+      // Archive all currently active sessions and their terms (previous session becomes read-only)
       for (const activeSession of activeSessions.payload) {
-        await this.sessionModelAction.update({
-          identifierOptions: { id: activeSession.id },
-          updatePayload: { status: SessionStatus.ARCHIVED },
-          transactionOptions: {
-            useTransaction: true,
-            transaction: manager,
-          },
-        });
-
         // Archive the terms of the active session
         await this.termService.archiveTermsBySessionId(
           activeSession.id,
           manager,
         );
       }
+
+      // Archive the session itself
+      await this.sessionModelAction.update({
+        updatePayload: { status: SessionStatus.ARCHIVED },
+        identifierOptions: { status: SessionStatus.ACTIVE },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
 
       // Create the academic session as ACTIVE (current session)
       const session = manager.create(AcademicSession, {
@@ -170,7 +174,7 @@ export class AcademicSessionService {
       // Create associated terms using TermService
       await this.termService.createTermsForSession(
         savedSession.id,
-        createSessionDto.terms,
+        [firstTerm, secondTerm, thirdTerm],
         manager,
       );
 

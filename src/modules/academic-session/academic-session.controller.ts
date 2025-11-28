@@ -27,6 +27,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
 import { AcademicSessionService } from './academic-session.service';
+import { DocsCreateAcademicSession } from './docs/academic-session.decorator';
 import { AcademicSessionSwagger } from './docs/academic-session.swagger';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
@@ -43,9 +44,7 @@ export class AcademicSessionController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation(AcademicSessionSwagger.decorators.create.operation)
-  @ApiBody(AcademicSessionSwagger.decorators.create.body)
-  @ApiResponse(AcademicSessionSwagger.decorators.create.response)
+  @DocsCreateAcademicSession()
   create(@Body() createAcademicSessionDto: CreateAcademicSessionDto) {
     return this.academicSessionService.create(createAcademicSessionDto);
   }
