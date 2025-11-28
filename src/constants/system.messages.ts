@@ -193,7 +193,7 @@ export const INVALID_ROOM_ID = 'Invalid room ID provided.';
 export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
 export const CANNOT_DELETE_OCCUPIED_ROOM =
-  'Cannot delete a room that has active streams attached.';
+  'Cannot delete a room that has an active class.';
 
 // Subject messages
 export const SUBJECT_CREATED = 'Subject created successfully';
