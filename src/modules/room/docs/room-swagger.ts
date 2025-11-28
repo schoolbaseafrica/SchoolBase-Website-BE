@@ -44,7 +44,8 @@ export const ApiFindAllRooms = () =>
   applyDecorators(
     ApiOperation({
       summary: 'Get All Rooms',
-      description: 'Retrieves the list of all rooms.',
+      description:
+        'Retrieves a list of rooms. Supports filtering, sorting, and pagination.',
     }),
     ApiOkResponse({
       description: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
@@ -57,7 +58,7 @@ export const ApiFindOneRoom = () =>
       summary: 'Get Room by ID',
       description: 'Retrieves a single room by its ID.',
     }),
-    ApiParam({ name: 'id', description: 'Room ID' }),
+    ApiParam({ name: 'id', description: 'Room ID (UUID)' }),
     ApiOkResponse({
       description: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,
     }),
@@ -71,9 +72,40 @@ export const ApiUpdateRoom = () =>
       description: 'Updates details of an existing room.',
     }),
     ApiParam({ name: 'id', description: 'Room ID (UUID)', type: 'string' }),
-    ApiBody({ type: UpdateRoomDTO }),
+    ApiBody({
+      type: UpdateRoomDTO,
+      description: 'Room update payload',
+      examples: {
+        updateCapacity: {
+          summary: 'Update Capacity Only',
+          description: 'Example of updating a single field.',
+          value: {
+            capacity: 45,
+          },
+        },
+        renameAndMove: {
+          summary: 'Rename and Move',
+          description: 'Example of updating multiple fields.',
+          value: {
+            name: 'Chemistry Lab B',
+            location: 'East Wing',
+          },
+        },
+        updateAllFields: {
+          summary: 'Update All Fields',
+          description: 'Example of updating every property of the room.',
+          value: {
+            name: 'Advanced Physics Lab',
+            type: 'Laboratory',
+            capacity: 50,
+            location: 'Research Center Block B',
+          },
+        },
+      },
+    }),
     ApiOkResponse({
       description: sysMsg.ROOM_UPDATED_SUCCESSFULLY,
     }),
     ApiNotFoundResponse({ description: sysMsg.ROOM_NOT_FOUND }),
+    ApiConflictResponse({ description: sysMsg.DUPLICATE_ROOM_NAME }),
   );

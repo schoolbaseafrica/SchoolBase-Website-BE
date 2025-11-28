@@ -1,10 +1,11 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource } from 'typeorm';
+import { DataSource, IsNull, Not } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { FilterRoomDTO } from '../dto/filter-room-dto';
 import { UpdateRoomDTO } from '../dto/update-room-dto';
 import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
@@ -217,19 +218,82 @@ describe('RoomService', () => {
   });
 
   describe('findAll', () => {
-    it('returns a list of rooms', async () => {
+    it('returns a list of rooms with defaults (no filters)', async () => {
       const rooms: Room[] = [{ id: 'r1', name: 'Room 1' } as Room];
+
+      const filters: FilterRoomDTO = {
+        page: 1,
+        limit: 20,
+        sortOrder: 'ASC',
+      };
+
       modelAction.list.mockResolvedValue({ payload: rooms });
 
-      const result = await service.findAll();
+      const result = await service.findAll(filters);
 
       expect(modelAction.list).toHaveBeenCalledWith({
         relations: { current_class: true },
+        filterRecordOptions: {},
+        paginationPayload: {
+          page: 1,
+          limit: 20,
+        },
+        order: { name: 'ASC' },
       });
+
       expect(result).toEqual({
         message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
         rooms,
       });
+    });
+
+    it('applies filters (type, isOccupied=true) and custom sort correctly', async () => {
+      const rooms: Room[] = [{ id: 'r1', name: 'Lab 1' } as Room];
+      const filters: FilterRoomDTO = {
+        type: 'Laboratory',
+        isOccupied: true,
+        sortBy: 'capacity',
+        sortOrder: 'DESC',
+        page: 2,
+        limit: 10,
+      };
+
+      modelAction.list.mockResolvedValue({ payload: rooms });
+
+      await service.findAll(filters);
+
+      expect(modelAction.list).toHaveBeenCalledWith({
+        relations: { current_class: true },
+        filterRecordOptions: {
+          type: 'Laboratory',
+          current_class: Not(IsNull()),
+        },
+        paginationPayload: {
+          page: 2,
+          limit: 10,
+        },
+        order: { capacity: 'DESC' },
+      });
+    });
+
+    it('filters for empty rooms (isOccupied=false) correctly', async () => {
+      const filters: FilterRoomDTO = {
+        isOccupied: false,
+        page: 1,
+        limit: 20,
+      };
+
+      modelAction.list.mockResolvedValue({ payload: [] });
+
+      await service.findAll(filters);
+
+      expect(modelAction.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterRecordOptions: expect.objectContaining({
+            current_class: IsNull(),
+          }),
+        }),
+      );
     });
   });
 
