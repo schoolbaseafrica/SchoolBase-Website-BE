@@ -31,7 +31,7 @@ export class ClassSubjectService {
       identifierOptions: { id: classId },
     });
     if (!eClass) throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
-    return this.classSubjectAction.list({
+    const { payload, paginationMeta } = await this.classSubjectAction.list({
       filterRecordOptions: {
         class: { id: classId },
       },
@@ -40,6 +40,11 @@ export class ClassSubjectService {
         teacher: true,
       },
     });
+    return {
+      message: sysMsg.CLASS_SUBJECTS_FETCHED_SUCCESSFUL,
+      payload,
+      paginationMeta,
+    };
   }
 
   async assignTeacher(classId: string, subjectId: string, teacherId: string) {

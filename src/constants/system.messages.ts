@@ -238,6 +238,8 @@ export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
   'One or more classes are not in the active academic session';
 export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
+export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
+  'Class subjects fetched successfully';
 export const CLASS_SUBJECT_ALREADY_HAS_A_TEACHER =
   'Teacher already assigned to this subject in this class';
 export const TEACHER_NOT_ASSIGNED_TO_SUBJECT =
