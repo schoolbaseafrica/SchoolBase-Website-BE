@@ -1,12 +1,11 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
 import { Room } from '../entities/room.entity';
-import { RoomType } from '../enums/room-enum';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 import { RoomService } from './room.service';
@@ -77,13 +76,9 @@ describe('RoomService', () => {
   describe('create', () => {
     const dto: CreateRoomDTO = {
       name: '  Main Hall  ',
-      type: RoomType.PHYSICAL,
+      type: 'Laboratory',
       capacity: 120,
       location: 'West Block',
-      building: 'B',
-      floor: '2',
-      description: 'Lecture hall',
-      streams: [],
     };
 
     it('creates a room when name is free', async () => {
@@ -103,7 +98,6 @@ describe('RoomService', () => {
       expect(modelAction.create).toHaveBeenCalledWith({
         createPayload: expect.objectContaining({
           name: 'main hall',
-          streams: [],
         }),
         transactionOptions: {
           useTransaction: true,
@@ -121,52 +115,6 @@ describe('RoomService', () => {
       modelAction.get.mockResolvedValue({ id: 'existing' });
       await expect(service.create(dto)).rejects.toThrow(ConflictException);
     });
-
-    it('throws NotFoundException if invalid stream IDs are supplied', async () => {
-      const withStreams: CreateRoomDTO = { ...dto, streams: ['s1', 's2'] };
-
-      modelAction.get.mockResolvedValue(null);
-      streamRepo.findBy.mockResolvedValue([{ id: 's1' } as Stream]);
-
-      await expect(service.create(withStreams)).rejects.toThrow(
-        NotFoundException,
-      );
-
-      expect(streamRepo.findBy).toHaveBeenCalledWith({ id: In(['s1', 's2']) });
-    });
-
-    it('creates a room with valid Stream relationships', async () => {
-      const withStreams: CreateRoomDTO = { ...dto, streams: ['s1'] };
-      const mockStream = { id: 's1' } as Stream;
-
-      modelAction.get.mockResolvedValue(null);
-      streamRepo.findBy.mockResolvedValue([mockStream]);
-
-      const expectedRoom = {
-        id: 'room-10',
-        name: 'main hall',
-        streams: [mockStream],
-      };
-      modelAction.create.mockResolvedValue(expectedRoom);
-
-      const result = await service.create(withStreams);
-
-      expect(modelAction.create).toHaveBeenCalledWith({
-        createPayload: expect.objectContaining({
-          name: 'main hall',
-          streams: [mockStream],
-        }),
-        transactionOptions: {
-          useTransaction: true,
-          transaction: 'MOCK_MANAGER',
-        },
-      });
-
-      expect(result).toEqual({
-        message: sysMsg.ROOM_CREATED_SUCCESSFULLY,
-        ...expectedRoom,
-      });
-    });
   });
 
   describe('findAll', () => {
@@ -177,7 +125,7 @@ describe('RoomService', () => {
       const result = await service.findAll();
 
       expect(modelAction.list).toHaveBeenCalledWith({
-        relations: { streams: true },
+        relations: { current_class: true },
       });
       expect(result).toEqual({
         message: sysMsg.ROOM_LIST_RETRIEVED_SUCCESSFULLY,
@@ -188,14 +136,14 @@ describe('RoomService', () => {
 
   describe('findOne', () => {
     it('returns a room when found', async () => {
-      const room: Room = { id: 'r1', name: 'Room 1', streams: [] } as Room;
+      const room: Room = { id: 'r1', name: 'Room 1' } as Room;
       modelAction.get.mockResolvedValue(room);
 
       const result = await service.findOne('r1');
 
       expect(modelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'r1' },
-        relations: { streams: true },
+        relations: { current_class: true },
       });
       expect(result).toEqual({
         message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,

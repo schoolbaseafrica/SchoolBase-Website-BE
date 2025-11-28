@@ -26,13 +26,9 @@ export const ApiCreateRoom = () =>
           summary: 'Science Lab Example',
           value: {
             name: 'Science Lab A',
-            type: 'PHYSICAL',
+            type: 'Laboratory',
             capacity: 30,
             location: 'North Wing',
-            building: 'Main Block',
-            floor: '2nd Floor',
-            description: 'Physics laboratory with projector',
-            streams: ['uuid-1', 'uuid-2'],
           },
         },
       },
@@ -41,7 +37,6 @@ export const ApiCreateRoom = () =>
       description: sysMsg.ROOM_CREATED_SUCCESSFULLY,
     }),
     ApiConflictResponse({ description: sysMsg.DUPLICATE_ROOM_NAME }),
-    ApiNotFoundResponse({ description: sysMsg.INVALID_STREAM_IDS }),
   );
 
 export const ApiFindAllRooms = () =>
