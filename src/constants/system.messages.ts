@@ -203,6 +203,8 @@ export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
 export const SUBJECT_NOT_FOUND = 'Subject not found';
 export const SUBJECT_UPDATED = 'Subject updated successfully';
 export const SUBJECT_DELETED = 'Subject deleted successfully';
+export const CLASSES_ASSIGNED_TO_SUBJECT =
+  'Classes successfully assigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
