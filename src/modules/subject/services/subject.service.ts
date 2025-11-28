@@ -9,6 +9,11 @@ import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
+import {
+  AcademicSession,
+  SessionStatus,
+} from '../../academic-session/entities/academic-session.entity';
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { ClassSubject } from '../../class/entities/class-subject.entity';
 import { Class } from '../../class/entities/class.entity';
 import { AssignClassesToSubjectDto } from '../dto/assign-classes-to-subject.dto';
@@ -30,6 +35,7 @@ export class SubjectService {
 
   constructor(
     private readonly subjectModelAction: SubjectModelAction,
+    private readonly academicSessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
@@ -190,6 +196,19 @@ export class SubjectService {
     });
   }
 
+  /**
+   * Fetches the active academic session entity.
+   */
+  private async getActiveSession(): Promise<AcademicSession> {
+    const { payload } = await this.academicSessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+    if (!payload.length) throw new NotFoundException('No active session found');
+    if (payload.length > 1)
+      throw new ConflictException('Multiple active sessions found');
+    return payload[0];
+  }
+
   // ASSIGN CLASSES TO SUBJECT
   async assignClassesToSubject(
     subjectId: string,
@@ -202,6 +221,9 @@ export class SubjectService {
       });
       if (!subject) throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
 
+      // Get active session
+      const activeSession = await this.getActiveSession();
+
       // Fetch all classes
       const classes = await manager.find(Class, {
         where: { id: In(dto.classIds) },
@@ -209,6 +231,14 @@ export class SubjectService {
       });
       if (classes.length !== dto.classIds.length)
         throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+
+      // Check if all classes are in the active session
+      const invalidClasses = classes.filter(
+        (cls) => cls.academicSession.id !== activeSession.id,
+      );
+      if (invalidClasses.length > 0) {
+        throw new ConflictException(sysMsg.CLASSES_NOT_IN_ACTIVE_SESSION);
+      }
 
       // Add new links, avoid duplicates
       for (const cls of classes) {

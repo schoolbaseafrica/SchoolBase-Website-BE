@@ -5,6 +5,11 @@ import { DataSource, EntityManager, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
+import {
+  AcademicSession,
+  SessionStatus,
+} from '../../academic-session/entities/academic-session.entity';
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Class } from '../../class/entities/class.entity';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
@@ -22,11 +27,26 @@ describe('SubjectService', () => {
     update: jest.Mock;
     delete: jest.Mock;
   };
+  let academicSessionModelActionMock: {
+    get: jest.Mock;
+    list: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+    delete: jest.Mock;
+  };
   let dataSourceMock: { transaction: jest.Mock };
   const entityManagerMock = { transactionId: 'manager-1' } as unknown;
 
   beforeEach(async () => {
     subjectModelActionMock = {
+      get: jest.fn(),
+      list: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    };
+
+    academicSessionModelActionMock = {
       get: jest.fn(),
       list: jest.fn(),
       create: jest.fn(),
@@ -63,6 +83,10 @@ describe('SubjectService', () => {
               info: jest.fn(),
             }),
           } as unknown as Logger,
+        },
+        {
+          provide: AcademicSessionModelAction,
+          useValue: academicSessionModelActionMock,
         },
       ],
     }).compile();
@@ -433,33 +457,51 @@ describe('SubjectService', () => {
       const subjectId = 'subject-1';
       const dto = { classIds: ['class-1', 'class-2'] };
 
-      const subject = { id: subjectId, name: 'Biology', arm: 'A' };
-      const classes = [
+      const subject: Subject = {
+        id: subjectId,
+        name: 'Biology',
+        classSubjects: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const academicSession: AcademicSession = {
+        id: 'session-1',
+        name: '2024/2025',
+        status: SessionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        startDate: new Date(),
+        endDate: new Date(),
+      };
+
+      const classes: Class[] = [
         {
           id: 'class-1',
           name: 'JSS1',
-          arm: 'A',
-          academicSession: { id: 'session-1', name: '2024/2025' },
-        },
+          academicSession,
+        } as Class,
         {
           id: 'class-2',
           name: 'JSS2',
-          arm: 'B',
-          academicSession: { id: 'session-1', name: '2024/2025' },
-        },
+          academicSession,
+        } as Class,
       ];
 
-      // Mock manager and transaction
-      const manager = {
+      const manager: EntityManager = {
         findOne: jest
           .fn()
-          .mockResolvedValueOnce(subject) // subject exists
-          .mockResolvedValueOnce(null) // classSubject does not exist for class-1
-          .mockResolvedValueOnce(null), // classSubject does not exist for class-2
+          .mockResolvedValueOnce(subject)
+          .mockResolvedValueOnce(null)
+          .mockResolvedValueOnce(null),
         find: jest.fn().mockResolvedValue(classes),
         create: jest.fn(),
         save: jest.fn(),
       } as unknown as EntityManager;
+
+      academicSessionModelActionMock.list.mockResolvedValue({
+        payload: [academicSession],
+      });
 
       service['dataSource'].transaction = jest.fn(
         (
@@ -482,8 +524,8 @@ describe('SubjectService', () => {
 
       const result = await service.assignClassesToSubject(subjectId, dto);
 
-      expect(result).toEqual({
-        message: expect.any(String),
+      const expected = {
+        message: 'Classes successfully assigned to subject',
         id: subjectId,
         subjectId: subjectId,
         name: 'Biology',
@@ -491,17 +533,25 @@ describe('SubjectService', () => {
           {
             id: 'class-1',
             name: 'JSS1',
-            arm: 'A',
-            academicSession: { id: 'session-1', name: '2024/2025' },
+            arm: undefined,
+            academicSession: {
+              id: 'session-1',
+              name: '2024/2025',
+            },
           },
           {
             id: 'class-2',
             name: 'JSS2',
-            arm: 'B',
-            academicSession: { id: 'session-1', name: '2024/2025' },
+            arm: undefined,
+            academicSession: {
+              id: 'session-1',
+              name: '2024/2025',
+            },
           },
         ],
-      });
+      };
+
+      expect(result).toEqual(expected);
       expect(manager.findOne).toHaveBeenCalledWith(Subject, {
         where: { id: subjectId },
       });
@@ -515,9 +565,23 @@ describe('SubjectService', () => {
     it('should throw NotFoundException if subject does not exist', async () => {
       const subjectId = 'subject-1';
       const dto = { classIds: ['class-1'] };
-      const manager = {
+      const manager: EntityManager = {
         findOne: jest.fn().mockResolvedValueOnce(null),
       } as unknown as EntityManager;
+
+      const academicSession: AcademicSession = {
+        id: 'session-1',
+        name: '2024/2025',
+        status: SessionStatus.ACTIVE,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        startDate: new Date(),
+        endDate: new Date(),
+      };
+      academicSessionModelActionMock.list.mockResolvedValue({
+        payload: [academicSession],
+      });
+
       service['dataSource'].transaction = jest.fn(
         (
           ...args:
@@ -545,18 +609,27 @@ describe('SubjectService', () => {
     it('should throw NotFoundException if any class does not exist', async () => {
       const subjectId = 'subject-1';
       const dto = { classIds: ['class-1', 'class-2'] };
-      const subject = { id: subjectId, name: 'Biology' };
-      const manager = {
+      const subject: Subject = { id: subjectId, name: 'Biology' } as Subject;
+      const manager: EntityManager = {
         findOne: jest.fn().mockResolvedValueOnce(subject),
         find: jest.fn().mockResolvedValue([
           {
             id: 'class-1',
             name: 'JSS1',
-            arm: 'A',
-            academicSession: { id: 'session-1', name: '2024/2025' },
-          },
-        ]), // Only one class found
+            academicSession: {
+              id: 'session-1',
+              name: '2024/2025',
+              status: SessionStatus.ACTIVE,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              startDate: new Date(),
+              endDate: new Date(),
+            },
+          } as Class,
+        ]),
       } as unknown as EntityManager;
+
+      academicSessionModelActionMock.list.mockResolvedValue({ payload: [] });
 
       service['dataSource'].transaction = jest.fn(
         (
