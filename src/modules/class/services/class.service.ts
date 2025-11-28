@@ -5,6 +5,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
+import { isUUID } from 'class-validator';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
@@ -97,7 +98,16 @@ export class ClassService {
    * Creates a class and links it to the active academic session.
    */
   async create(createClassDto: CreateClassDto): Promise<ICreateClassResponse> {
-    const { name, arm } = createClassDto;
+    const { name, arm, teacherIds } = createClassDto;
+
+    // Validate teacherIds are valid UUIDs
+    if (Array.isArray(teacherIds)) {
+      for (const teacherId of teacherIds) {
+        if (!isUUID(teacherId)) {
+          throw new BadRequestException(sysMsg.INVALID_TEACHER_ID);
+        }
+      }
+    }
 
     // Fetch active academic session
     const academicSession = await this.getActiveSession();
@@ -129,6 +139,26 @@ export class ClassService {
           transaction: manager,
         },
       });
+
+      // Assign teachers if provided
+      if (Array.isArray(teacherIds) && teacherIds.length) {
+        for (const teacherId of teacherIds) {
+          await this.classTeacherModelAction.create({
+            createPayload: {
+              class: newClass,
+              teacher: { id: teacherId },
+              session_id: academicSession.id,
+              is_active: true,
+              assignment_date: new Date(),
+            },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: manager,
+            },
+          });
+        }
+      }
+
       this.logger.info(sysMsg.CLASS_CREATED, newClass);
       return newClass;
     });
@@ -142,6 +172,7 @@ export class ClassService {
         id: academicSession.id,
         name: academicSession.name,
       },
+      teacherIds: teacherIds || [],
     };
   }
 
@@ -259,9 +290,7 @@ export class ClassService {
     }
 
     return {
-      message: Object.values(grouped).length
-        ? sysMsg.CLASS_FETCHED
-        : sysMsg.NO_CLASS_FOUND,
+      message: sysMsg.CLASS_FETCHED,
       items: Object.values(grouped),
       pagination: paginationMeta,
     };

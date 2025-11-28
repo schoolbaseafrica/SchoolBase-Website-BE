@@ -58,6 +58,14 @@ export const ClassSwagger = {
           enum: ['A', 'B', 'C'],
           required: false,
         },
+        teacherIds: {
+          name: 'teacherIds',
+          description: 'Array of teacher IDs to assign to the class (optional)',
+          type: 'array',
+          items: { type: 'string' },
+          required: false,
+          example: ['teacher-uuid-1', 'teacher-uuid-2'],
+        },
       },
       responses: {
         created: {
@@ -111,19 +119,26 @@ export const ClassSwagger = {
               status_code: { type: 'integer', example: 200 },
               message: {
                 type: 'string',
-                example: 'classes fetched successfully',
+                example: 'class fetched successfully',
               },
               data: {
-                type: 'array',
-                items: { $ref: '#/components/schemas/GroupedClassDto' },
-              },
-              pagination: {
                 type: 'object',
                 properties: {
-                  page: { type: 'integer', example: 1 },
-                  limit: { type: 'integer', example: 20 },
-                  total: { type: 'integer', example: 100 },
-                  totalPages: { type: 'integer', example: 5 },
+                  items: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/GroupedClassDto' },
+                  },
+                  pagination: {
+                    type: 'object',
+                    properties: {
+                      total: { type: 'integer', example: 4 },
+                      limit: { type: 'integer', example: 20 },
+                      page: { type: 'integer', example: 1 },
+                      total_pages: { type: 'integer', example: 1 },
+                      has_next: { type: 'boolean', example: false },
+                      has_previous: { type: 'boolean', example: false },
+                    },
+                  },
                 },
               },
             },

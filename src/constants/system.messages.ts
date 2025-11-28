@@ -131,8 +131,6 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 // Streams
-export const INVALID_STREAM_IDS =
-  'One or more provided Stream IDs are invalid.';
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
 export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
@@ -192,9 +190,10 @@ export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
 export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
 export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
-export const ROOM_ASSIGNED_TO_STREAM = 'Room successfully assigned to stream.';
-export const ROOM_CAPACITY_EXCEEDED = 'Stream size exceeds room capacity.';
+export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+export const CANNOT_DELETE_OCCUPIED_ROOM =
+  'Cannot delete a room that has an active class.';
 
 // Subject messages
 export const SUBJECT_CREATED = 'Subject created successfully';
@@ -224,7 +223,6 @@ export const CLASS_ALREADY_EXIST =
 export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
-export const NO_CLASS_FOUND = 'no classes found.';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 
 // Parent messages
@@ -269,6 +267,9 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+
+// Teacher messages
+export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
 
 // Timetable messages
 export const TIMETABLE_CREATED = 'Timetable created successfully';

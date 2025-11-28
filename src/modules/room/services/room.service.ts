@@ -3,11 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { Stream } from '../../stream/entities/stream.entity';
 import { CreateRoomDTO } from '../dto/create-room-dto';
+import { UpdateRoomDTO } from '../dto/update-room-dto';
+import { Room } from '../entities/room.entity';
 import { RoomModelAction } from '../model-actions/room-model-actions';
 
 @Injectable()
@@ -20,29 +21,19 @@ export class RoomService {
   async create(createRoomDto: CreateRoomDTO) {
     const data = await this.datasource.transaction(async (manager) => {
       const existingRoom = await this.findByName(
-        this.sanitizedName(createRoomDto.name),
+        this.sanitizedField(createRoomDto.name),
       );
 
       if (existingRoom) {
         throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
       }
 
-      let streamEntities: Stream[] = [];
-
-      if (createRoomDto.streams && createRoomDto.streams.length > 0) {
-        streamEntities = await this.validateStreams(createRoomDto.streams);
-      }
-
       const newRoom = await this.roomModelAction.create({
         createPayload: {
-          name: this.sanitizedName(createRoomDto.name),
-          type: createRoomDto.type,
+          name: this.sanitizedField(createRoomDto.name),
+          type: this.sanitizedField(createRoomDto.type),
           capacity: createRoomDto.capacity,
-          location: createRoomDto.location,
-          building: createRoomDto.building,
-          floor: createRoomDto.floor,
-          description: createRoomDto.description,
-          streams: streamEntities,
+          location: this.sanitizedField(createRoomDto.location),
         },
         transactionOptions: {
           useTransaction: true,
@@ -50,7 +41,7 @@ export class RoomService {
         },
       });
 
-      return { message: sysMsg.ROOM_CREATED_SUCCESSFULLY, ...newRoom };
+      return { ...newRoom, message: sysMsg.ROOM_CREATED_SUCCESSFULLY };
     });
 
     return data;
@@ -58,7 +49,7 @@ export class RoomService {
 
   async findAll() {
     const { payload } = await this.roomModelAction.list({
-      relations: { streams: true },
+      relations: { current_class: true },
     });
 
     return {
@@ -67,30 +58,75 @@ export class RoomService {
     };
   }
 
+  async update(id: string, updateRoomDto: UpdateRoomDTO) {
+    const data = await this.datasource.transaction(async (manager) => {
+      const existingRoom = await this.findOne(id);
+
+      if (!existingRoom) {
+        throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+      }
+
+      for (const [key, value] of Object.entries(updateRoomDto)) {
+        if (typeof value === 'string') {
+          const sanitizedVal = this.sanitizedField(value);
+          updateRoomDto[key] = sanitizedVal;
+
+          if (key === 'name') {
+            const duplicate = await this.findByName(sanitizedVal);
+
+            if (duplicate && duplicate.id !== id) {
+              throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
+            }
+          }
+        }
+      }
+
+      Object.assign(existingRoom, updateRoomDto);
+
+      const updatedRoom = await manager.save(Room, existingRoom);
+
+      return updatedRoom;
+    });
+
+    return { ...data, message: sysMsg.ROOM_UPDATED_SUCCESSFULLY };
+  }
+
   async findOne(id: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { id },
-      relations: { streams: true },
+      relations: { current_class: true },
     });
 
     if (!room) {
       throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
     }
 
-    return { message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY, ...room };
+    return { ...room, message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY };
   }
 
-  private async validateStreams(streams: string[]) {
-    const streamRepo = this.datasource.getRepository(Stream);
-    const streamEntities = await streamRepo.findBy({
-      id: In(streams),
+  async remove(id: string) {
+    const data = await this.datasource.transaction(async (manager) => {
+      const room = await this.findOne(id);
+
+      if (!room) {
+        throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
+      }
+
+      if (room.current_class) {
+        throw new ConflictException(sysMsg.CANNOT_DELETE_OCCUPIED_ROOM);
+      }
+
+      await this.roomModelAction.delete({
+        identifierOptions: { id },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+
+      return {
+        message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
+      };
     });
 
-    if (streamEntities.length !== streams.length) {
-      throw new NotFoundException(sysMsg.INVALID_STREAM_IDS);
-    }
-
-    return streamEntities;
+    return data;
   }
 
   private async findByName(name: string) {
@@ -101,7 +137,7 @@ export class RoomService {
     return room;
   }
 
-  private sanitizedName(name: string) {
+  private sanitizedField(name: string) {
     return name.trim().toLowerCase();
   }
 }

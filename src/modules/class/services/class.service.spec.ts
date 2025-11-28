@@ -1,7 +1,7 @@
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
-  BadRequestException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -212,6 +212,7 @@ describe('ClassService', () => {
     const createClassDto = {
       name: 'Grade 10',
       arm: 'A',
+      // teacherIds: ['valid-uuid-1', 'valid-uuid-2'], // Uncomment if teacherIds are supported
     };
     const mockCreatedClass = {
       id: 'class-uuid-1',
@@ -220,10 +221,7 @@ describe('ClassService', () => {
     } as unknown as Class;
 
     it('should successfully create a new class and link it to the active session', async () => {
-      // Setup
-      (classModelAction.find as jest.Mock).mockResolvedValue({
-        payload: [],
-      }); // Class does not exist
+      (classModelAction.find as jest.Mock).mockResolvedValue({ payload: [] });
       (classModelAction.create as jest.Mock).mockResolvedValue(
         mockCreatedClass,
       );
@@ -236,10 +234,8 @@ describe('ClassService', () => {
         paginationMeta: {},
       });
 
-      // Execute
       const result = await service.create(createClassDto);
 
-      // Assertions
       expect(classModelAction.find).toHaveBeenCalledWith({
         findOptions: {
           name: createClassDto.name,
@@ -268,26 +264,32 @@ describe('ClassService', () => {
     });
 
     it('should throw ConflictException if the class already exists in the active session', async () => {
-      // Setup
       (classModelAction.find as jest.Mock).mockResolvedValue({
         payload: [mockCreatedClass],
-      }); // Class already exists
+      });
 
-      // Execute & Assert
       await expect(service.create(createClassDto)).rejects.toThrow(
         ConflictException,
       );
     });
 
     it('should throw NotFoundException if no active academic session is found', async () => {
-      // Setup
       (academicSessionModelAction.list as jest.Mock).mockResolvedValue({
         payload: [],
-      }); // No active session
+      });
 
-      // Execute & Assert
       await expect(service.create(createClassDto)).rejects.toThrow(
         NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException if teacherIds contains invalid UUIDs', async () => {
+      const invalidDto = {
+        ...createClassDto,
+        teacherIds: ['not-a-uuid'],
+      };
+      await expect(service.create(invalidDto)).rejects.toThrow(
+        BadRequestException,
       );
     });
   });
@@ -391,6 +393,7 @@ describe('ClassService', () => {
       );
     });
   });
+
   describe('getGroupedClasses', () => {
     it('should return grouped classes with status_code 200 and message', async () => {
       // Mock grouped data
@@ -440,7 +443,6 @@ describe('ClassService', () => {
 
       const result = await service.getGroupedClasses();
 
-      expect(result.message).toBe(sysMsg.NO_CLASS_FOUND);
       expect(result.items).toEqual([]);
       expect(result.pagination).toBeDefined();
       expect(mockClassModelAction.list).toHaveBeenCalled();

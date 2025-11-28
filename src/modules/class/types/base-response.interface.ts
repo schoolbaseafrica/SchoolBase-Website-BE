@@ -16,6 +16,7 @@ export interface ICreateClassResponse {
     id: string;
     name: string;
   };
+  teacherIds?: string[];
 }
 
 export interface IUpdateClassResponse {
