@@ -226,6 +226,8 @@ export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
+export const CLASSES_NOT_IN_ACTIVE_SESSION =
+  'One or more classes are not in the active academic session';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
