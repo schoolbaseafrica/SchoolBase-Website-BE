@@ -34,7 +34,7 @@ export class CreateScheduleDto {
 
   @ApiPropertyOptional({
     enum: PeriodType,
-    default: PeriodType.ACADEMIC,
+    default: PeriodType.ACADEMICS,
     description: 'Type of the period',
   })
   @IsEnum(PeriodType)

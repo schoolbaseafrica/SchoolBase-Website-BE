@@ -24,7 +24,7 @@ export class Schedule extends BaseEntity {
   @Column({
     type: 'enum',
     enum: PeriodType,
-    default: PeriodType.ACADEMIC,
+    default: PeriodType.ACADEMICS,
   })
   period_type: PeriodType;
 

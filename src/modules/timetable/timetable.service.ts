@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 
+import * as sysMsg from '../../constants/system.messages';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
 import {
@@ -33,7 +34,7 @@ export class TimetableService {
       dto.subject_id = null;
     } else {
       if (!dto.subject_id) {
-        throw new BadRequestException('Subject is required for lessons');
+        throw new BadRequestException(sysMsg.SUBJECT_REQUIRED_FOR_LESSON);
       }
     }
     await this.validationService.validateNewSchedule(dto);

@@ -287,3 +287,6 @@ export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
+export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
+export const TIMETABLE_INTERNAL_OVERLAP =
+  'Timetable contains overlapping schedules.';

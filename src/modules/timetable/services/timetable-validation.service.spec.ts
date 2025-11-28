@@ -38,7 +38,7 @@ describe('TimetableValidationService', () => {
         day: DayOfWeek.MONDAY,
         start_time: '09:00:00',
         end_time: '10:00:00',
-        period_type: PeriodType.ACADEMIC,
+        period_type: PeriodType.ACADEMICS,
       },
     ],
   };
@@ -149,7 +149,7 @@ describe('TimetableValidationService', () => {
       day: DayOfWeek.MONDAY,
       start_time: '09:00:00',
       end_time: '10:00:00',
-      period_type: PeriodType.ACADEMIC,
+      period_type: PeriodType.ACADEMICS,
       subject_id: mockSubjectId,
       teacher_id: mockTeacherId,
     };

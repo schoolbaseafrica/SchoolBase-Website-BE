@@ -193,9 +193,7 @@ export class TimetableValidationService {
               start2: s2.start_time,
               end2: s2.end_time,
             });
-            throw new ConflictException(
-              'Timetable contains overlapping schedules.',
-            );
+            throw new ConflictException(sysMsg.TIMETABLE_INTERNAL_OVERLAP);
           }
         }
       }
