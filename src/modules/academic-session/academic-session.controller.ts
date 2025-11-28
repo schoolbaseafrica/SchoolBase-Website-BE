@@ -21,15 +21,14 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import * as sysMsg from '../../constants/system.messages';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
 import { AcademicSessionService } from './academic-session.service';
+import { DocsCreateAcademicSession } from './docs/academic-session.decorator';
 import { AcademicSessionSwagger } from './docs/academic-session.swagger';
-import { ActivateAcademicSessionDto } from './dto/activate-academic-session.dto';
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
 
@@ -45,40 +44,9 @@ export class AcademicSessionController {
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
-  @ApiOperation(AcademicSessionSwagger.decorators.create.operation)
-  @ApiBody(AcademicSessionSwagger.decorators.create.body)
-  @ApiResponse(AcademicSessionSwagger.decorators.create.response)
+  @DocsCreateAcademicSession()
   create(@Body() createAcademicSessionDto: CreateAcademicSessionDto) {
     return this.academicSessionService.create(createAcademicSessionDto);
-  }
-
-  @Get('active')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation(AcademicSessionSwagger.decorators.activeSession.operation)
-  @ApiResponse(AcademicSessionSwagger.decorators.activeSession.response)
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activeSession.errorResponses[0],
-  )
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activeSession.errorResponses[1],
-  )
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activeSession.errorResponses[2],
-  )
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activeSession.errorResponses[3],
-  )
-  async activeSession() {
-    const session = await this.academicSessionService.activeSessions();
-
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
-      data: session,
-    };
   }
 
   @Get()
@@ -110,24 +78,6 @@ export class AcademicSessionController {
       page: Number.isNaN(parsedPage) ? undefined : parsedPage,
       limit: Number.isNaN(parsedLimit) ? undefined : parsedLimit,
     });
-  }
-
-  @Patch('activate')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation(AcademicSessionSwagger.decorators.activateSession.operation)
-  @ApiBody({ type: ActivateAcademicSessionDto })
-  @ApiResponse(AcademicSessionSwagger.decorators.activateSession.response)
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activateSession.errorResponses[0],
-  )
-  @ApiResponse(
-    AcademicSessionSwagger.decorators.activateSession.errorResponses[1],
-  )
-  async activateSession(@Body() dto: ActivateAcademicSessionDto) {
-    return this.academicSessionService.activateSession(dto.session_id);
   }
 
   @Get(':id')

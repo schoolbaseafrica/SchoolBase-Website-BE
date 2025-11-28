@@ -22,6 +22,8 @@ import {
   DocsUpdateClass,
   DocsGetClassById,
   DocsGetTotalClasses,
+  DocsAssignStudents,
+  DocsGetClassStudents,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
@@ -30,6 +32,9 @@ import {
   UpdateClassDto,
   ClassResponseDto,
   GetTotalClassesQueryDto,
+  AssignStudentsToClassDto,
+  StudentAssignmentResponseDto,
+  GetStudentsQueryDto,
 } from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -68,15 +73,6 @@ export class ClassController {
     return this.classService.updateClass(classId, updateClassDto);
   }
 
-  @Get(':id/teachers')
-  @DocsGetClassTeachers()
-  async getTeachers(
-    @Param('id', ParseUUIDPipe) classId: string,
-    @Query() query: GetTeachersQueryDto,
-  ): Promise<TeacherAssignmentResponseDto[]> {
-    return this.classService.getTeachersByClass(classId, query.session_id);
-  }
-
   // --- GET: TOTAL NUMBER OF CLASSES ---
   @Get('count')
   @DocsGetTotalClasses()
@@ -86,6 +82,35 @@ export class ClassController {
       query.name,
       query.arm,
     );
+  }
+
+  // --- POST: ASSIGN STUDENTS TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students')
+  @DocsAssignStudents()
+  async assignStudents(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() assignStudentsDto: AssignStudentsToClassDto,
+  ) {
+    return this.classService.assignStudentsToClass(classId, assignStudentsDto);
+  }
+
+  // --- GET: GET STUDENTS IN CLASS ---
+  @Get(':id/students')
+  @DocsGetClassStudents()
+  async getStudents(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Query() query: GetStudentsQueryDto,
+  ): Promise<StudentAssignmentResponseDto[]> {
+    return this.classService.getStudentsByClass(classId, query.session_id);
+  }
+
+  @Get(':id/teachers')
+  @DocsGetClassTeachers()
+  async getTeachers(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Query() query: GetTeachersQueryDto,
+  ): Promise<TeacherAssignmentResponseDto[]> {
+    return this.classService.getTeachersByClass(classId, query.session_id);
   }
 
   // --- GET: GET CLASS BY ID (ADMIN ONLY) ---

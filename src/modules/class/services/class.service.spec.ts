@@ -11,8 +11,10 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../../constants/system.messages';
 import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
+import { ClassStudentModelAction } from '../model-actions/class-student.action';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 
@@ -29,7 +31,10 @@ const mockDataSource = {
   createEntityManager: jest.fn(),
   getRepository: jest.fn().mockReturnValue(mockRepository),
   transaction: jest.fn().mockImplementation(async (callback) => {
-    return callback({});
+    const mockManager = {
+      findOne: jest.fn(),
+    };
+    return callback(mockManager);
   }),
 };
 
@@ -75,6 +80,15 @@ describe('ClassService', () => {
     list: jest.fn(),
   };
 
+  const mockClassStudentModelAction = {
+    list: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockStudentModelAction = {
+    get: jest.fn(),
+  };
+
   beforeEach(async () => {
     mockLogger = {
       info: jest.fn(),
@@ -95,6 +109,14 @@ describe('ClassService', () => {
         {
           provide: ClassTeacherModelAction,
           useValue: mockClassTeacherModelAction,
+        },
+        {
+          provide: ClassStudentModelAction,
+          useValue: mockClassStudentModelAction,
+        },
+        {
+          provide: StudentModelAction,
+          useValue: mockStudentModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -313,6 +335,7 @@ describe('ClassService', () => {
       arm: 'A',
       academicSession: mockAcademicSession,
       teacher_assignment: [],
+      student_assignments: [],
       streams: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -381,6 +404,7 @@ describe('ClassService', () => {
             arm: 'B',
             academicSession: mockAcademicSession,
             teacher_assignment: [],
+            student_assignments: [],
             streams: [],
             createdAt: new Date(),
             updatedAt: new Date(),

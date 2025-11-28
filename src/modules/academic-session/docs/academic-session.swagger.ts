@@ -1,4 +1,7 @@
+import { HttpStatus } from '@nestjs/common';
+
 import * as sysMsg from '../../../constants/system.messages';
+import { AcademicSessionResponseDto } from '../dto/academic-session-response.dto';
 import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
 
 /**
@@ -14,72 +17,40 @@ export const AcademicSessionSwagger = {
     'Endpoints for creating, retrieving, updating, and deleting academic sessions.',
   endpoints: {
     create: {
-      summary: 'Create Academic Session',
-      description:
-        'Creates a new academic session. Session name must be unique. Start and end dates must be in the future, and end date must be after start date.',
-      requestBody: {
-        required: true,
-        content: {
-          ['application/json']: {
-            schema: {
-              type: 'object',
-              properties: {
-                name: { type: 'string', maxLength: 100, example: '2024/2025' },
-                startDate: {
-                  type: 'string',
-                  format: 'date',
-                  example: '2024-09-01',
-                },
-                endDate: {
-                  type: 'string',
-                  format: 'date',
-                  example: '2025-06-30',
-                },
-              },
-              required: ['name', 'startDate', 'endDate'],
-              example: {
-                name: '2024/2025',
-                startDate: '2024-09-01',
-                endDate: '2025-06-30',
-              },
-            },
-          },
+      operation: {
+        summary: 'Create Academic Session (Admin)',
+        description:
+          'Creates a new academic session with exactly 3 terms. Session name (academic year) must be unique. The session start date is the start of the first term, and the end date is the end of the third term. Active sessions cannot overlap.',
+      },
+      body: {
+        description: {
+          name: 'description',
+          description:
+            'Optional description for the academic session (max 1000 characters).',
+          required: false,
+        },
+        terms: {
+          name: 'terms',
+          description:
+            'Array of exactly 3 term objects. Terms must be sequential and dates valid. Each term requires startDate, endDate, and optional name.',
+          required: true,
         },
       },
       responses: {
-        ['201']: {
-          description: 'Academic session created successfully.',
-          content: {
-            ['application/json']: {
-              schema: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string', format: 'uuid' },
-                  name: { type: 'string' },
-                  startDate: { type: 'string', format: 'date' },
-                  endDate: { type: 'string', format: 'date' },
-                  status: { type: 'string', enum: ['Active', 'Inactive'] },
-                  createdAt: { type: 'string', format: 'date-time' },
-                  updatedAt: { type: 'string', format: 'date-time' },
-                },
-              },
-              example: {
-                id: '550e8400-e29b-41d4-a716-446655440000',
-                name: '2024/2025',
-                startDate: '2024-09-01',
-                endDate: '2025-06-30',
-                status: 'Inactive',
-                createdAt: '2024-01-15T10:30:00Z',
-                updatedAt: '2024-01-15T10:30:00Z',
-              },
-            },
-          },
+        created: {
+          status: HttpStatus.CREATED,
+          description: sysMsg.ACADEMIC_SESSION_CREATED,
+          type: AcademicSessionResponseDto,
         },
-        ['400']: {
-          description: 'Invalid date range or date in the past.',
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description:
+            'Validation failed: dates invalid, terms not sequential, or other business rules failed.',
         },
-        ['409']: {
-          description: 'Session name already exists.',
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description:
+            'Conflict occurred: session with same academic year exists or ongoing session already active.',
         },
       },
     },
@@ -121,18 +92,42 @@ export const AcademicSessionSwagger = {
               schema: {
                 type: 'object',
                 properties: {
+                  status_code: { type: 'number', example: 200 },
+                  message: {
+                    type: 'string',
+                    example: 'Academic sessions retrieved successfully',
+                  },
                   data: {
                     type: 'array',
                     items: {
                       type: 'object',
                       properties: {
                         id: { type: 'string', format: 'uuid' },
-                        name: { type: 'string' },
+                        academicYear: { type: 'string', example: '2024/2025' },
+                        name: { type: 'string', example: '2024/2025' },
                         startDate: { type: 'string', format: 'date' },
                         endDate: { type: 'string', format: 'date' },
+                        description: { type: 'string', nullable: true },
                         status: {
                           type: 'string',
-                          enum: ['Active', 'Inactive'],
+                          enum: ['Active', 'Archived'],
+                        },
+                        terms: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string', format: 'uuid' },
+                              name: { type: 'string' },
+                              startDate: { type: 'string', format: 'date' },
+                              endDate: { type: 'string', format: 'date' },
+                              status: {
+                                type: 'string',
+                                enum: ['Active', 'Archived'],
+                              },
+                              isCurrent: { type: 'boolean' },
+                            },
+                          },
                         },
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' },
@@ -168,22 +163,30 @@ export const AcademicSessionSwagger = {
                 },
               },
               example: {
+                status_code: 200,
+                message: 'Academic sessions retrieved successfully',
                 data: [
                   {
                     id: '550e8400-e29b-41d4-a716-446655440000',
+                    academicYear: '2024/2025',
                     name: '2024/2025',
                     startDate: '2024-09-01',
                     endDate: '2025-06-30',
-                    status: 'Inactive',
+                    description: null,
+                    status: 'Archived',
+                    terms: [],
                     createdAt: '2024-01-15T10:30:00Z',
                     updatedAt: '2024-01-15T10:30:00Z',
                   },
                   {
                     id: '660e8400-e29b-41d4-a716-446655440001',
+                    academicYear: '2025/2026',
                     name: '2025/2026',
                     startDate: '2025-09-01',
                     endDate: '2026-06-30',
+                    description: 'Current academic session',
                     status: 'Active',
+                    terms: [],
                     createdAt: '2024-01-15T10:30:00Z',
                     updatedAt: '2024-01-15T10:30:00Z',
                   },
@@ -283,78 +286,6 @@ export const AcademicSessionSwagger = {
         },
       },
     },
-    activateSession: {
-      summary: 'Activate Academic Session',
-      description:
-        'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
-      parameters: [
-        {
-          name: 'id',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
-          description: 'The ID of the academic session to activate',
-          example: '550e8400-e29b-41d4-a716-446655440000',
-        },
-      ],
-      responses: {
-        ['200']: {
-          description: 'Session activated successfully.',
-          content: {
-            ['application/json']: {
-              schema: {
-                type: 'object',
-                properties: {
-                  status_code: {
-                    type: 'number',
-                    example: 200,
-                    description: 'HTTP status code',
-                  },
-                  message: {
-                    type: 'string',
-                    example: 'Session activated successfully',
-                  },
-                  data: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string', format: 'uuid' },
-                      name: { type: 'string' },
-                      startDate: { type: 'string', format: 'date' },
-                      endDate: { type: 'string', format: 'date' },
-                      status: {
-                        type: 'string',
-                        enum: ['Active', 'Inactive'],
-                      },
-                      createdAt: { type: 'string', format: 'date-time' },
-                      updatedAt: { type: 'string', format: 'date-time' },
-                    },
-                  },
-                },
-              },
-              example: {
-                status_code: 200,
-                message: 'Session activated successfully',
-                data: {
-                  id: '550e8400-e29b-41d4-a716-446655440000',
-                  name: '2024/2025',
-                  startDate: '2024-09-01',
-                  endDate: '2025-06-30',
-                  status: 'Active',
-                  createdAt: '2024-01-15T10:30:00Z',
-                  updatedAt: '2024-01-15T10:30:00Z',
-                },
-              },
-            },
-          },
-        },
-        ['400']: {
-          description: 'Session not found.',
-        },
-        ['500']: {
-          description: 'Activation failed due to server error.',
-        },
-      },
-    },
   },
   decorators: {
     create: {
@@ -370,9 +301,21 @@ export const AcademicSessionSwagger = {
           example1: {
             summary: '2024/2025 Academic Session',
             value: {
-              name: '2024/2025',
-              startDate: '2024-09-01',
-              endDate: '2025-06-30',
+              description: 'Academic year 2024/2025',
+              terms: [
+                {
+                  startDate: '2024-09-01',
+                  endDate: '2024-12-15',
+                },
+                {
+                  startDate: '2025-01-06',
+                  endDate: '2025-03-28',
+                },
+                {
+                  startDate: '2025-04-14',
+                  endDate: '2025-06-30',
+                },
+              ],
             },
           },
         },
@@ -419,27 +362,6 @@ export const AcademicSessionSwagger = {
         {
           status: 500,
           description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
-        },
-      ],
-    },
-    activateSession: {
-      operation: {
-        summary: 'Activate Academic Session',
-        description:
-          'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
-      },
-      response: {
-        status: 200,
-        description: 'Session activated successfully.',
-      },
-      errorResponses: [
-        {
-          status: 400,
-          description: 'Session not found.',
-        },
-        {
-          status: 500,
-          description: 'Activation failed due to server error.',
         },
       ],
     },
