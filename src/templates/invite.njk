@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Invite to {{ schoolName }}</title>
+    <title>Invite to {{ school_name }}</title>
   </head>
 
   <body style="margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; background-color:#f4f4f4;">
@@ -14,20 +14,14 @@
             
             <tr>
               <td align="center" style="padding:25px 0 30px;">
-                <img src="{{ logoUrl }}" alt="{{ schoolName }} Logo" width="100" height="100" style="display:block; object-fit: contain;" />
-              </td>
-            </tr>
-
-            <tr>
-              <td align="center" style="padding:0 30px 40px 30px;">
-                <img src="https://res.cloudinary.com/dfztkqaea/image/upload/v1764028296/SchoolFolio_20251121_143137_0000_km39df.png" alt="Dashboard Preview" width="640" style="display:block; width:100%; max-width:640px; height:auto !important; border-radius:10px; border:none; outline:none;" />
+                <img src="{{ logo_url }}" alt="{{ school_name }} Logo" width="100" height="100" style="display:block; object-fit: contain;" />
               </td>
             </tr>
 
             <tr>
               <td align="center" style="padding:0 20px 10px;">
                 <h2 style="margin:0; font-size:22px; color:#333333; font-weight:700;">
-                  Welcome to {{ schoolName }}
+                  Welcome to {{ school_name }}
                 </h2>
               </td>
             </tr>
@@ -35,20 +29,19 @@
             <tr>
               <td align="center" style="padding:0 30px 20px;">
                 <p style="margin:0; font-size:14px; line-height:24px; color:#555555;">
-                  Dear {{ firstName }},<br /><br />
+                  Dear {{ first_name }},<br /><br />
 
-                  You have been invited to join <strong>{{ schoolName }}</strong> as a <strong>{{ role }}</strong>.
-                  This role gives you access to manage your designated activities within the school portal.<br /><br />
+                 You have been added as a <strong>{{ role }}</strong> in the {{ school_name }} portal. 
+                 Please click on the button below and follow the instructions to setup your account. 
 
-                  Please click on the button below to accept your invitation and set up your account.<br />
-                  Welcome on board!
+                 <br /> Welcome on board!<br /><br />
                 </p>
               </td>
             </tr>
 
             <tr>
               <td align="center" style="padding:10px 0 30px;">
-                <a href="{{ inviteLink }}" style="background:#d9534f; color:#ffffff; padding:12px 25px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:600; display:inline-block;">
+                <a href="{{ invite_link }}" style="background:#d9534f; color:#ffffff; padding:12px 25px; text-decoration:none; border-radius:5px; font-size:14px; font-weight:600; display:inline-block;">
                   Accept Invite
                 </a>
               </td>
@@ -68,7 +61,7 @@
                 </p>
 
                 <p style="margin:15px 0 0 0; font-size:11px; color:#aaaaaa;">
-                  Copyright © {{ copyRightYear }} {{ schoolName }}. All rights reserved
+                  Copyright © 2025 {{ school_name }}. All rights reserved
                 </p>
               </td>
             </tr>

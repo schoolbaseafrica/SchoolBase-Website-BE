@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsNotEmpty,
@@ -103,4 +103,21 @@ export class ListGroupedClassesDto {
   @Min(1)
   @Type(() => Number)
   limit?: number = 20;
+}
+
+export class GetTotalClassesQueryDto {
+  @ApiPropertyOptional({ description: 'Academic session ID to filter by' })
+  @IsOptional()
+  @IsString()
+  sessionId?: string;
+
+  @ApiPropertyOptional({ description: 'Class name to filter by' })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiPropertyOptional({ description: 'Class arm to filter by' })
+  @IsOptional()
+  @IsString()
+  arm?: string;
 }
