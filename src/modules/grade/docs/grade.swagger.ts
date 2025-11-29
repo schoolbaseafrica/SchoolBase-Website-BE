@@ -246,7 +246,7 @@ export function getStudentGradesDocs() {
     }),
     ApiResponse({
       status: 404,
-      description: 'Student not found or no grades available.',
+      description: 'Student not found',
     }),
   );
 }
