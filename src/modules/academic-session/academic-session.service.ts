@@ -83,7 +83,7 @@ export class AcademicSessionService {
    * Session is Active only if current date is within session date range.
    * This method is automatically called when fetching sessions.
    */
-  private async updateSessionStatus(sessionId: string): Promise<void> {
+  async updateSessionStatus(sessionId: string): Promise<void> {
     const session = await this.sessionModelAction.get({
       identifierOptions: { id: sessionId },
     });

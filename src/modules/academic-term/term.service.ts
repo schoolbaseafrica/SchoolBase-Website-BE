@@ -6,6 +6,8 @@ import {
 import { EntityManager } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
+import { SessionStatus } from '../academic-session/entities';
+import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
 
 import { CreateTermDto } from './dto/create-term.dto';
 import { UpdateTermDto } from './dto/update-term.dto';
@@ -14,7 +16,19 @@ import { TermModelAction } from './model-actions';
 
 @Injectable()
 export class TermService {
-  constructor(private readonly termModelAction: TermModelAction) {}
+  constructor(
+    private readonly termModelAction: TermModelAction,
+    private readonly sessionModelAction: AcademicSessionModelAction,
+  ) {}
+
+  /**
+   * Normalizes a date to midnight (00:00:00) for date-only comparisons
+   */
+  private normalizeDateToMidnight(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
 
   async createTermsForSession(
     sessionId: string,
@@ -24,21 +38,15 @@ export class TermService {
     const createdTermEntities: Term[] = [];
     const termNamesByOrder = [TermName.FIRST, TermName.SECOND, TermName.THIRD];
 
-    // Get current date without time for accurate date-only comparisons
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = this.normalizeDateToMidnight(new Date());
 
     for (let i = 0; i < termDtos.length; i++) {
       const dto = termDtos[i];
       const startDate = new Date(dto.startDate);
       const endDate = new Date(dto.endDate);
 
-      // Create date-only versions for comparison
-      const startDateOnly = new Date(startDate);
-      startDateOnly.setHours(0, 0, 0, 0);
-
-      const endDateOnly = new Date(endDate);
-      endDateOnly.setHours(0, 0, 0, 0);
+      const startDateOnly = this.normalizeDateToMidnight(startDate);
+      const endDateOnly = this.normalizeDateToMidnight(endDate);
 
       // Determine if this term is currently active based on dates
       const isCurrent = now >= startDateOnly && now <= endDateOnly;
@@ -77,17 +85,12 @@ export class TermService {
       order: { startDate: 'ASC' },
     });
 
-    // Get current date without time for accurate comparisons
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const now = this.normalizeDateToMidnight(new Date());
     let hasActiveTerm = false;
 
     for (const term of terms.payload) {
-      const startDateOnly = new Date(term.startDate);
-      startDateOnly.setHours(0, 0, 0, 0);
-
-      const endDateOnly = new Date(term.endDate);
-      endDateOnly.setHours(0, 0, 0, 0);
+      const startDateOnly = this.normalizeDateToMidnight(term.startDate);
+      const endDateOnly = this.normalizeDateToMidnight(term.endDate);
 
       const isInDateRange = now >= startDateOnly && now <= endDateOnly;
       // Status: Active only if current (today is within term dates), otherwise Inactive
@@ -166,8 +169,11 @@ export class TermService {
       throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
     }
 
-    // Prevent modification of inactive terms
-    if (termEntity.status === TermStatus.INACTIVE) {
+    // Only prevent modification of past (archived) terms, allow future terms
+    const today = this.normalizeDateToMidnight(new Date());
+    const termEndDate = this.normalizeDateToMidnight(termEntity.endDate);
+
+    if (today > termEndDate) {
       throw new BadRequestException(sysMsg.ARCHIVED_TERM_LOCKED);
     }
 
@@ -237,12 +243,76 @@ export class TermService {
     // Update active term status after date changes
     await this.updateActiveTermStatus(termEntity.sessionId);
 
+    // Update session start/end dates based on term changes
+    await this.updateSessionDates(termEntity.sessionId);
+
     // Fetch the term again to get updated isCurrent status
     const finalTerm = await this.termModelAction.get({
       identifierOptions: { id },
     });
 
     return finalTerm;
+  }
+
+  /**
+   * Updates the session's start and end dates based on its terms.
+   * Session start = earliest term start, Session end = latest term end.
+   */
+  private async updateSessionDates(sessionId: string): Promise<void> {
+    try {
+      const { payload: terms } = await this.termModelAction.list({
+        filterRecordOptions: { sessionId },
+        order: { startDate: 'ASC' },
+      });
+
+      if (!terms.length) return;
+
+      // Session start is the earliest term start
+      const sessionStart = new Date(
+        Math.min(...terms.map((t) => new Date(t.startDate).getTime())),
+      );
+
+      // Session end is the latest term end
+      const sessionEnd = new Date(
+        Math.max(...terms.map((t) => new Date(t.endDate).getTime())),
+      );
+
+      // Update session with new dates
+      const updatedSession = await this.sessionModelAction.update({
+        identifierOptions: { id: sessionId },
+        updatePayload: {
+          startDate: sessionStart,
+          endDate: sessionEnd,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+      if (!updatedSession) {
+        // Session update failed, but allow term update to succeed
+        return;
+      }
+
+      // Recalculate and update session status based on new dates
+      const today = this.normalizeDateToMidnight(new Date());
+      const startOnly = this.normalizeDateToMidnight(sessionStart);
+      const endOnly = this.normalizeDateToMidnight(sessionEnd);
+
+      const isActive = today >= startOnly && today <= endOnly;
+      const isFuture = today < startOnly;
+      const correctStatus = isActive
+        ? SessionStatus.ACTIVE
+        : isFuture
+          ? SessionStatus.INACTIVE
+          : SessionStatus.ARCHIVED;
+
+      await this.sessionModelAction.update({
+        identifierOptions: { id: sessionId },
+        updatePayload: { status: correctStatus },
+        transactionOptions: { useTransaction: false },
+      });
+    } catch {
+      // Don't throw - allow term update to succeed even if session update fails
+    }
   }
 
   // Internal method: Used by academic-session service to mark terms inactive when session is archived
