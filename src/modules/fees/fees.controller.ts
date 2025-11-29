@@ -54,16 +54,6 @@ export class FeesController {
     };
   }
 
-  @Get(':id')
-  @swaggerGetAFee()
-  async getFeeById(@Param('id') id: string) {
-    const result = await this.feesService.findOne(id);
-    return {
-      message: sysMsg.FEE_RETRIEVED_SUCCESSFULLY,
-      ...result,
-    };
-  }
-
   @Patch(':id')
   @Roles(UserRole.ADMIN)
   @swaggerUpdateFee()
@@ -75,6 +65,16 @@ export class FeesController {
     return {
       message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
       fee,
+    };
+  }
+
+  @Get(':id')
+  @swaggerGetAFee()
+  async getFeeById(@Param('id') id: string) {
+    const result = await this.feesService.findOne(id);
+    return {
+      message: sysMsg.FEE_RETRIEVED_SUCCESSFULLY,
+      ...result,
     };
   }
 }
