@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -12,7 +13,8 @@ import {
 } from '../academic-term/entities/term.entity';
 import { UserRole } from '../shared/enums';
 
-import { CreateFeesDto, QueryFeesDto } from './dto/fees.dto';
+import { DeactivateFeeDto } from './dto/deactivate-fee.dto';
+import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesController } from './fees.controller';
@@ -30,11 +32,21 @@ describe('FeesController', () => {
     class_ids: ['c5d4e3f2-g1h0-9876-5432-10abcdef9876'],
   };
 
+  const mockUpdateFeesDto: UpdateFeesDto = {
+    component_name: 'Updated Fee',
+    amount: 600,
+  };
+
+  const mockDeactivateFeeDto: DeactivateFeeDto = {
+    reason: 'No longer applicable',
+  };
+
   const mockUser = {
     user: {
       userId: 'user-123',
     },
   };
+
   const mockTerm: Term = {
     id: 'term-123',
     sessionId: 'session-456',
@@ -79,6 +91,8 @@ describe('FeesController', () => {
           useValue: {
             create: jest.fn(),
             findAll: jest.fn(),
+            update: jest.fn(),
+            deactivate: jest.fn(),
           },
         },
       ],
@@ -280,28 +294,6 @@ describe('FeesController', () => {
       await expect(
         controller.createFee(mockCreateFeesDto, mockUser),
       ).rejects.toThrow(validationError);
-    });
-  });
-
-  describe('Guards and Decorators', () => {
-    it('should have JwtAuthGuard applied', () => {
-      const guards = Reflect.getMetadata('__guards__', FeesController);
-      expect(guards).toBeDefined();
-    });
-
-    it('should have RolesGuard applied', () => {
-      const guards = Reflect.getMetadata('__guards__', FeesController);
-      expect(guards).toBeDefined();
-    });
-
-    it('should require ADMIN role for createFee', () => {
-      const roles = Reflect.getMetadata('roles', controller.createFee);
-      expect(roles).toContain(UserRole.ADMIN);
-    });
-
-    it('should have correct route path', () => {
-      const path = Reflect.getMetadata('path', FeesController);
-      expect(path).toBe('fees');
     });
   });
 
@@ -509,6 +501,109 @@ describe('FeesController', () => {
       await controller.getAllFees(queryDto);
 
       expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+  });
+
+  describe('updateFee', () => {
+    it('should update a fee successfully', async () => {
+      service.update.mockResolvedValue(mockFee);
+
+      const result = await controller.updateFee('fee-123', mockUpdateFeesDto);
+
+      expect(service.update).toHaveBeenCalledWith('fee-123', mockUpdateFeesDto);
+      expect(result).toEqual({
+        message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
+        fee: mockFee,
+      });
+    });
+
+    it('should handle fee not found during update', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.update.mockRejectedValue(notFoundError);
+
+      await expect(
+        controller.updateFee('invalid-id', mockUpdateFeesDto),
+      ).rejects.toThrow(notFoundError);
+    });
+  });
+
+  describe('deactivateFee', () => {
+    it('should deactivate a fee successfully', async () => {
+      service.deactivate.mockResolvedValue(mockFee);
+
+      const result = await controller.deactivateFee(
+        'fee-123',
+        mockDeactivateFeeDto,
+        mockUser,
+      );
+
+      expect(service.deactivate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+        mockDeactivateFeeDto.reason,
+      );
+      expect(result).toEqual({
+        message: sysMsg.FEE_DEACTIVATED_SUCCESSFULLY,
+        data: mockFee,
+      });
+    });
+
+    it('should handle fee not found', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.deactivate.mockRejectedValue(notFoundError);
+
+      await expect(
+        controller.deactivateFee('invalid-id', mockDeactivateFeeDto, mockUser),
+      ).rejects.toThrow(notFoundError);
+    });
+
+    it('should call deactivate without reason when not provided', async () => {
+      const deactivateDtoWithoutReason = {};
+      service.deactivate.mockResolvedValue(mockFee);
+
+      await controller.deactivateFee(
+        'fee-123',
+        deactivateDtoWithoutReason as DeactivateFeeDto,
+        mockUser,
+      );
+
+      expect(service.deactivate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+        undefined,
+      );
+    });
+  });
+
+  describe('Guards and Decorators', () => {
+    it('should have JwtAuthGuard applied', () => {
+      const guards = Reflect.getMetadata('__guards__', FeesController);
+      expect(guards).toBeDefined();
+    });
+
+    it('should have RolesGuard applied', () => {
+      const guards = Reflect.getMetadata('__guards__', FeesController);
+      expect(guards).toBeDefined();
+    });
+
+    it('should require ADMIN role for createFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.createFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should require ADMIN role for updateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.updateFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should require ADMIN role for deactivateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.deactivateFee);
+      expect(roles).toContain(UserRole.ADMIN);
+    });
+
+    it('should have correct route path', () => {
+      const path = Reflect.getMetadata('path', FeesController);
+      expect(path).toBe('fees');
     });
   });
 });

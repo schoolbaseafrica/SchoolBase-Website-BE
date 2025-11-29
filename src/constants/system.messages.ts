@@ -378,6 +378,9 @@ export const TEACHER_PROFILE_NOT_FOUND =
 export const UNAUTHORIZED_GRADE_ACCESS =
   'You are not authorized to access this grade submission';
 export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
+export const FEE_DEACTIVATED_SUCCESSFULLY =
+  'Fee component deactivated successfully';
+export const FEE_ALREADY_INACTIVE = 'Fee component is already inactive';
 // Superadmin messages
 export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
 export const SUPERADMIN_PASSWORDS_REQUIRED =

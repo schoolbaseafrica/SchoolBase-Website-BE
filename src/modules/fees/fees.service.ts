@@ -240,4 +240,52 @@ export class FeesService {
       return updatedFee;
     });
   }
+
+  // fees.service.ts - Fix the deactivate method
+
+  async deactivate(
+    id: string,
+    deactivatedBy: string,
+    reason?: string,
+  ): Promise<Fees> {
+    // Find the fee component - get method doesn't need transactionOptions
+    const fee = await this.feesModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    // Check if already inactive (idempotent)
+    if (fee.status === FeeStatus.INACTIVE) {
+      this.logger.info('Fee component is already inactive', {
+        fee_id: id,
+        deactivated_by: deactivatedBy,
+      });
+      return fee;
+    }
+
+    // Update status to inactive with transactionOptions (only update needs it)
+    const updatedFee = await this.feesModelAction.update({
+      identifierOptions: { id },
+      updatePayload: {
+        status: FeeStatus.INACTIVE,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info('Fee component deactivated successfully', {
+      fee_id: id,
+      component_name: fee.component_name,
+      deactivated_by: deactivatedBy,
+      reason,
+      previous_status: fee.status,
+      new_status: FeeStatus.INACTIVE,
+    });
+
+    return updatedFee;
+  }
 }
