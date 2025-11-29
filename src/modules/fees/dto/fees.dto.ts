@@ -1,5 +1,6 @@
 import { PartialType } from '@nestjs/mapped-types';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   IsEnum,
   IsNotEmpty,
@@ -7,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsArray,
+  IsInt,
   Min,
 } from 'class-validator';
 
@@ -129,39 +131,58 @@ export class UpdateFeesDto extends PartialType(CreateFeesDto) {
 }
 
 export class QueryFeesDto {
-  @ApiProperty({
-    description: 'Filter by the fee status.',
+  @ApiPropertyOptional({
+    description:
+      'Filter by the fee status. Defaults to ACTIVE if not specified.',
     enum: FeeStatus,
-    required: false,
   })
   @IsEnum(FeeStatus)
   @IsOptional()
   status?: FeeStatus;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Filter fees by a specific class ID.',
     example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
-    required: false,
   })
   @IsString()
   @IsOptional()
   class_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Filter fees by a specific academic term ID.',
     example: 'a9b8c7d6-e5f4-3210-fedc-ba9876543210',
-    required: false,
   })
   @IsString()
   @IsOptional()
   term_id?: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Search term for filtering by component name or description.',
     example: 'tuition',
-    required: false,
   })
   @IsString()
   @IsOptional()
   search?: string;
+
+  @ApiPropertyOptional({
+    description: 'Page number for pagination',
+    default: 1,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({
+    description: 'Items per page for pagination',
+    default: 20,
+    minimum: 1,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  limit?: number = 20;
 }

@@ -12,7 +12,7 @@ import {
 } from '../academic-term/entities/term.entity';
 import { UserRole } from '../shared/enums';
 
-import { CreateFeesDto } from './dto/fees.dto';
+import { CreateFeesDto, QueryFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesController } from './fees.controller';
@@ -78,6 +78,7 @@ describe('FeesController', () => {
           provide: FeesService,
           useValue: {
             create: jest.fn(),
+            findAll: jest.fn(),
           },
         },
       ],
@@ -301,6 +302,213 @@ describe('FeesController', () => {
     it('should have correct route path', () => {
       const path = Reflect.getMetadata('path', FeesController);
       expect(path).toBe('fees');
+    });
+  });
+
+  describe('getAllFees', () => {
+    const mockQueryDto: QueryFeesDto = {
+      page: 1,
+      limit: 20,
+    };
+
+    const mockFeesResult = {
+      fees: [mockFee],
+      total: 1,
+      page: 1,
+      limit: 20,
+      totalPages: 1,
+    };
+
+    it('should be defined', () => {
+      expect(controller.getAllFees).toBeDefined();
+    });
+
+    it('should successfully retrieve all fees', async () => {
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      const result = await controller.getAllFees(mockQueryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(mockQueryDto);
+      expect(service.findAll).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
+        fees: mockFeesResult.fees,
+        total: mockFeesResult.total,
+        page: mockFeesResult.page,
+        limit: mockFeesResult.limit,
+        totalPages: mockFeesResult.totalPages,
+      });
+    });
+
+    it('should pass query parameters to service', async () => {
+      const queryWithFilters: QueryFeesDto = {
+        status: FeeStatus.ACTIVE,
+        class_id: 'class-123',
+        term_id: 'term-123',
+        search: 'tuition',
+        page: 2,
+        limit: 10,
+      };
+
+      service.findAll.mockResolvedValue({
+        ...mockFeesResult,
+        page: 2,
+        limit: 10,
+      });
+
+      await controller.getAllFees(queryWithFilters);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryWithFilters);
+    });
+
+    it('should return correct response structure', async () => {
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      const result = await controller.getAllFees(mockQueryDto);
+
+      expect(result).toHaveProperty('message');
+      expect(result).toHaveProperty('fees');
+      expect(result).toHaveProperty('total');
+      expect(result).toHaveProperty('page');
+      expect(result).toHaveProperty('limit');
+      expect(result).toHaveProperty('totalPages');
+      expect(result.message).toBe(sysMsg.FEES_RETRIEVED_SUCCESSFULLY);
+    });
+
+    it('should handle empty results', async () => {
+      const emptyResult = {
+        fees: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+        totalPages: 0,
+      };
+
+      service.findAll.mockResolvedValue(emptyResult);
+
+      const result = await controller.getAllFees(mockQueryDto);
+
+      expect(result.fees).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(0);
+    });
+
+    it('should handle pagination correctly', async () => {
+      const paginatedResult = {
+        fees: [mockFee],
+        total: 50,
+        page: 3,
+        limit: 10,
+        totalPages: 5,
+      };
+
+      service.findAll.mockResolvedValue(paginatedResult);
+
+      const queryDto: QueryFeesDto = {
+        page: 3,
+        limit: 10,
+      };
+
+      const result = await controller.getAllFees(queryDto);
+
+      expect(result.page).toBe(3);
+      expect(result.limit).toBe(10);
+      expect(result.totalPages).toBe(5);
+      expect(result.total).toBe(50);
+    });
+
+    it('should propagate service errors', async () => {
+      const serviceError = new Error('Database connection failed');
+      service.findAll.mockRejectedValue(serviceError);
+
+      await expect(controller.getAllFees(mockQueryDto)).rejects.toThrow(
+        serviceError,
+      );
+
+      expect(service.findAll).toHaveBeenCalledWith(mockQueryDto);
+    });
+
+    it('should handle filtering by status', async () => {
+      const queryDto: QueryFeesDto = {
+        status: FeeStatus.INACTIVE,
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle filtering by class_id', async () => {
+      const queryDto: QueryFeesDto = {
+        class_id: 'class-123',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle filtering by term_id', async () => {
+      const queryDto: QueryFeesDto = {
+        term_id: 'term-123',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle search query', async () => {
+      const queryDto: QueryFeesDto = {
+        search: 'library',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should handle multiple filters combined', async () => {
+      const queryDto: QueryFeesDto = {
+        status: FeeStatus.ACTIVE,
+        class_id: 'class-123',
+        term_id: 'term-123',
+        search: 'tuition',
+        page: 1,
+        limit: 20,
+      };
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+
+    it('should use default pagination when not provided', async () => {
+      const queryDto: QueryFeesDto = {};
+
+      service.findAll.mockResolvedValue(mockFeesResult);
+
+      await controller.getAllFees(queryDto);
+
+      expect(service.findAll).toHaveBeenCalledWith(queryDto);
     });
   });
 });

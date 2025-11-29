@@ -1,7 +1,8 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -14,7 +15,7 @@ import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
-import { CreateFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesService } from './fees.service';
@@ -49,6 +50,10 @@ describe('FeesService', () => {
     save: jest.fn(),
   };
 
+  const mockFeesRepository = {
+    createQueryBuilder: jest.fn(),
+  };
+
   const mockTermModelAction = {
     get: jest.fn(),
   };
@@ -80,6 +85,10 @@ describe('FeesService', () => {
         {
           provide: DataSource,
           useValue: mockDataSource,
+        },
+        {
+          provide: getRepositoryToken(Fees),
+          useValue: mockFeesRepository,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -326,6 +335,328 @@ describe('FeesService', () => {
           class_count: 1,
         }),
       );
+    });
+  });
+
+  describe('findAll', () => {
+    let mockQueryBuilder: jest.Mocked<SelectQueryBuilder<Fees>>;
+
+    const mockTerm: Term = {
+      id: 'term-123',
+      name: TermName.FIRST,
+      sessionId: 'session-123',
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-04-30'),
+      status: TermStatus.ACTIVE,
+      isCurrent: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Term;
+
+    const mockClasses: Class[] = [
+      {
+        id: 'class-1',
+        name: 'Grade 1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Class,
+      {
+        id: 'class-2',
+        name: 'Grade 2',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Class,
+    ];
+
+    const mockFees: Fees[] = [
+      {
+        id: 'fee-1',
+        component_name: 'Tuition Fee',
+        description: 'Quarterly tuition fee',
+        amount: 5000,
+        term_id: 'term-123',
+        term: mockTerm,
+        classes: mockClasses,
+        status: FeeStatus.ACTIVE,
+        created_by: 'admin-123',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Fees,
+      {
+        id: 'fee-2',
+        component_name: 'Library Fee',
+        description: 'Library access fee',
+        amount: 1000,
+        term_id: 'term-123',
+        term: mockTerm,
+        classes: [mockClasses[0]],
+        status: FeeStatus.ACTIVE,
+        created_by: 'admin-123',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Fees,
+    ];
+
+    beforeEach(() => {
+      mockQueryBuilder = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getCount: jest.fn(),
+        getMany: jest.fn(),
+      } as unknown as jest.Mocked<SelectQueryBuilder<Fees>>;
+
+      mockFeesRepository.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
+    });
+
+    it('should return all active fees by default', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(2);
+      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+
+      const queryDto: QueryFeesDto = {
+        page: 1,
+        limit: 20,
+      };
+
+      const result = await service.findAll(queryDto);
+
+      expect(mockFeesRepository.createQueryBuilder).toHaveBeenCalledWith('fee');
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'fee.term',
+        'term',
+      );
+      expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith(
+        'fee.classes',
+        'classes',
+      );
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
+        'fee.createdAt',
+        'DESC',
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'fee.status = :status',
+        { status: FeeStatus.ACTIVE },
+      );
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(20);
+      expect(result).toEqual({
+        fees: mockFees,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fetched fee components',
+        expect.objectContaining({
+          total: 2,
+          page: 1,
+          limit: 20,
+        }),
+      );
+    });
+
+    it('should filter by status when provided', async () => {
+      const inactiveFees = [
+        {
+          ...mockFees[0],
+          status: FeeStatus.INACTIVE,
+        },
+      ];
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getMany.mockResolvedValue(inactiveFees);
+
+      const queryDto: QueryFeesDto = {
+        status: FeeStatus.INACTIVE,
+        page: 1,
+        limit: 20,
+      };
+
+      const result = await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'fee.status = :status',
+        { status: FeeStatus.INACTIVE },
+      );
+      expect(result.fees).toEqual(inactiveFees);
+      expect(result.total).toBe(1);
+    });
+
+    it('should filter by term_id when provided', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(2);
+      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+
+      const queryDto: QueryFeesDto = {
+        term_id: 'term-123',
+        page: 1,
+        limit: 20,
+      };
+
+      await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'fee.term_id = :term_id',
+        { term_id: 'term-123' },
+      );
+    });
+
+    it('should filter by class_id when provided', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getMany.mockResolvedValue([mockFees[0]]);
+
+      const queryDto: QueryFeesDto = {
+        class_id: 'class-1',
+        page: 1,
+        limit: 20,
+      };
+
+      await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'classes.id = :class_id',
+        { class_id: 'class-1' },
+      );
+    });
+
+    it('should filter by search term when provided', async () => {
+      const searchResults = [mockFees[0]];
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getMany.mockResolvedValue(searchResults);
+
+      const queryDto: QueryFeesDto = {
+        search: 'tuition',
+        page: 1,
+        limit: 20,
+      };
+
+      await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        '(fee.component_name ILIKE :search OR fee.description ILIKE :search)',
+        { search: '%tuition%' },
+      );
+    });
+
+    it('should handle pagination correctly', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(50);
+      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+
+      const queryDto: QueryFeesDto = {
+        page: 2,
+        limit: 10,
+      };
+
+      const result = await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(10);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(10);
+      expect(result.totalPages).toBe(5);
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(10);
+    });
+
+    it('should combine multiple filters', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(1);
+      mockQueryBuilder.getMany.mockResolvedValue([mockFees[0]]);
+
+      const queryDto: QueryFeesDto = {
+        status: FeeStatus.ACTIVE,
+        term_id: 'term-123',
+        class_id: 'class-1',
+        search: 'tuition',
+        page: 1,
+        limit: 20,
+      };
+
+      await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(4);
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'fee.status = :status',
+        { status: FeeStatus.ACTIVE },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'fee.term_id = :term_id',
+        { term_id: 'term-123' },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        'classes.id = :class_id',
+        { class_id: 'class-1' },
+      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+        '(fee.component_name ILIKE :search OR fee.description ILIKE :search)',
+        { search: '%tuition%' },
+      );
+    });
+
+    it('should handle empty search term gracefully', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(2);
+      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+
+      const queryDto: QueryFeesDto = {
+        search: '   ',
+        page: 1,
+        limit: 20,
+      };
+
+      await service.findAll(queryDto);
+
+      // Should not call andWhere for search when search is empty/whitespace
+      const searchCalls = mockQueryBuilder.andWhere.mock.calls.filter(
+        (call) => {
+          const firstArg = call[0];
+          return typeof firstArg === 'string' && firstArg.includes('ILIKE');
+        },
+      );
+      expect(searchCalls).toHaveLength(0);
+    });
+
+    it('should handle zero results', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(0);
+      mockQueryBuilder.getMany.mockResolvedValue([]);
+
+      const queryDto: QueryFeesDto = {
+        page: 1,
+        limit: 20,
+      };
+
+      const result = await service.findAll(queryDto);
+
+      expect(result.fees).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.totalPages).toBe(0);
+    });
+
+    it('should use default pagination values when not provided', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(2);
+      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+
+      const queryDto: QueryFeesDto = {};
+
+      const result = await service.findAll(queryDto);
+
+      expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
+      expect(mockQueryBuilder.take).toHaveBeenCalledWith(20);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+    });
+
+    it('should calculate totalPages correctly for odd totals', async () => {
+      mockQueryBuilder.getCount.mockResolvedValue(25);
+      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+
+      const queryDto: QueryFeesDto = {
+        page: 1,
+        limit: 10,
+      };
+
+      const result = await service.findAll(queryDto);
+
+      expect(result.totalPages).toBe(3); // Math.ceil(25/10) = 3
     });
   });
 

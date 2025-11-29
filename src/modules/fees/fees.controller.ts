@@ -1,7 +1,9 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Query,
   UseGuards,
   Request,
   Patch,
@@ -14,8 +16,12 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
-import { swaggerCreateFee, swaggerUpdateFee } from './docs/fees.swagger';
-import { CreateFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import {
+  swaggerCreateFee,
+  swaggerGetAllFees,
+  swaggerUpdateFee,
+} from './docs/fees.swagger';
+import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { FeesService } from './fees.service';
 
 @Controller('fees')
@@ -34,6 +40,16 @@ export class FeesController {
     return {
       message: sysMsg.FEE_CREATED_SUCCESSFULLY,
       fee,
+    };
+  }
+
+  @Get()
+  @swaggerGetAllFees()
+  async getAllFees(@Query() queryDto: QueryFeesDto) {
+    const result = await this.feesService.findAll(queryDto);
+    return {
+      message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
+      ...result,
     };
   }
 

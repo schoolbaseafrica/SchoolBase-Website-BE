@@ -66,6 +66,12 @@ export class FeesResponseDto {
 
 export class FeesListResponseDto {
   @ApiProperty({
+    example: 'Fee components retrieved successfully',
+    description: 'Success message',
+  })
+  message: string;
+
+  @ApiProperty({
     type: [FeesResponseDto],
     description: 'Array of fee components.',
     isArray: true,
@@ -91,6 +97,13 @@ export class FeesListResponseDto {
     description: 'Items per page (if paginated).',
   })
   limit?: number;
+
+  @ApiProperty({
+    example: 3,
+    required: false,
+    description: 'Total number of pages.',
+  })
+  totalPages?: number;
 }
 
 export class CreateFeeResponseDto {
