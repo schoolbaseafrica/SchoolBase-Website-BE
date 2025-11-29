@@ -43,7 +43,7 @@ export class AcademicSessionController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.CREATED)
   @DocsCreateAcademicSession()
   create(@Body() createAcademicSessionDto: CreateAcademicSessionDto) {
     return this.academicSessionService.create(createAcademicSessionDto);

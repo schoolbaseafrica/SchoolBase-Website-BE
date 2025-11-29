@@ -7,6 +7,7 @@ import {
   AddScheduleDto,
   GetTimetableResponseDto,
   ScheduleResponseDto,
+  UpdateScheduleDto,
 } from './dto/timetable.dto';
 import { PeriodType } from './enums/timetable.enums';
 import { ScheduleModelAction } from './model-actions/schedule.model-action';
@@ -122,6 +123,22 @@ export class TimetableService {
 
   async remove() {
     return 'returns remove response';
+  }
+
+  async editSchedule(scheduleId: string, dto: UpdateScheduleDto) {
+    // Validate the update
+    await this.validationService.validateUpdateSchedule(scheduleId, dto);
+
+    // Update the schedule
+    const updatedSchedule = await this.scheduleModelAction.update({
+      updatePayload: dto,
+      identifierOptions: { id: scheduleId },
+      transactionOptions: { useTransaction: false },
+    });
+
+    // Remove timetable relation from response
+    delete updatedSchedule.timetable;
+    return updatedSchedule;
   }
 
   async archive() {

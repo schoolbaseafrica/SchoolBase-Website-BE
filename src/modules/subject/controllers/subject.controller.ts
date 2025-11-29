@@ -24,7 +24,9 @@ import {
   ApiFindOneSubject,
   ApiUpdateSubject,
   ApiDeleteSubject,
+  ApiAssignClassesToSubject,
 } from '../docs/subject.swagger';
+import { AssignClassesToSubjectDto } from '../dto/assign-classes-to-subject.dto';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { ListSubjectsDto } from '../dto/list-subjects.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
@@ -43,6 +45,17 @@ export class SubjectController {
   @ApiCreateSubject()
   create(@Body() createSubjectDto: CreateSubjectDto) {
     return this.subjectService.create(createSubjectDto);
+  }
+
+  @Post(':subjectId/assign-classes')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiAssignClassesToSubject()
+  assignClassesToSubject(
+    @Param('subjectId') subjectId: string,
+    @Body() dto: AssignClassesToSubjectDto,
+  ) {
+    return this.subjectService.assignClassesToSubject(subjectId, dto);
   }
 
   @Get()

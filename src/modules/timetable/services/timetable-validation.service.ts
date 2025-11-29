@@ -72,6 +72,71 @@ export class TimetableValidationService {
   }
 
   /**
+   * Validates an update to an existing schedule
+   */
+  async validateUpdateSchedule(
+    scheduleId: string,
+    dto: Partial<CreateScheduleDto>,
+  ): Promise<void> {
+    // Get the existing schedule
+    const existingSchedule =
+      await this.scheduleModelAction.getScheduleWithTimetable(scheduleId);
+
+    if (!existingSchedule) {
+      this.logger.warn('Schedule not found', { schedule_id: scheduleId });
+      throw new NotFoundException(sysMsg.RESOURCE_NOT_FOUND);
+    }
+
+    // Validate time range if both times are provided
+    if (dto.start_time && dto.end_time) {
+      this.validateTimeRange(dto.start_time, dto.end_time);
+    } else if (dto.start_time || dto.end_time) {
+      // If only one time is provided, use the existing one for validation
+      const startTime = dto.start_time || existingSchedule.start_time;
+      const endTime = dto.end_time || existingSchedule.end_time;
+      this.validateTimeRange(startTime, endTime);
+    }
+
+    // Validate foreign keys if provided
+    if (dto.subject_id || dto.teacher_id) {
+      await this.validateScheduleForeignKeys([
+        {
+          subject_id: dto.subject_id,
+          teacher_id: dto.teacher_id,
+        } as CreateScheduleDto,
+      ]);
+    }
+
+    // Determine the effective values for validation
+    const effectiveDay = dto.day ?? existingSchedule.day;
+    const effectiveStartTime = dto.start_time ?? existingSchedule.start_time;
+    const effectiveEndTime = dto.end_time ?? existingSchedule.end_time;
+    const effectiveTeacherId = dto.teacher_id ?? existingSchedule.teacher_id;
+
+    // Validate class/day overlaps (exclude the current schedule)
+    await this.validateClassDayOverlap(
+      existingSchedule.timetable.class_id,
+      effectiveDay,
+      effectiveStartTime,
+      effectiveEndTime,
+      undefined,
+      scheduleId,
+    );
+
+    // Validate teacher double-booking if teacher is assigned
+    if (effectiveTeacherId) {
+      await this.validateTeacherDoubleBooking(
+        effectiveTeacherId,
+        effectiveDay,
+        effectiveStartTime,
+        effectiveEndTime,
+        undefined,
+        scheduleId,
+      );
+    }
+  }
+
+  /**
    * Validates all timetable business rules
    * @param dto - Timetable creation/update DTO
    * @param excludeTimetableId - Optional ID to exclude from overlap checks (for updates)
@@ -206,6 +271,7 @@ export class TimetableValidationService {
     startTime: string,
     endTime: string,
     excludeTimetableId?: string,
+    excludeScheduleId?: string,
   ): Promise<void> {
     const existingSchedules = await this.scheduleModelAction.findClassSchedules(
       classId,
@@ -214,6 +280,9 @@ export class TimetableValidationService {
 
     for (const existing of existingSchedules) {
       if (excludeTimetableId && existing.timetable.id === excludeTimetableId) {
+        continue;
+      }
+      if (excludeScheduleId && existing.id === excludeScheduleId) {
         continue;
       }
 
@@ -245,12 +314,16 @@ export class TimetableValidationService {
     startTime: string,
     endTime: string,
     excludeTimetableId?: string,
+    excludeScheduleId?: string,
   ): Promise<void> {
     const existingSchedules =
       await this.scheduleModelAction.findTeacherSchedules(teacherId, day);
 
     for (const existing of existingSchedules) {
       if (excludeTimetableId && existing.timetable.id === excludeTimetableId) {
+        continue;
+      }
+      if (excludeScheduleId && existing.id === excludeScheduleId) {
         continue;
       }
 

@@ -2,7 +2,6 @@ import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionResponseDto } from '../dto/academic-session-response.dto';
-import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
 
 /**
  * Swagger documentation for Academic Session endpoints.
@@ -21,20 +20,6 @@ export const AcademicSessionSwagger = {
         summary: 'Create Academic Session (Admin)',
         description:
           'Creates a new academic session with exactly 3 terms. Session name (academic year) must be unique. The session start date is the start of the first term, and the end date is the end of the third term. Active sessions cannot overlap.',
-      },
-      body: {
-        description: {
-          name: 'description',
-          description:
-            'Optional description for the academic session (max 1000 characters).',
-          required: false,
-        },
-        terms: {
-          name: 'terms',
-          description:
-            'Array of exactly 3 term objects. Terms must be sequential and dates valid. Each term requires startDate, endDate, and optional name.',
-          required: true,
-        },
       },
       responses: {
         created: {
@@ -288,43 +273,6 @@ export const AcademicSessionSwagger = {
     },
   },
   decorators: {
-    create: {
-      operation: {
-        summary: 'Create Academic Session',
-        description:
-          'Creates a new academic session. Session name must be unique. Start and end dates must be in the future, and end date must be after start date.',
-      },
-      body: {
-        type: CreateAcademicSessionDto,
-        description: 'Create academic session payload',
-        examples: {
-          example1: {
-            summary: '2024/2025 Academic Session',
-            value: {
-              description: 'Academic year 2024/2025',
-              terms: [
-                {
-                  startDate: '2024-09-01',
-                  endDate: '2024-12-15',
-                },
-                {
-                  startDate: '2025-01-06',
-                  endDate: '2025-03-28',
-                },
-                {
-                  startDate: '2025-04-14',
-                  endDate: '2025-06-30',
-                },
-              ],
-            },
-          },
-        },
-      },
-      response: {
-        status: 201,
-        description: 'Academic session created successfully.',
-      },
-    },
     findAll: {
       operation: {
         summary: 'Get All Academic Sessions',
