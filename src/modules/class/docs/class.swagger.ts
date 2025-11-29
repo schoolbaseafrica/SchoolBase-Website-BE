@@ -260,6 +260,61 @@ export const ClassSwagger = {
         },
       },
     },
+    deleteClass: {
+      operation: {
+        summary: 'Delete a class (Admin)',
+        description:
+          'Attention! Soft deletes a class by ID. Only classes from the active session can be deleted. Classes from past sessions cannot be deleted to preserve historical records.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID to delete',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.CLASS_DELETED,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 200 },
+              message: { type: 'string', example: sysMsg.CLASS_DELETED },
+            },
+          },
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 400 },
+              message: {
+                example: sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS,
+              },
+              warning: {
+                type: 'string',
+                example:
+                  'This class belongs to a past session and cannot be deleted to preserve historical records.',
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: sysMsg.CLASS_NOT_FOUND,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 404 },
+              message: { type: 'string', example: sysMsg.CLASS_NOT_FOUND },
+            },
+          },
+        },
+      },
+    },
     assignStudents: {
       operation: {
         summary: 'Assign students to a class',

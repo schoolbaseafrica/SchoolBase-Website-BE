@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Post,
   Patch,
+  Delete,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import {
   DocsGetClassTeachers,
   DocsGetGroupedClasses,
   DocsUpdateClass,
+  DocsDeleteClass,
   DocsGetClassById,
   DocsGetTotalClasses,
   DocsAssignStudents,
@@ -120,5 +122,11 @@ export class ClassController {
     @Param('id', ParseUUIDPipe) classId: string,
   ): Promise<ClassResponseDto> {
     return this.classService.getClassById(classId);
+  }
+  // --- DELETE: SOFT DELETE CLASS (ADMIN ONLY) ---
+  @Delete(':id')
+  @DocsDeleteClass()
+  async deleteClass(@Param('id', ParseUUIDPipe) classId: string) {
+    return this.classService.deleteClass(classId);
   }
 }

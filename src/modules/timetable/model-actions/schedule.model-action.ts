@@ -42,4 +42,11 @@ export class ScheduleModelAction extends AbstractModelAction<Schedule> {
       .andWhere('timetable.is_active = :isActive', { isActive })
       .getMany();
   }
+
+  async getScheduleWithTimetable(scheduleId: string): Promise<Schedule> {
+    return this.scheduleRepository.findOne({
+      where: { id: scheduleId },
+      relations: ['timetable'],
+    });
+  }
 }

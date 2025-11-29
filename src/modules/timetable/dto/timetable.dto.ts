@@ -1,5 +1,5 @@
 import { PartialType, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import {
   IsEnum,
   IsUUID,
@@ -67,6 +67,14 @@ export class AddScheduleDto extends CreateScheduleDto {
   })
   @IsUUID()
   class_id: string;
+}
+
+export class UpdateScheduleDto extends PartialType(CreateScheduleDto) {
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  subject_id?: string;
+
+  @Transform(({ value }) => (value === '' ? undefined : value))
+  teacher_id?: string;
 }
 
 export class CreateTimetableDto {

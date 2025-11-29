@@ -83,6 +83,19 @@ export const DocsGetTotalClasses = () => {
   );
 };
 
+export const DocsDeleteClass = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.deleteClass;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiResponse(responses.ok),
+    ApiResponse(responses.badRequest),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
+
 export const DocsAssignStudents = () => {
   const { operation, parameters, responses } =
     ClassSwagger.endpoints.assignStudents;

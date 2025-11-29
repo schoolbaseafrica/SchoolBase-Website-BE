@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -62,7 +63,7 @@ export class ClassService {
       identifierOptions: { id: classId },
     });
 
-    if (!classExist) {
+    if (!classExist || classExist.is_deleted) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 
@@ -124,6 +125,7 @@ export class ClassService {
         name,
         arm,
         academicSession: { id: academicSession.id },
+        is_deleted: false,
       },
       transactionOptions: {
         useTransaction: false,
@@ -208,7 +210,7 @@ export class ClassService {
       identifierOptions: { id: classId },
       relations: { academicSession: true },
     });
-    if (!existingClass) {
+    if (!existingClass || existingClass.is_deleted) {
       throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
 
@@ -229,6 +231,7 @@ export class ClassService {
         name: newName,
         arm: newArm,
         academicSession: { id: sessionId },
+        is_deleted: false,
       },
       transactionOptions: { useTransaction: false },
     });
@@ -265,6 +268,7 @@ export class ClassService {
     // Use generic list method from AbstractModelAction
     const { payload: classesRaw, paginationMeta } =
       await this.classModelAction.list({
+        filterRecordOptions: { is_deleted: false },
         relations: { academicSession: true },
         order: { name: 'ASC', arm: 'ASC' },
         paginationPayload: { page, limit },
@@ -319,6 +323,7 @@ export class ClassService {
       id: classEntity.id,
       name: classEntity.name,
       arm: classEntity.arm,
+      is_deleted: classEntity.is_deleted,
       academicSession: {
         id: classEntity.academicSession.id,
         name: classEntity.academicSession.name,
@@ -347,6 +352,43 @@ export class ClassService {
     return {
       message: sysMsg.TOTAL_CLASSES_FETCHED,
       total: paginationMeta.total,
+    };
+  }
+  /**
+   * Soft deletes a class by ID.
+   * Only allows deletion of classes from the active session.
+   */
+  async deleteClass(classId: string) {
+    const classEntity = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+
+    if (!classEntity || classEntity.is_deleted) {
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    }
+
+    // Get active session
+    const activeSession = await this.getActiveSession();
+
+    // Check if class belongs to active session
+    if (classEntity.academicSession.id !== activeSession.id) {
+      throw new BadRequestException(sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS);
+    }
+
+    // Perform soft delete
+    await this.classModelAction.update({
+      identifierOptions: { id: classId },
+      updatePayload: {
+        is_deleted: true,
+        deleted_at: new Date(),
+      },
+      transactionOptions: { useTransaction: false },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.CLASS_DELETED,
     };
   }
 
