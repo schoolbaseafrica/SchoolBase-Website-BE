@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 
+import { UserRole } from '../../shared/enums';
 import { StudentModelAction } from '../../student/model-actions';
 import { CreateGradeSubmissionDto } from '../dto';
 import { GradeSubmissionStatus } from '../entities/grade-submission.entity';
@@ -18,6 +19,7 @@ describe('GradeService', () => {
   let service: GradeService;
   let gradeSubmissionModelAction: jest.Mocked<GradeSubmissionModelAction>;
   let gradeModelAction: jest.Mocked<GradeModelAction>;
+  let studentModelAction: jest.Mocked<StudentModelAction>;
 
   const mockLogger = {
     child: jest.fn().mockReturnThis(),
@@ -61,11 +63,13 @@ describe('GradeService', () => {
             get: jest.fn(),
             create: jest.fn(),
             update: jest.fn(),
+            list: jest.fn(),
           },
         },
         {
           provide: StudentModelAction,
           useValue: {
+            get: jest.fn(),
             repository: {
               createQueryBuilder: jest.fn(),
             },
@@ -148,6 +152,7 @@ describe('GradeService', () => {
     service = module.get<GradeService>(GradeService);
     gradeSubmissionModelAction = module.get(GradeSubmissionModelAction);
     gradeModelAction = module.get(GradeModelAction);
+    studentModelAction = module.get(StudentModelAction);
   });
 
   afterEach(() => {
@@ -450,6 +455,181 @@ describe('GradeService', () => {
       expect(calculateGrade(45)).toBe('E');
       expect(calculateGrade(30)).toBe('F');
       expect(calculateGrade(0)).toBe('F');
+    });
+  });
+
+  describe('getStudentGrades', () => {
+    const mockStudentId = 'student-uuid-123';
+    const mockParentId = 'parent-uuid-123';
+
+    beforeEach(() => {
+      // Reset mocks before each test
+      jest.clearAllMocks();
+    });
+
+    it('should return only approved grades for students', async () => {
+      const mockApprovedGrade = {
+        id: 'grade-approved-1',
+        submission_id: 'submission-approved-1',
+        student_id: mockStudentId,
+        ca_score: 25,
+        exam_score: 60,
+        total_score: 85,
+        grade_letter: 'A',
+        comment: null,
+        submission: {
+          id: 'submission-approved-1',
+          status: GradeSubmissionStatus.APPROVED,
+          submitted_at: new Date(),
+          reviewed_at: new Date(),
+          class: { id: 'class-1', name: 'SS1', arm: 'A' },
+          subject: { id: 'subject-1', name: 'Mathematics' },
+          term: { id: 'term-1', name: 'FIRST' },
+          teacher: {
+            id: 'teacher-1',
+            user: { first_name: 'Teacher', last_name: 'Name' },
+          },
+        },
+        student: {
+          id: mockStudentId,
+          user: { first_name: 'John', last_name: 'Doe' },
+          registration_number: 'STU-001',
+        },
+      };
+
+      (gradeModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [mockApprovedGrade],
+        paginationMeta: { total: 1, page: 1, limit: 10 },
+      });
+
+      const result = await service.getStudentGrades(mockStudentId, {
+        id: 'user-uuid-123',
+        student_id: mockStudentId,
+        roles: [UserRole.STUDENT],
+      });
+
+      expect(result).toBeDefined();
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].grade_letter).toBe('A');
+      expect(gradeModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          student_id: mockStudentId,
+          submission: { status: GradeSubmissionStatus.APPROVED },
+        },
+        relations: {
+          submission: {
+            class: true,
+            subject: true,
+            term: true,
+            teacher: { user: true },
+          },
+        },
+      });
+    });
+
+    it('should return only approved grades for parents', async () => {
+      const mockStudent = {
+        id: mockStudentId,
+        user: { first_name: 'John', last_name: 'Doe' },
+        parent: { id: mockParentId },
+      };
+
+      const mockApprovedGrade = {
+        id: 'grade-approved-1',
+        submission_id: 'submission-approved-1',
+        student_id: mockStudentId,
+        ca_score: 25,
+        exam_score: 60,
+        total_score: 85,
+        grade_letter: 'A',
+        comment: null,
+        submission: {
+          id: 'submission-approved-1',
+          status: GradeSubmissionStatus.APPROVED,
+          submitted_at: new Date(),
+          reviewed_at: new Date(),
+          class: { id: 'class-1', name: 'SS1', arm: 'A' },
+          subject: { id: 'subject-1', name: 'Mathematics' },
+          term: { id: 'term-1', name: 'FIRST' },
+          teacher: {
+            id: 'teacher-1',
+            user: { first_name: 'Teacher', last_name: 'Name' },
+          },
+        },
+        student: {
+          id: mockStudentId,
+          user: { first_name: 'John', last_name: 'Doe' },
+          registration_number: 'STU-001',
+        },
+      };
+
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (gradeModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [mockApprovedGrade],
+        paginationMeta: { total: 1, page: 1, limit: 10 },
+      });
+
+      const result = await service.getStudentGrades(mockStudentId, {
+        id: 'user-uuid-123',
+        parent_id: mockParentId,
+        roles: [UserRole.PARENT],
+      });
+
+      expect(result).toBeDefined();
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].grade_letter).toBe('A');
+    });
+
+    it('should not return draft grades to students', async () => {
+      // Changed this to return empty array because the service filters by APPROVED
+      (gradeModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page: 1, limit: 10 },
+      });
+
+      const result = await service.getStudentGrades(mockStudentId, {
+        id: 'user-uuid-123',
+        student_id: mockStudentId,
+        roles: [UserRole.STUDENT],
+      });
+
+      expect(result).toBeDefined();
+      expect(result.data).toHaveLength(0);
+    });
+
+    it("should throw ForbiddenException if parent tries to access another student's grades", async () => {
+      const otherStudent = {
+        id: mockStudentId,
+        user: { first_name: 'John', last_name: 'Doe' },
+        parent: { id: 'other-parent-id' },
+      };
+
+      (studentModelAction.get as jest.Mock).mockResolvedValue(otherStudent);
+
+      await expect(
+        service.getStudentGrades(mockStudentId, {
+          id: 'user-uuid-123',
+          parent_id: mockParentId,
+          roles: [UserRole.PARENT],
+        }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should return empty array when no approved grades found', async () => {
+      (gradeModelAction.list as jest.Mock).mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page: 1, limit: 10 },
+      });
+
+      const result = await service.getStudentGrades(mockStudentId, {
+        id: 'user-uuid-123',
+        student_id: mockStudentId,
+        roles: [UserRole.STUDENT],
+      });
+
+      expect(result).toBeDefined();
+      expect(result.data).toHaveLength(0);
+      expect(result.message).toBe('No grades found for this student.');
     });
   });
 });

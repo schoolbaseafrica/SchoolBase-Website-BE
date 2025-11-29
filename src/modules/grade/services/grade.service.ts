@@ -487,9 +487,12 @@ export class GradeService {
       }
     }
 
-    // Fetch grades
+    // Fetch only approved grades
     const grades = await this.gradeModelAction.list({
-      filterRecordOptions: { student_id: studentId },
+      filterRecordOptions: {
+        student_id: studentId,
+        submission: { status: GradeSubmissionStatus.APPROVED },
+      },
       relations: {
         submission: {
           class: true,
