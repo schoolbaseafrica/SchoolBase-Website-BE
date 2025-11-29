@@ -10,6 +10,7 @@ import {
   Matches,
   IsJWT,
   IsUUID,
+  IsOptional,
 } from 'class-validator';
 
 export enum UserRole {
@@ -148,6 +149,25 @@ export class RefreshTokenDto {
   @IsJWT()
   @IsNotEmpty()
   refresh_token: string;
+}
+
+export class GoogleLoginDto {
+  @ApiProperty({
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjFj... (Google ID Token)',
+    description: 'Google ID Token',
+  })
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+
+  @ApiProperty({
+    example: 'a1b2c3d4... (Invite Token)',
+    description: 'Invite Token (Required for new users)',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  invite_token?: string;
 }
 
 export class AuthMeResponseDto {
