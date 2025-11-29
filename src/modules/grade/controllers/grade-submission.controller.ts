@@ -23,7 +23,6 @@ import {
   approveSubmissionDocs,
   createGradeSubmissionDocs,
   getSubmissionDocs,
-  GradeSwagger,
   listTeacherSubmissionsDocs,
   rejectSubmissionDocs,
   submitForApprovalDocs,
@@ -44,7 +43,7 @@ interface IRequestWithUser extends Request {
   };
 }
 
-@ApiTags(GradeSwagger.tags[0])
+@ApiTags('Grade Submissions')
 @Controller('grades/submissions')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class GradeSubmissionController {
