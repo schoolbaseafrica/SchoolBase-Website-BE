@@ -12,6 +12,7 @@ import {
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
+import { AssignClassesToSubjectDto } from '../dto/assign-classes-to-subject.dto';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';
@@ -201,4 +202,75 @@ export const ApiDeleteSubject = () =>
       },
     }),
     ApiNotFoundResponse({ description: sysMsg.SUBJECT_NOT_FOUND }),
+  );
+
+/**
+ * Swagger decorators for Assign Classes to Subject endpoint
+ */
+export const ApiAssignClassesToSubject = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Assign Classes to Subject',
+      description: 'Assigns a subject to multiple classes by their IDs.',
+    }),
+    ApiParam({ name: 'subjectId', description: 'Subject ID', type: String }),
+    ApiBody({
+      type: AssignClassesToSubjectDto,
+      description: 'Array of class IDs to assign the subject to',
+      examples: {
+        example1: {
+          summary: 'Assign subject to classes',
+          value: {
+            classIds: [
+              'a1b2c3d4-e5f6-7890-abcd-1234567890ab',
+              'b2c3d4e5-f6a1-8901-bcde-2345678901bc',
+            ],
+          },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'Subject assigned to classes successfully.',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Classes successfully assigned to subject',
+          },
+          data: {
+            type: 'object',
+            properties: {
+              id: {
+                type: 'string',
+                example: '1120adab-775c-4f30-a559-47cdac8d2767',
+              },
+              subjectId: {
+                type: 'string',
+                example: '1120adab-775c-4f30-a559-47cdac8d2767',
+              },
+              name: { type: 'string', example: 'Biology' },
+              classes: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: {
+                      type: 'string',
+                      example: '2e45db57-2b08-453f-9a8b-e26f867cad91',
+                    },
+                    name: { type: 'string', example: 'JSS1' },
+                    arm: { type: 'string', example: '' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Subject or one or more classes not found.',
+    }),
+    ApiResponse({ status: 400, description: 'Invalid input data.' }),
   );

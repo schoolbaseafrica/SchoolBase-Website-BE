@@ -2,6 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { ClassResponseDto } from '../dto/create-class.dto';
+import { StudentAssignmentResponseDto } from '../dto/student-assignment.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -256,6 +257,122 @@ export const ClassSwagger = {
               total: { type: 'integer', example: 42 },
             },
           },
+        },
+      },
+    },
+    deleteClass: {
+      operation: {
+        summary: 'Delete a class (Admin)',
+        description:
+          'Attention! Soft deletes a class by ID. Only classes from the active session can be deleted. Classes from past sessions cannot be deleted to preserve historical records.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID to delete',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.CLASS_DELETED,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 200 },
+              message: { type: 'string', example: sysMsg.CLASS_DELETED },
+            },
+          },
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 400 },
+              message: {
+                example: sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS,
+              },
+              warning: {
+                type: 'string',
+                example:
+                  'This class belongs to a past session and cannot be deleted to preserve historical records.',
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: sysMsg.CLASS_NOT_FOUND,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 404 },
+              message: { type: 'string', example: sysMsg.CLASS_NOT_FOUND },
+            },
+          },
+        },
+      },
+    },
+    assignStudents: {
+      operation: {
+        summary: 'Assign students to a class',
+        description:
+          'Assigns multiple students to a specific class. Students are automatically assigned to the class in the same academic session the class belongs to. Students already assigned will be skipped.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Students assigned successfully',
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Successfully assigned 3 student(s) to class',
+              },
+              assigned: { type: 'number', example: 3 },
+              classId: { type: 'string' },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class or student not found',
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Validation failed: invalid student IDs or empty array.',
+        },
+      },
+    },
+    getStudents: {
+      operation: {
+        summary: 'Get students assigned to a class',
+        description:
+          "Returns a list of students assigned to a specific class ID. Returns students from the class's academic session by default, but can be filtered by a different sessionId if provided.",
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          description: 'List of assigned students',
+          type: StudentAssignmentResponseDto,
+          isArray: true,
+        },
+        notFound: {
+          description: 'Class not found',
         },
       },
     },

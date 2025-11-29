@@ -165,7 +165,7 @@ export class InviteService {
     }
 
     if (invite.accepted) {
-      throw new ConflictException(sysMsg.EMAIL_ALREADY_EXISTS);
+      throw new ConflictException('This invitation has already been used.');
     }
 
     if (new Date() > invite.expires_at) {
@@ -266,7 +266,7 @@ export class InviteService {
     const schoolLogoUrl =
       this.configService.get<string>('school.logoUrl') ||
       'https://via.placeholder.com/100';
-    const senderEmail = this.configService.get<string>('mail.from.adress');
+    const senderEmail = this.configService.get<string>('mail.from.address');
     const senderName = this.configService.get<string>('mail.from.name');
 
     if (!frontendUrl || !schoolName || !schoolLogoUrl) {

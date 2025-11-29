@@ -11,8 +11,10 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../../constants/system.messages';
 import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
+import { ClassStudentModelAction } from '../model-actions/class-student.action';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 
@@ -29,7 +31,10 @@ const mockDataSource = {
   createEntityManager: jest.fn(),
   getRepository: jest.fn().mockReturnValue(mockRepository),
   transaction: jest.fn().mockImplementation(async (callback) => {
-    return callback({});
+    const mockManager = {
+      findOne: jest.fn(),
+    };
+    return callback(mockManager);
   }),
 };
 
@@ -75,6 +80,15 @@ describe('ClassService', () => {
     list: jest.fn(),
   };
 
+  const mockClassStudentModelAction = {
+    list: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockStudentModelAction = {
+    get: jest.fn(),
+  };
+
   beforeEach(async () => {
     mockLogger = {
       info: jest.fn(),
@@ -95,6 +109,14 @@ describe('ClassService', () => {
         {
           provide: ClassTeacherModelAction,
           useValue: mockClassTeacherModelAction,
+        },
+        {
+          provide: ClassStudentModelAction,
+          useValue: mockClassStudentModelAction,
+        },
+        {
+          provide: StudentModelAction,
+          useValue: mockStudentModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -241,6 +263,7 @@ describe('ClassService', () => {
           name: createClassDto.name,
           arm: createClassDto.arm,
           academicSession: { id: MOCK_ACTIVE_SESSION },
+          is_deleted: false,
         },
         transactionOptions: {
           useTransaction: false,
@@ -305,6 +328,8 @@ describe('ClassService', () => {
       status: SessionStatus.ACTIVE,
       createdAt: new Date(),
       updatedAt: new Date(),
+      is_deleted: false,
+      deleted_at: null,
     };
 
     const existingClass = {
@@ -313,6 +338,7 @@ describe('ClassService', () => {
       arm: 'A',
       academicSession: mockAcademicSession,
       teacher_assignment: [],
+      student_assignments: [],
       streams: [],
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -339,6 +365,7 @@ describe('ClassService', () => {
           name: updateDto.name,
           arm: updateDto.arm,
           academicSession: { id: existingClass.academicSession.id },
+          is_deleted: false,
         },
         transactionOptions: { useTransaction: false },
       });
@@ -381,9 +408,13 @@ describe('ClassService', () => {
             arm: 'B',
             academicSession: mockAcademicSession,
             teacher_assignment: [],
+            student_assignments: [],
             streams: [],
             createdAt: new Date(),
             updatedAt: new Date(),
+            classSubjects: [],
+            is_deleted: false,
+            deleted_at: null,
           },
         ],
         paginationMeta: {},
@@ -536,6 +567,62 @@ describe('ClassService', () => {
         message: sysMsg.TOTAL_CLASSES_FETCHED,
         total: 0,
       });
+    });
+  });
+
+  describe('deleteClass', () => {
+    const classId = 'class-uuid-1';
+
+    beforeEach(() => {
+      classModelAction.update = jest.fn();
+    });
+
+    it('should successfully soft delete a class from the active session', async () => {
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        name: 'JSS1',
+        arm: 'A',
+        academicSession: { id: MOCK_ACTIVE_SESSION },
+        is_deleted: false,
+      } as unknown as Class);
+
+      const result = await service.deleteClass(classId);
+
+      expect(classModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        updatePayload: {
+          is_deleted: true,
+          deleted_at: expect.any(Date),
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+      expect(result).toEqual({
+        status_code: 200,
+        message: sysMsg.CLASS_DELETED,
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+
+      await expect(service.deleteClass('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException when trying to delete a class from a past session', async () => {
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        name: 'JSS2',
+        academicSession: { id: 'past-session-id' },
+        is_deleted: false,
+      } as unknown as Class);
+
+      await expect(service.deleteClass(classId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(classModelAction.update).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,7 +1,7 @@
 import { Entity, Column, OneToOne, JoinColumn, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { ClassTeacher } from '../../class/entities/class-teacher.entity';
+import { ClassTeacher, ClassSubject } from '../../class/entities';
 import { User } from '../../user/entities/user.entity';
 import { TeacherTitle } from '../enums/teacher.enum';
 
@@ -29,4 +29,7 @@ export class Teacher extends BaseEntity {
 
   @OneToMany(() => ClassTeacher, (assignment) => assignment.teacher)
   class_assignments: ClassTeacher[];
+
+  @OneToMany(() => ClassSubject, (assignment) => assignment.teacher)
+  subject_assignments: ClassSubject[];
 }

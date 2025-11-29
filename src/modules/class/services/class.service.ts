@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  HttpStatus,
 } from '@nestjs/common';
 import { isUUID } from 'class-validator';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
@@ -17,11 +18,16 @@ import {
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { Stream } from '../../stream/entities/stream.entity';
+import { StudentModelAction } from '../../student/model-actions/student-actions';
 import {
   CreateClassDto,
   TeacherAssignmentResponseDto,
   UpdateClassDto,
+  AssignStudentsToClassDto,
+  StudentAssignmentResponseDto,
 } from '../dto';
+import { ClassStudent } from '../entities/class-student.entity';
+import { ClassStudentModelAction } from '../model-actions/class-student.action';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 import {
@@ -37,6 +43,8 @@ export class ClassService {
     private readonly classModelAction: ClassModelAction,
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly classTeacherModelAction: ClassTeacherModelAction,
+    private readonly classStudentModelAction: ClassStudentModelAction,
+    private readonly studentModelAction: StudentModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
@@ -55,7 +63,7 @@ export class ClassService {
       identifierOptions: { id: classId },
     });
 
-    if (!classExist) {
+    if (!classExist || classExist.is_deleted) {
       throw new NotFoundException(`Class with ID ${classId} not found`);
     }
 
@@ -117,6 +125,7 @@ export class ClassService {
         name,
         arm,
         academicSession: { id: academicSession.id },
+        is_deleted: false,
       },
       transactionOptions: {
         useTransaction: false,
@@ -201,7 +210,7 @@ export class ClassService {
       identifierOptions: { id: classId },
       relations: { academicSession: true },
     });
-    if (!existingClass) {
+    if (!existingClass || existingClass.is_deleted) {
       throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
     }
 
@@ -222,6 +231,7 @@ export class ClassService {
         name: newName,
         arm: newArm,
         academicSession: { id: sessionId },
+        is_deleted: false,
       },
       transactionOptions: { useTransaction: false },
     });
@@ -258,6 +268,7 @@ export class ClassService {
     // Use generic list method from AbstractModelAction
     const { payload: classesRaw, paginationMeta } =
       await this.classModelAction.list({
+        filterRecordOptions: { is_deleted: false },
         relations: { academicSession: true },
         order: { name: 'ASC', arm: 'ASC' },
         paginationPayload: { page, limit },
@@ -312,6 +323,7 @@ export class ClassService {
       id: classEntity.id,
       name: classEntity.name,
       arm: classEntity.arm,
+      is_deleted: classEntity.is_deleted,
       academicSession: {
         id: classEntity.academicSession.id,
         name: classEntity.academicSession.name,
@@ -341,5 +353,195 @@ export class ClassService {
       message: sysMsg.TOTAL_CLASSES_FETCHED,
       total: paginationMeta.total,
     };
+  }
+  /**
+   * Soft deletes a class by ID.
+   * Only allows deletion of classes from the active session.
+   */
+  async deleteClass(classId: string) {
+    const classEntity = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+
+    if (!classEntity || classEntity.is_deleted) {
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    }
+
+    // Get active session
+    const activeSession = await this.getActiveSession();
+
+    // Check if class belongs to active session
+    if (classEntity.academicSession.id !== activeSession.id) {
+      throw new BadRequestException(sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS);
+    }
+
+    // Perform soft delete
+    await this.classModelAction.update({
+      identifierOptions: { id: classId },
+      updatePayload: {
+        is_deleted: true,
+        deleted_at: new Date(),
+      },
+      transactionOptions: { useTransaction: false },
+    });
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.CLASS_DELETED,
+    };
+  }
+
+  /**
+   * Assigns multiple students to a class.
+   * Uses the class's academic session automatically.
+   */
+  async assignStudentsToClass(
+    classId: string,
+    assignStudentsDto: AssignStudentsToClassDto,
+  ): Promise<{
+    message: string;
+    assigned: number;
+    skipped: number;
+    classId: string;
+  }> {
+    // 1. Validate class exists and get its academic session
+    const classExist = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+    if (!classExist) {
+      throw new NotFoundException(`Class with ID ${classId} not found`);
+    }
+
+    // 2. Use the class's academic session (classes are always tied to a session)
+    const sessionId = classExist.academicSession.id;
+
+    // 3. Validate all student IDs exist
+    const { studentIds } = assignStudentsDto;
+    for (const studentId of studentIds) {
+      const student = await this.studentModelAction.get({
+        identifierOptions: { id: studentId },
+      });
+      if (!student) {
+        throw new NotFoundException(`Student with ID ${studentId} not found`);
+      }
+    }
+
+    // 4. Check for existing assignments and assign in transaction
+    let assignedCount = 0;
+    let skippedCount = 0;
+    await this.dataSource.transaction(async (manager) => {
+      for (const studentId of studentIds) {
+        // Check if assignment already exists using repository through transaction manager
+        const existingAssignment = await manager.findOne(ClassStudent, {
+          where: {
+            class: { id: classId },
+            student: { id: studentId },
+            session_id: sessionId,
+            is_active: true,
+          },
+        });
+
+        if (!existingAssignment) {
+          // Create new assignment
+          await this.classStudentModelAction.create({
+            createPayload: {
+              class: { id: classId },
+              student: { id: studentId },
+              session_id: sessionId,
+              is_active: true,
+              enrollment_date: new Date(),
+            },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: manager,
+            },
+          });
+          assignedCount++;
+        } else {
+          skippedCount++;
+        }
+      }
+    });
+
+    this.logger.info(
+      `Assigned ${assignedCount} students, skipped ${skippedCount} (already assigned) to class ${classId}`,
+      {
+        classId,
+        studentIds,
+        sessionId,
+        assignedCount,
+        skippedCount,
+      },
+    );
+
+    // Build appropriate message based on results
+    let message = '';
+    if (assignedCount > 0 && skippedCount > 0) {
+      message = `Successfully assigned ${assignedCount} student(s) to class. ${skippedCount} student(s) were already assigned and skipped.`;
+    } else if (assignedCount > 0) {
+      message = `Successfully assigned ${assignedCount} student(s) to class.`;
+    } else if (skippedCount > 0) {
+      message = `All ${skippedCount} student(s) were already assigned to this class. No new assignments made.`;
+    } else {
+      message = `No students were assigned.`;
+    }
+
+    return {
+      message,
+      assigned: assignedCount,
+      skipped: skippedCount,
+      classId,
+    };
+  }
+
+  /**
+   * Fetches students for a specific class.
+   * Uses the class's academic session automatically.
+   */
+  async getStudentsByClass(
+    classId: string,
+    sessionId?: string,
+  ): Promise<StudentAssignmentResponseDto[]> {
+    // 1. Validate class exists and get its academic session
+    const classExist = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+    if (!classExist) {
+      throw new NotFoundException(`Class with ID ${classId} not found`);
+    }
+
+    // 2. Use the class's academic session (or provided sessionId for filtering)
+    const target_session_id = sessionId || classExist.academicSession.id;
+
+    // 3. Fetch Assignments with Relations
+    const assignments = await this.classStudentModelAction.list({
+      filterRecordOptions: {
+        class: { id: classId },
+        session_id: target_session_id,
+        is_active: true,
+      },
+      relations: {
+        student: { user: true },
+      },
+    });
+
+    // 4. Map to DTO
+    return assignments.payload.map((assignment) => {
+      const student = assignment.student;
+      const user = student.user;
+      const fullName = user
+        ? `${user.first_name} ${user.last_name}`
+        : `Student ${student.registration_number}`;
+      return {
+        student_id: student.id,
+        registration_number: student.registration_number,
+        name: fullName,
+        enrollment_date: assignment.enrollment_date,
+        is_active: assignment.is_active,
+      };
+    });
   }
 }

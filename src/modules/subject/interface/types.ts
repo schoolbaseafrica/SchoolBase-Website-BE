@@ -17,3 +17,19 @@ export interface IPaginatedResponse<T> {
   data: T[];
   pagination: IPaginationMeta;
 }
+
+export interface IAssignClassesToSubjectResponse {
+  message: string;
+  id: string;
+  subjectId: string;
+  name: string;
+  classes: {
+    id: string;
+    name: string;
+    arm: string;
+    academicSession: {
+      id: string;
+      name: string;
+    };
+  }[];
+}

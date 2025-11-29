@@ -35,6 +35,7 @@ export interface IGetClassByIdResponse {
   id: string;
   name: string;
   arm?: string;
+  is_deleted: boolean;
   academicSession: {
     id: string;
     name: string;

@@ -173,6 +173,15 @@ export const ACADEMIC_SESSION_DELETED =
   'Academic session deleted successfully.';
 export const INACTIVE_SESSION_LOCKED =
   'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
+export const ARCHIVED_SESSION_LOCKED =
+  'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
+export const ARCHIVED_SESSION_NO_DELETE =
+  'Cannot delete an archived academic session. Archived sessions must be preserved for historical records.';
+export const ACTIVE_SESSION_NO_DELETE =
+  'Cannot delete an active academic session. Please archive the session first before deletion.';
+export const SESSION_ARCHIVED = 'Academic session archived successfully.';
+export const ONGOING_SESSION_EXISTS =
+  'Cannot create a new session while an ongoing session exists. Please wait for the current session to end.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
@@ -203,6 +212,9 @@ export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
 export const SUBJECT_NOT_FOUND = 'Subject not found';
 export const SUBJECT_UPDATED = 'Subject updated successfully';
 export const SUBJECT_DELETED = 'Subject deleted successfully';
+export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
+export const CLASSES_ASSIGNED_TO_SUBJECT =
+  'Classes successfully assigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
@@ -224,6 +236,21 @@ export const CLASS_NAME_EMPTY = 'class name cannot be empty';
 export const CLASS_UPDATED = 'class updated successfully';
 export const CLASS_FETCHED = 'class fetched successfully';
 export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
+export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
+export const CLASSES_NOT_IN_ACTIVE_SESSION =
+  'One or more classes are not in the active academic session';
+export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
+export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
+  'Class subjects fetched successfully';
+export const CLASS_SUBJECT_ALREADY_HAS_A_TEACHER =
+  'Teacher already assigned to this subject in this class';
+export const TEACHER_NOT_ASSIGNED_TO_SUBJECT =
+  'No teacher is assigned to this subject';
+export const TEACHER_UNASSIGNED_FROM_SUBJECT =
+  'Teacher successfully unassigned from this subject';
+export const CLASS_DELETED = 'Class deleted successfully';
+export const CANNOT_DELETE_PAST_SESSION_CLASS =
+  'Only classes from the active session can be deleted.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
@@ -256,7 +283,7 @@ export const STUDENT_UPDATED = 'Student updated successfully';
 
 //bulk upload message
 export const BULK_UPLOAD_NO_NEW_EMAILS =
-  'The Users with this email has receievd invite before.';
+  'The Users with this email have received an invite before.';
 export const BULK_UPLOAD_NOT_ALLOWED =
   'You are not permitted to perform a bulk upload.';
 export const NO_BULK_UPLOAD_DATA = 'No data was provided for bulk upload.';
@@ -265,6 +292,23 @@ export const INVALID_BULK_UPLOAD_FILE =
 export const BULK_UPLOAD_SUCCESS = 'Bulk upload completed successfully.';
 export const STUDENT_DELETED = 'Student deleted successfully';
 
+// Academic Term messages
+export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
+export const TERM_UPDATED = 'Term updated successfully';
+export const TERM_NOT_FOUND = 'Term not found';
+export const TERM_UPDATE_FAILED = 'Failed to update term';
+export const ARCHIVED_TERM_LOCKED =
+  'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
+
+// Academic Term - Validation errors
+export const TERM_INVALID_DATE_RANGE = 'end date must be after start date';
+export const TERM_START_AFTER_END =
+  'Start date must be before the current end date';
+export const TERM_END_BEFORE_START =
+  'End date must be after the current start date';
+export const TERM_SEQUENTIAL_INVALID =
+  'start date must be after the previous term end date';
+export const TERM_ID_INVALID = 'invalid term id';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 
@@ -287,9 +331,19 @@ export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
-export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
 export const TIMETABLE_INTERNAL_OVERLAP =
   'Timetable contains overlapping schedules.';
+
+// Fees messages
+export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';
+export const FEES_RETRIEVED_SUCCESSFULLY =
+  'Fee components retrieved successfully';
+export const FEE_RETRIEVED_SUCCESSFULLY =
+  'Fee component retrieved successfully';
+export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
+export const FEE_STATUS_UPDATED_SUCCESSFULLY =
+  'Fee component status updated successfully';
+export const FEE_NOT_FOUND = 'Fees component not found';
 
 // Grade messages
 export const GRADE_SUBMISSION_CREATED = 'Grade submission created successfully';
