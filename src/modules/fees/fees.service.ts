@@ -103,7 +103,7 @@ export class FeesService {
       .createQueryBuilder('fee')
       .leftJoinAndSelect('fee.term', 'term')
       .leftJoinAndSelect('fee.classes', 'classes')
-      .orderBy('fee.created_at', 'DESC');
+      .orderBy('fee.createdAt', 'DESC');
 
     // Filter by status - default to ACTIVE if not specified
     if (status) {

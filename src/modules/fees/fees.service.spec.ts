@@ -428,7 +428,7 @@ describe('FeesService', () => {
         'classes',
       );
       expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith(
-        'fee.created_at',
+        'fee.createdAt',
         'DESC',
       );
       expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
