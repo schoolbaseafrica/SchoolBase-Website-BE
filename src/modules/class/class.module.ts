@@ -33,6 +33,6 @@ import { ClassService } from './services/class.service';
     ClassSubjectModelAction,
     ClassSubjectService,
   ],
-  exports: [ClassModelAction, ClassTeacherModelAction],
+  exports: [ClassModelAction, ClassTeacherModelAction, ClassStudentModelAction],
 })
 export class ClassModule {}

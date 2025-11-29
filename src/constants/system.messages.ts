@@ -363,6 +363,8 @@ export const GRADE_NOT_FOUND = 'Grade not found';
 export const GRADES_FETCHED = 'Grades fetched successfully';
 export const GRADE_ALREADY_APPROVED =
   'Cannot modify an approved grade submission';
+export const GRADE_ALREADY_REJECTED =
+  'Cannot approve a rejected grade submission';
 export const GRADE_ALREADY_SUBMITTED =
   'Cannot modify a submitted grade submission. Wait for admin review.';
 export const GRADE_NOT_SUBMITTED =

@@ -5,10 +5,10 @@ import { Term } from '../academic-term/entities/term.entity';
 import { Class, ClassSubject, ClassStudent } from '../class/entities';
 import { StudentModule } from '../student/student.module';
 
-import { GradeController } from './controllers/grade.controller';
+import { GradeController, GradeSubmissionController } from './controllers';
 import { Grade, GradeSubmission } from './entities';
 import { GradeModelAction, GradeSubmissionModelAction } from './model-actions';
-import { GradeService } from './services/grade.service';
+import { GradeService, GradeSubmissionService } from './services';
 
 @Module({
   imports: [
@@ -22,8 +22,13 @@ import { GradeService } from './services/grade.service';
     ]),
     StudentModule,
   ],
-  controllers: [GradeController],
-  providers: [GradeService, GradeModelAction, GradeSubmissionModelAction],
+  controllers: [GradeController, GradeSubmissionController],
+  providers: [
+    GradeService,
+    GradeModelAction,
+    GradeSubmissionModelAction,
+    GradeSubmissionService,
+  ],
   exports: [GradeService, GradeModelAction, GradeSubmissionModelAction],
 })
 export class GradeModule {}

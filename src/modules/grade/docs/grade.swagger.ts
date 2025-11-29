@@ -1,13 +1,17 @@
 import { applyDecorators } from '@nestjs/common';
 import {
+  ApiBadRequestResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiNotFoundResponse,
+  ApiOkResponse,
   ApiOperation,
   ApiParam,
   ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 
+import * as sysMsg from '../../../constants/system.messages';
 import {
   CreateGradeSubmissionDto,
   GradeResponseDto,
@@ -15,7 +19,6 @@ import {
   UpdateGradeDto,
 } from '../dto';
 import { GradeSubmissionStatus } from '../entities/grade-submission.entity';
-
 export const GradeSwagger = {
   tags: ['Grades'],
 };
@@ -219,6 +222,46 @@ export function getStudentsForClassDocs() {
     ApiResponse({
       status: 403,
       description: 'Forbidden - teacher not assigned to this subject/class',
+    }),
+  );
+}
+
+export function approveSubmissionDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Approve a grade submission',
+      description:
+        'Approve a grade submission by Admin. All grades must be complete.',
+    }),
+    ApiOkResponse({
+      description: sysMsg.GRADE_APPROVED,
+    }),
+    ApiBadRequestResponse({
+      description: `${sysMsg.GRADE_ALREADY_APPROVED} || ${sysMsg.GRADE_ALREADY_REJECTED} || ${sysMsg.GRADE_NOT_SUBMITTED}`,
+    }),
+    ApiNotFoundResponse({
+      description: sysMsg.GRADE_SUBMISSION_NOT_FOUND,
+    }),
+  );
+}
+
+export function rejectSubmissionDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Reject a grade submission',
+      description:
+        'Reject a grade submission by Admin. All grades must be complete.',
+    }),
+    ApiNotFoundResponse({
+      description: sysMsg.GRADE_SUBMISSION_NOT_FOUND,
+    }),
+    ApiOkResponse({
+      description: sysMsg.GRADE_REJECTED,
+    }),
+    ApiBadRequestResponse({
+      description: `${sysMsg.GRADE_ALREADY_APPROVED} || ${sysMsg.GRADE_ALREADY_REJECTED} || ${sysMsg.GRADE_NOT_SUBMITTED}`,
     }),
   );
 }
