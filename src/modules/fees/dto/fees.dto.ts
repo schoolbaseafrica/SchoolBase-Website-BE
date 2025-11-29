@@ -65,7 +65,60 @@ export class CreateFeesDto {
 
 export class UpdateFeesDto extends PartialType(CreateFeesDto) {
   @ApiProperty({
-    description: 'The current status of the fee (e.g., ACTIVE, DEACTIVATED).',
+    description: 'The unique name/identifier of the fee component.',
+    example: 'Updated Tuition Fee',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  component_name?: string;
+
+  @ApiProperty({
+    description: 'Optional detailed description of the fee.',
+    example: 'Updated description for the fee.',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @ApiProperty({
+    description:
+      'The monetary amount of the fee. Must be a non-negative number.',
+    example: 85000.0,
+    required: false,
+  })
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  amount?: number;
+
+  @ApiProperty({
+    description: 'The unique ID of the academic term this fee belongs to.',
+    example: 'a9b8c7d6-e5f4-3210-fedc-ba9876543210',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  term_id?: string;
+
+  @ApiProperty({
+    description: 'An array of unique IDs for the classes this fee applies to.',
+    example: [
+      'c5d4e3f2-g1h0-9876-5432-10abcdef9876',
+      'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    ],
+    isArray: true,
+    type: String,
+    required: false,
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  class_ids?: string[];
+
+  @ApiProperty({
+    description: 'The current status of the fee (e.g., ACTIVE, INACTIVE).',
     enum: FeeStatus,
     example: FeeStatus.INACTIVE,
     required: false,
