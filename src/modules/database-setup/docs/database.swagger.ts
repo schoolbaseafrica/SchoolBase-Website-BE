@@ -31,3 +31,22 @@ export const CreateDatabaseDocs = () =>
       description: sysMsg.DATABASE_ALREADY_CONFIGURED,
     }),
   );
+
+export const UpdateDatabaseDocs = () =>
+  applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Update school database configuration',
+      description:
+        'This endpoint is used to update the school database configuration. It is only accessible to super admins.',
+    }),
+    ApiBody({ type: ConfigureDatabaseDto }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: sysMsg.DATABASE_CONFIGURATION_UPDATED,
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: sysMsg.BAD_REQUEST,
+    }),
+  );
