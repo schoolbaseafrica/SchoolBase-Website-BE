@@ -163,9 +163,9 @@ export class DatabaseService {
       DB_TYPE=${escapeEnvValue(configureDatabaseDto.database_type)}
       DB_HOST=${escapeEnvValue(configureDatabaseDto.database_host)}
       DB_PORT=${configureDatabaseDto.database_port}
-      DB_USERNAME=${escapeEnvValue(configureDatabaseDto.database_username)}
-      DB_PASSWORD=${escapeEnvValue(configureDatabaseDto.database_password)}
-      DB_DATABASE=${escapeEnvValue(configureDatabaseDto.database_name)}
+      DB_USER=${escapeEnvValue(configureDatabaseDto.database_username)}
+      DB_PASS=${escapeEnvValue(configureDatabaseDto.database_password)}
+      DB_NAME=${escapeEnvValue(configureDatabaseDto.database_name)}
       SETUP_COMPLETED='true'
     `.trim();
 
@@ -176,7 +176,7 @@ export class DatabaseService {
       return true;
     } catch (error) {
       this.logger.error('Failed to write .env file', { error });
-      // restore backup on failure
+      // restore backup on failure fr any reason
       const backups = fs
         .readdirSync(process.cwd())
         .filter((f) => f.startsWith('.env.setup.backup.'))

@@ -9,8 +9,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '../auth/dto/auth.dto';
 import { SetupGuard } from '../shared/guards/setup.guard';
 
 import { DatabaseService } from './database.service';
@@ -35,7 +33,6 @@ export class DatabaseController {
   }
 
   @Put()
-  @Roles(UserRole.ADMIN) //todo: replace with super admin when implemented
   @HttpCode(HttpStatus.OK)
   @UpdateDatabaseDocs() // <=== Swagger docs
   update(@Body() configureDatabaseDto: ConfigureDatabaseDto) {
