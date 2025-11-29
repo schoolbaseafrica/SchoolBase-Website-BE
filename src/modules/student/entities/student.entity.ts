@@ -9,6 +9,7 @@ import {
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { ClassStudent } from '../../class/entities/class-student.entity';
+import { Parent } from '../../parent/entities/parent.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 import { User } from '../../user/entities/user.entity';
 
@@ -36,4 +37,8 @@ export class Student extends BaseEntity {
 
   @Column({ type: 'timestamp', nullable: true })
   deleted_at: Date | null;
+
+  @ManyToOne(() => Parent, (parent) => parent.students)
+  @JoinColumn({ name: 'parent_id' })
+  parent: Parent;
 }

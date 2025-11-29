@@ -12,6 +12,7 @@ import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Class, ClassSubject, ClassStudent } from '../../class/entities';
+import { UserRole } from '../../shared/enums';
 import { StudentModelAction } from '../../student/model-actions';
 import {
   CreateGradeSubmissionDto,
@@ -449,6 +450,103 @@ export class GradeService {
       name: `${cs.student.user.first_name} ${cs.student.user.last_name}`,
       registration_number: cs.student.registration_number,
     }));
+  }
+
+  /**
+   * Get grades for a student (for students and parents)
+   */
+  async getStudentGrades(
+    studentId: string,
+    user: {
+      id: string;
+      student_id?: string;
+      parent_id?: string;
+      roles: UserRole[];
+    },
+  ) {
+    // Authorization
+    if (user.roles.includes(UserRole.STUDENT)) {
+      if (user.student_id !== studentId) {
+        throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
+      }
+    } else if (user.roles.includes(UserRole.PARENT)) {
+      const student = await this.studentModelAction.get({
+        identifierOptions: {
+          id: studentId,
+        },
+        relations: { parent: true },
+      });
+
+      if (
+        !student ||
+        !student.user ||
+        !student.parent ||
+        student.parent.id !== user.parent_id
+      ) {
+        throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
+      }
+    }
+
+    // Fetch grades
+    const grades = await this.gradeModelAction.list({
+      filterRecordOptions: { student_id: studentId },
+      relations: {
+        submission: {
+          class: true,
+          subject: true,
+          term: true,
+          teacher: { user: true },
+        },
+      },
+    });
+
+    if (grades.payload.length === 0) {
+      return {
+        message: 'No grades found for this student.',
+        data: [],
+      };
+    }
+
+    // Transform data
+    const transformedGrades = grades.payload.map((grade) => ({
+      id: grade.id,
+      class: grade.submission.class
+        ? {
+            id: grade.submission.class.id,
+            name: grade.submission.class.name,
+            arm: grade.submission.class.arm,
+          }
+        : null,
+      subject: grade.submission.subject
+        ? {
+            id: grade.submission.subject.id,
+            name: grade.submission.subject.name,
+          }
+        : null,
+      term: grade.submission.term
+        ? {
+            id: grade.submission.term.id,
+            name: grade.submission.term.name,
+          }
+        : null,
+      teacher: grade.submission.teacher
+        ? {
+            id: grade.submission.teacher.id,
+            name: `${grade.submission.teacher.user?.first_name || ''} ${grade.submission.teacher.user?.last_name || ''}`.trim(),
+          }
+        : null,
+      ca_score: grade.ca_score,
+      exam_score: grade.exam_score,
+      total_score: grade.total_score,
+      grade_letter: grade.grade_letter,
+      comment: grade.comment,
+      submitted_at: grade.submission.submitted_at,
+    }));
+
+    return {
+      message: sysMsg.GRADES_FETCHED,
+      data: transformedGrades,
+    };
   }
 
   /**

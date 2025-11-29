@@ -222,3 +222,31 @@ export function getStudentsForClassDocs() {
     }),
   );
 }
+
+export function getStudentGradesDocs() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Get student grades',
+      description: 'Retrieve all grades for a specific student.',
+    }),
+    ApiParam({
+      name: 'studentId',
+      type: String,
+      description: 'The ID of the student to retrieve grades for.',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Grades fetched successfully.',
+      type: [GradeResponseDto],
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - Not authorized to access these grades.',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Student not found or no grades available.',
+    }),
+  );
+}

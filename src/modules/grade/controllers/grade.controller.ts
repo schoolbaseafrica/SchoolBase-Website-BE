@@ -28,6 +28,7 @@ import {
   listTeacherSubmissionsDocs,
   submitForApprovalDocs,
   updateGradeDocs,
+  getStudentGradesDocs,
 } from '../docs/grade.swagger';
 import {
   CreateGradeSubmissionDto,
@@ -41,6 +42,8 @@ interface IRequestWithUser extends Request {
     id: string;
     userId: string;
     teacher_id?: string;
+    student_id?: string;
+    parent_id?: string;
     roles: UserRole[];
   };
 }
@@ -143,5 +146,15 @@ export class GradeController {
       message: sysMsg.STUDENTS_FETCHED,
       data: students,
     };
+  }
+
+  @Get('student/:studentId')
+  @getStudentGradesDocs()
+  @Roles(UserRole.STUDENT, UserRole.PARENT)
+  async getStudentGrades(
+    @Req() req: IRequestWithUser,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ) {
+    return this.gradeService.getStudentGrades(studentId, req.user);
   }
 }
