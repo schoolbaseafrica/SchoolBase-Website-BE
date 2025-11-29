@@ -371,9 +371,9 @@ describe('DatabaseService', () => {
       DB_TYPE=postgres
       DB_HOST=oldhost
       DB_PORT=5432
-      DB_USERNAME=olduser
-      DB_PASSWORD=oldpass
-      DB_DATABASE=olddb`;
+      DB_USER=olduser
+      DB_PASS=oldpass
+      DB_NAME=olddb`;
 
       (fs.existsSync as jest.Mock).mockImplementation(
         (path) => path === envPath,
@@ -396,8 +396,8 @@ describe('DatabaseService', () => {
       const writtenContent = writeCall[1];
       expect(writtenContent).toContain('DB_HOST=newhost');
       expect(writtenContent).toContain('DB_PORT=3306');
-      expect(writtenContent).toContain('DB_USERNAME=newuser');
-      expect(writtenContent).toContain('DB_DATABASE=new_database');
+      expect(writtenContent).toContain('DB_USER=newuser');
+      expect(writtenContent).toContain('DB_NAME=new_database');
       expect(writtenContent).toContain('DB_TYPE=mysql');
     });
 
