@@ -17,7 +17,7 @@ export enum TermName {
 
 export enum TermStatus {
   ACTIVE = 'Active',
-  ARCHIVED = 'Archived',
+  INACTIVE = 'Inactive',
 }
 
 @Entity('terms')

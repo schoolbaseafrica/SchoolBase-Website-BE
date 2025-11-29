@@ -327,9 +327,9 @@ describe('TermService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException when updating archived term', async () => {
-      const archivedTerm = { ...mockTerm, status: TermStatus.ARCHIVED };
-      termModelAction.get.mockResolvedValue(archivedTerm);
+    it('should throw BadRequestException when updating inactive term', async () => {
+      const inactiveTerm = { ...mockTerm, status: TermStatus.INACTIVE };
+      termModelAction.get.mockResolvedValue(inactiveTerm);
 
       await expect(
         service.updateTerm('term-1', { startDate: '2025-09-05' }),
@@ -366,7 +366,7 @@ describe('TermService', () => {
         BadRequestException,
       );
       await expect(service.updateTerm('term-1', updateDto)).rejects.toThrow(
-        sysMsg.TERM_START_AFTER_END,
+        sysMsg.TERM_INVALID_DATE_RANGE,
       );
     });
 
@@ -381,7 +381,7 @@ describe('TermService', () => {
         BadRequestException,
       );
       await expect(service.updateTerm('term-1', updateDto)).rejects.toThrow(
-        sysMsg.TERM_END_BEFORE_START,
+        sysMsg.TERM_INVALID_DATE_RANGE,
       );
     });
 
@@ -391,6 +391,10 @@ describe('TermService', () => {
       };
 
       termModelAction.get.mockResolvedValue(mockTerm);
+      termModelAction.list.mockResolvedValue({
+        payload: [mockTerm],
+        paginationMeta: {},
+      });
       termModelAction.update.mockResolvedValue(null);
 
       await expect(service.updateTerm('term-1', updateDto)).rejects.toThrow(
@@ -472,7 +476,7 @@ describe('TermService', () => {
 
       expect(termModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { sessionId },
-        updatePayload: { status: TermStatus.ARCHIVED },
+        updatePayload: { status: TermStatus.INACTIVE, isCurrent: false },
         transactionOptions: {
           useTransaction: false,
           transaction: undefined,
@@ -487,7 +491,7 @@ describe('TermService', () => {
 
       expect(termModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { sessionId },
-        updatePayload: { status: TermStatus.ARCHIVED },
+        updatePayload: { status: TermStatus.INACTIVE, isCurrent: false },
         transactionOptions: {
           useTransaction: true,
           transaction: mockEntityManager,

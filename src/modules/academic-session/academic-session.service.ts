@@ -3,38 +3,38 @@ import {
   ConflictException,
   HttpStatus,
   Injectable,
-  Logger,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, FindOptionsOrder } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
+import { TermName } from '../academic-term/entities/term.entity';
 import { TermService } from '../academic-term/term.service';
 
 import { CreateAcademicSessionDto } from './dto/create-academic-session.dto';
 import { UpdateAcademicSessionDto } from './dto/update-academic-session.dto';
-import {
-  AcademicSession,
-  SessionStatus,
-} from './entities/academic-session.entity';
+import { AcademicSession, SessionStatus } from './entities';
 import { AcademicSessionModelAction } from './model-actions/academic-session-actions';
+import {
+  ICreateSessionResponse,
+  IGetAllSessionsResponse,
+  IGetSessionByIdResponse,
+  IUpdateSessionResponse,
+  IDeleteSessionResponse,
+  IPaginationMeta,
+} from './types';
 
 export interface IListSessionsOptions {
   page?: number;
   limit?: number;
-  order?: FindOptionsOrder<AcademicSession>;
-}
-
-export interface ICreateSessionResponse {
-  status_code: HttpStatus;
-  message: string;
-  data: AcademicSession;
 }
 
 @Injectable()
 export class AcademicSessionService {
-  private readonly logger = new Logger(AcademicSessionService.name);
+  // TODO: Add logger functionality later
+  // private readonly logger = new Logger(AcademicSessionService.name);
+
   constructor(
     private readonly sessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
@@ -44,6 +44,66 @@ export class AcademicSessionService {
   private validateSessionIsModifiable(session: AcademicSession): void {
     if (session.status === SessionStatus.ARCHIVED) {
       throw new ForbiddenException(sysMsg.ARCHIVED_SESSION_LOCKED);
+    }
+    // Active and Inactive sessions are modifiable for planning and management
+  }
+
+  /**
+   * Normalizes a date to midnight (00:00:00) for date-only comparisons
+   */
+  private normalizeDateToMidnight(date: Date): Date {
+    const normalized = new Date(date);
+    normalized.setHours(0, 0, 0, 0);
+    return normalized;
+  }
+
+  /**
+   * Calculates session status based on current date vs session date range
+   */
+  private calculateSessionStatus(
+    sessionStart: Date,
+    sessionEnd: Date,
+  ): SessionStatus {
+    const today = this.normalizeDateToMidnight(new Date());
+    const startDate = this.normalizeDateToMidnight(sessionStart);
+    const endDate = this.normalizeDateToMidnight(sessionEnd);
+
+    const isActive = today >= startDate && today <= endDate;
+    const isFuture = today < startDate;
+
+    return isActive
+      ? SessionStatus.ACTIVE
+      : isFuture
+        ? SessionStatus.INACTIVE
+        : SessionStatus.ARCHIVED;
+  }
+
+  /**
+   * Updates session status based on current date.
+   * Session is Active only if current date is within session date range.
+   * This method is automatically called when fetching sessions.
+   */
+  private async updateSessionStatus(sessionId: string): Promise<void> {
+    const session = await this.sessionModelAction.get({
+      identifierOptions: { id: sessionId },
+    });
+
+    if (!session) {
+      return;
+    }
+
+    const correctStatus = this.calculateSessionStatus(
+      session.startDate,
+      session.endDate,
+    );
+
+    // Update only if status has changed
+    if (session.status !== correctStatus) {
+      await this.sessionModelAction.update({
+        identifierOptions: { id: sessionId },
+        updatePayload: { status: correctStatus },
+        transactionOptions: { useTransaction: false },
+      });
     }
   }
 
@@ -61,11 +121,15 @@ export class AcademicSessionService {
     const start = new Date(firstTerm.startDate);
     const end = new Date(thirdTerm.endDate);
 
-    // Validate session dates
-    if (start < new Date()) {
+    // Validate session dates (compare date-only, ignoring time)
+    const today = this.normalizeDateToMidnight(new Date());
+    const startDateOnly = this.normalizeDateToMidnight(start);
+    const endDateOnly = this.normalizeDateToMidnight(end);
+
+    if (startDateOnly < today) {
       throw new BadRequestException(sysMsg.START_DATE_IN_PAST);
     }
-    if (end < new Date()) {
+    if (endDateOnly < today) {
       throw new BadRequestException(sysMsg.END_DATE_IN_PAST);
     }
     if (end <= start) {
@@ -87,21 +151,8 @@ export class AcademicSessionService {
       );
     }
 
-    // Check if there's an ongoing (active) session that hasn't ended
-    const activeSessions = await this.sessionModelAction.list({
-      filterRecordOptions: { status: SessionStatus.ACTIVE },
-    });
-
-    const currentDate = new Date();
-    for (const activeSession of activeSessions.payload) {
-      // If the active session's end date is in the future, it's still ongoing
-      if (new Date(activeSession.endDate) > currentDate) {
-        throw new ConflictException(sysMsg.ONGOING_SESSION_EXISTS);
-      }
-    }
-
     // Validate individual term dates
-    const termNames = ['First term', 'Second term', 'Third term'];
+    const termNames = [TermName.FIRST, TermName.SECOND, TermName.THIRD];
     const termDtos = [firstTerm, secondTerm, thirdTerm];
 
     termDtos.forEach((termDto, i) => {
@@ -133,40 +184,19 @@ export class AcademicSessionService {
       );
     }
 
+    // Calculate initial session status based on dates
+    const sessionStatus = this.calculateSessionStatus(start, end);
+
     // Use transaction to create session and terms together
     const newSession = await this.dataSource.transaction(async (manager) => {
-      // Get all currently active sessions to archive their terms
-      const activeSessions = await this.sessionModelAction.list({
-        filterRecordOptions: { status: SessionStatus.ACTIVE },
-      });
-
-      // Archive all currently active sessions and their terms (previous session becomes read-only)
-      for (const activeSession of activeSessions.payload) {
-        // Archive the terms of the active session
-        await this.termService.archiveTermsBySessionId(
-          activeSession.id,
-          manager,
-        );
-      }
-
-      // Archive the session itself
-      await this.sessionModelAction.update({
-        updatePayload: { status: SessionStatus.ARCHIVED },
-        identifierOptions: { status: SessionStatus.ACTIVE },
-        transactionOptions: {
-          useTransaction: true,
-          transaction: manager,
-        },
-      });
-
-      // Create the academic session as ACTIVE (current session)
+      // Create the academic session with calculated status
       const session = manager.create(AcademicSession, {
         academicYear: academicYear,
         name: academicYear, // Set name same as academicYear for backward compatibility
         startDate: start,
         endDate: end,
         description: createSessionDto.description || null,
-        status: SessionStatus.ACTIVE,
+        status: sessionStatus,
       });
 
       const savedSession = await manager.save(AcademicSession, session);
@@ -188,33 +218,74 @@ export class AcademicSessionService {
     });
 
     return {
-      status_code: HttpStatus.OK,
+      status_code: HttpStatus.CREATED,
       message: sysMsg.ACADEMIC_SESSION_CREATED,
       data: newSession,
     };
   }
 
-  async findAll(options: IListSessionsOptions = {}) {
+  async findAll(
+    options: IListSessionsOptions = {},
+  ): Promise<IGetAllSessionsResponse> {
     const normalizedPage = Math.max(1, Math.floor(options.page ?? 1));
     const normalizedLimit = Math.max(1, Math.floor(options.limit ?? 20));
 
-    const { payload, paginationMeta } = await this.sessionModelAction.list({
-      order: options.order ?? { startDate: 'ASC' },
+    // First, get all sessions to know which ones need term updates
+    const initialFetch = await this.sessionModelAction.list({
+      order: { startDate: 'ASC' },
       paginationPayload: {
         page: normalizedPage,
         limit: normalizedLimit,
       },
     });
 
+    // Update session status and term statuses for each session
+    for (const session of initialFetch.payload) {
+      if (session.id) {
+        await this.updateSessionStatus(session.id);
+        await this.termService.findTermsBySessionId(session.id);
+      }
+    }
+
+    // Fetch sessions again with updated term data
+    const { payload, paginationMeta } = await this.sessionModelAction.list({
+      order: { startDate: 'ASC' },
+      paginationPayload: {
+        page: normalizedPage,
+        limit: normalizedLimit,
+      },
+    });
+
+    const meta: IPaginationMeta = (paginationMeta as IPaginationMeta) ?? {
+      total: 0,
+      page: normalizedPage,
+      limit: normalizedLimit,
+      total_pages: 0,
+      has_next: false,
+      has_previous: false,
+    };
+
+    // Add status summary
+    const statusSummary = {
+      active: payload.filter((s) => s.status === SessionStatus.ACTIVE).length,
+      inactive: payload.filter((s) => s.status === SessionStatus.INACTIVE)
+        .length,
+      archived: payload.filter((s) => s.status === SessionStatus.ARCHIVED)
+        .length,
+    };
+
+    meta.summary = statusSummary;
+
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.ACADEMIC_SESSION_LIST_SUCCESS,
       data: payload,
-      meta: paginationMeta,
+      meta,
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string): Promise<IGetSessionByIdResponse> {
+    // Check if session exists first
     const session = await this.sessionModelAction.get({
       identifierOptions: { id },
     });
@@ -223,14 +294,25 @@ export class AcademicSessionService {
       throw new NotFoundException(sysMsg.SESSION_NOT_FOUND);
     }
 
+    // Update session status and term statuses, then refetch to get updated data
+    await this.updateSessionStatus(id);
+    await this.termService.findTermsBySessionId(id);
+
+    const updatedSession = await this.sessionModelAction.get({
+      identifierOptions: { id },
+    });
+
     return {
       status_code: HttpStatus.OK,
       message: sysMsg.ACADEMIC_SESSION_RETRIEVED,
-      data: session,
+      data: updatedSession,
     };
   }
 
-  async update(id: string, updateSessionDto: UpdateAcademicSessionDto) {
+  async update(
+    id: string,
+    updateSessionDto: UpdateAcademicSessionDto,
+  ): Promise<IUpdateSessionResponse> {
     const session = await this.sessionModelAction.get({
       identifierOptions: { id },
     });
@@ -249,9 +331,6 @@ export class AcademicSessionService {
       updatePayload.description = updateSessionDto.description;
     }
 
-    // Note: Terms are not bulk-updatable to preserve historical integrity.
-    // Individual term dates can be updated via PATCH /academic-term/:id endpoint.
-
     await this.sessionModelAction.update({
       identifierOptions: { id },
       updatePayload,
@@ -269,7 +348,7 @@ export class AcademicSessionService {
     };
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<IDeleteSessionResponse> {
     const session = await this.sessionModelAction.get({
       identifierOptions: { id },
     });
