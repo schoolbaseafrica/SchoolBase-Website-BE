@@ -5,6 +5,7 @@ import { Term } from '../../academic-term/entities/term.entity';
 
 export enum SessionStatus {
   ACTIVE = 'Active',
+  INACTIVE = 'Inactive',
   ARCHIVED = 'Archived',
 }
 

@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
+import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
 
 import { CreateTermDto } from './dto/create-term.dto';
 import { UpdateTermDto } from './dto/update-term.dto';
@@ -25,12 +26,22 @@ describe('TermService', () => {
       delete: jest.fn(),
     };
 
+    const mockSessionModelAction = {
+      update: jest.fn(),
+      get: jest.fn(),
+      list: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TermService,
         {
           provide: TermModelAction,
           useValue: mockTermModelAction,
+        },
+        {
+          provide: AcademicSessionModelAction,
+          useValue: mockSessionModelAction,
         },
       ],
     }).compile();
@@ -327,15 +338,21 @@ describe('TermService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw BadRequestException when updating archived term', async () => {
-      const archivedTerm = { ...mockTerm, status: TermStatus.ARCHIVED };
-      termModelAction.get.mockResolvedValue(archivedTerm);
+    it('should throw BadRequestException when updating past (archived) term', async () => {
+      // Create a term that ended in the past
+      const pastTerm = {
+        ...mockTerm,
+        startDate: new Date('2024-09-01'),
+        endDate: new Date('2024-12-15'), // Past date
+        status: TermStatus.INACTIVE,
+      };
+      termModelAction.get.mockResolvedValue(pastTerm);
 
       await expect(
-        service.updateTerm('term-1', { startDate: '2025-09-05' }),
+        service.updateTerm('term-1', { startDate: '2024-09-05' }),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        service.updateTerm('term-1', { startDate: '2025-09-05' }),
+        service.updateTerm('term-1', { startDate: '2024-09-05' }),
       ).rejects.toThrow(sysMsg.ARCHIVED_TERM_LOCKED);
     });
 
@@ -366,7 +383,7 @@ describe('TermService', () => {
         BadRequestException,
       );
       await expect(service.updateTerm('term-1', updateDto)).rejects.toThrow(
-        sysMsg.TERM_START_AFTER_END,
+        sysMsg.TERM_INVALID_DATE_RANGE,
       );
     });
 
@@ -381,7 +398,7 @@ describe('TermService', () => {
         BadRequestException,
       );
       await expect(service.updateTerm('term-1', updateDto)).rejects.toThrow(
-        sysMsg.TERM_END_BEFORE_START,
+        sysMsg.TERM_INVALID_DATE_RANGE,
       );
     });
 
@@ -391,6 +408,10 @@ describe('TermService', () => {
       };
 
       termModelAction.get.mockResolvedValue(mockTerm);
+      termModelAction.list.mockResolvedValue({
+        payload: [mockTerm],
+        paginationMeta: {},
+      });
       termModelAction.update.mockResolvedValue(null);
 
       await expect(service.updateTerm('term-1', updateDto)).rejects.toThrow(
@@ -472,7 +493,7 @@ describe('TermService', () => {
 
       expect(termModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { sessionId },
-        updatePayload: { status: TermStatus.ARCHIVED },
+        updatePayload: { status: TermStatus.INACTIVE, isCurrent: false },
         transactionOptions: {
           useTransaction: false,
           transaction: undefined,
@@ -487,7 +508,7 @@ describe('TermService', () => {
 
       expect(termModelAction.update).toHaveBeenCalledWith({
         identifierOptions: { sessionId },
-        updatePayload: { status: TermStatus.ARCHIVED },
+        updatePayload: { status: TermStatus.INACTIVE, isCurrent: false },
         transactionOptions: {
           useTransaction: true,
           transaction: mockEntityManager,
