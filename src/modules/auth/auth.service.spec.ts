@@ -1,11 +1,13 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
+import { OAuth2Client } from 'google-auth-library';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
 import * as sysMSG from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
+import { InviteModelAction } from '../invites/invite.model-action';
 import { SessionService } from '../session/session.service';
 import { UserService } from '../user/user.service';
 
@@ -20,9 +22,14 @@ jest.mock('../../config/config', () => {
         secret: 'test-secret',
         refreshSecret: 'test-refresh-secret',
       },
+      google: {
+        clientId: 'test-client-id',
+      },
     })),
   };
 });
+
+jest.mock('google-auth-library');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -63,6 +70,11 @@ describe('AuthService', () => {
     get: jest.fn(),
   };
 
+  const mockInviteModelAction = {
+    get: jest.fn(),
+    update: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -90,6 +102,10 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: mockConfigService,
+        },
+        {
+          provide: InviteModelAction,
+          useValue: mockInviteModelAction,
         },
       ],
     }).compile();
@@ -157,6 +173,10 @@ describe('AuthService', () => {
             {
               provide: ConfigService,
               useValue: mockConfigService,
+            },
+            {
+              provide: InviteModelAction,
+              useValue: mockInviteModelAction,
             },
           ],
         }).compile();
@@ -332,6 +352,10 @@ describe('AuthService', () => {
               provide: ConfigService,
               useValue: mockConfigService,
             },
+            {
+              provide: InviteModelAction,
+              useValue: mockInviteModelAction,
+            },
           ],
         }).compile();
 
@@ -359,6 +383,173 @@ describe('AuthService', () => {
         expect.objectContaining({
           secret: expect.any(String),
           expiresIn: expect.any(String),
+        }),
+      );
+    });
+  });
+
+  describe('googleLogin', () => {
+    const mockGoogleToken = 'valid-google-token';
+    const mockInviteToken = 'valid-invite-token';
+    const mockGooglePayload = {
+      email: 'test@example.com',
+      sub: 'google-id-123',
+      given_name: 'John',
+      family_name: 'Doe',
+      picture: 'http://example.com/pic.jpg',
+    };
+
+    const mockInvite = {
+      id: 'invite-id-123',
+      email: 'test@example.com',
+      token_hash: 'hashed-token',
+      expires_at: new Date(Date.now() + 86400000), // Tomorrow
+      status: 'pending',
+      accepted: false,
+      role: 'STUDENT',
+      full_name: 'John Doe',
+    };
+
+    beforeEach(() => {
+      // Clear mocks
+      jest.clearAllMocks();
+    });
+
+    it('should login existing user successfully', async () => {
+      const existingUser = {
+        id: 'user-id-123',
+        email: 'test@example.com',
+        google_id: 'google-id-123',
+        role: ['STUDENT'],
+        is_active: true,
+      };
+
+      mockUserService.findByEmail.mockResolvedValue(existingUser);
+      mockJwtService.signAsync.mockResolvedValue('token');
+      mockSessionService.createSession.mockResolvedValue({
+        session_id: 'session-id',
+        expires_at: new Date(),
+      });
+      // Mock OAuth2Client behavior manually since jest.mock is hoisted
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(mockGooglePayload),
+        }),
+      }));
+      const result = await service.googleLogin(mockGoogleToken);
+
+      expect(mockUserService.findByEmail).toHaveBeenCalledWith(
+        mockGooglePayload.email,
+      );
+      expect(result).toHaveProperty('access_token');
+    });
+
+    it('should update existing user with google_id if missing', async () => {
+      const existingUser = {
+        id: 'user-id-123',
+        email: 'test@example.com',
+        google_id: null,
+        role: ['STUDENT'],
+        is_active: true,
+      };
+
+      mockUserService.findByEmail.mockResolvedValue(existingUser);
+      mockJwtService.signAsync.mockResolvedValue('token');
+
+      // Mock OAuth2Client behavior manually since jest.mock is hoisted
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(mockGooglePayload),
+        }),
+      }));
+
+      await service.googleLogin(mockGoogleToken);
+
+      expect(mockUserService.updateUser).toHaveBeenCalledWith(
+        { google_id: mockGooglePayload.sub },
+        { id: existingUser.id },
+        { useTransaction: false },
+      );
+    });
+
+    it('should throw ForbiddenException if new user provides no invite token', async () => {
+      mockUserService.findByEmail.mockResolvedValue(null);
+
+      // Mock OAuth2Client behavior manually since jest.mock is hoisted
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(mockGooglePayload),
+        }),
+      }));
+
+      await expect(service.googleLogin(mockGoogleToken)).rejects.toThrow(
+        'Registration is by invitation only',
+      );
+    });
+
+    it('should throw NotFoundException if invite token is invalid', async () => {
+      mockUserService.findByEmail.mockResolvedValue(null);
+      mockInviteModelAction.get.mockResolvedValue(null);
+
+      // Mock OAuth2Client behavior manually since jest.mock is hoisted
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(mockGooglePayload),
+        }),
+      }));
+
+      await expect(
+        service.googleLogin(mockGoogleToken, mockInviteToken),
+      ).rejects.toThrow(sysMSG.INVALID_VERIFICATION_TOKEN);
+    });
+
+    it('should throw ConflictException if invite email does not match Google email', async () => {
+      mockUserService.findByEmail.mockResolvedValue(null);
+      mockInviteModelAction.get.mockResolvedValue({
+        ...mockInvite,
+        email: 'other@example.com',
+      });
+
+      // Mock OAuth2Client behavior manually since jest.mock is hoisted
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(mockGooglePayload),
+        }),
+      }));
+
+      await expect(
+        service.googleLogin(mockGoogleToken, mockInviteToken),
+      ).rejects.toThrow(
+        'The email associated with this invite does not match your Google email.',
+      );
+    });
+
+    it('should create new user and accept invite if valid', async () => {
+      mockUserService.findByEmail.mockResolvedValue(null);
+      mockInviteModelAction.get.mockResolvedValue(mockInvite);
+      mockUserService.create.mockResolvedValue({
+        id: 'new-user-id',
+        email: mockGooglePayload.email,
+        role: ['STUDENT'],
+        first_name: 'John',
+        last_name: 'Doe',
+      });
+      mockJwtService.signAsync.mockResolvedValue('token');
+
+      // Mock OAuth2Client behavior manually since jest.mock is hoisted
+      (OAuth2Client as unknown as jest.Mock).mockImplementation(() => ({
+        verifyIdToken: jest.fn().mockResolvedValue({
+          getPayload: jest.fn().mockReturnValue(mockGooglePayload),
+        }),
+      }));
+
+      await service.googleLogin(mockGoogleToken, mockInviteToken);
+
+      expect(mockUserService.create).toHaveBeenCalled();
+      expect(mockInviteModelAction.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          identifierOptions: { id: mockInvite.id },
+          updatePayload: expect.objectContaining({ accepted: true }),
         }),
       );
     });

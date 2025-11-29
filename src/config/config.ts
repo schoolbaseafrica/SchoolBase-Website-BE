@@ -63,7 +63,7 @@ export default () => ({
   },
 
   invite: {
-    expiry: process.env.INVITE_EXPIRATION_DAYS,
+    expiry: process.env.INVITE_EXPIRATION_DAYS || '7',
   },
 
   isTest(): boolean {

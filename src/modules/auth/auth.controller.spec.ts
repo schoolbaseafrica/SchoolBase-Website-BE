@@ -18,6 +18,7 @@ describe('AuthController', () => {
     activateUserAccount: jest.fn(),
     getProfile: jest.fn(),
     logout: jest.fn(),
+    googleLogin: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -192,6 +193,64 @@ describe('AuthController', () => {
 
       expect(authService.logout).toHaveBeenCalledWith(logoutDto);
       expect(authService.logout).toHaveBeenCalledTimes(1);
+    });
+  });
+  describe('googleLogin', () => {
+    it('should successfully login with google token', async () => {
+      const googleLoginDto = {
+        token: 'valid-google-token',
+      };
+      const expectedResult = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        message: 'Login successful',
+      };
+
+      mockAuthService.googleLogin.mockResolvedValue(expectedResult);
+
+      const result = await controller.googleLogin(googleLoginDto);
+
+      expect(authService.googleLogin).toHaveBeenCalledWith(
+        googleLoginDto.token,
+        undefined,
+      );
+      expect(result).toEqual(expectedResult);
+    });
+
+    it('should successfully login with google token and invite token', async () => {
+      const googleLoginDto = {
+        token: 'valid-google-token',
+        invite_token: 'valid-invite-token',
+      };
+      const expectedResult = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        message: 'Login successful',
+      };
+
+      mockAuthService.googleLogin.mockResolvedValue(expectedResult);
+
+      const result = await controller.googleLogin(googleLoginDto);
+
+      expect(authService.googleLogin).toHaveBeenCalledWith(
+        googleLoginDto.token,
+        googleLoginDto.invite_token,
+      );
+      expect(result).toEqual(expectedResult);
+    });
+
+    it('should throw UnauthorizedException if service throws', async () => {
+      const googleLoginDto = {
+        token: 'invalid-token',
+      };
+
+      mockAuthService.googleLogin.mockRejectedValue(
+        new UnauthorizedException('Invalid Google token'),
+      );
+
+      await expect(controller.googleLogin(googleLoginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });
