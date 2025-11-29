@@ -376,3 +376,11 @@ export const TEACHER_PROFILE_NOT_FOUND =
 export const UNAUTHORIZED_GRADE_ACCESS =
   'You are not authorized to access this grade submission';
 export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
+// Superadmin messages
+export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
+export const SUPERADMIN_PASSWORDS_REQUIRED =
+  'password and confirmation password are required';
+export const SUPERADMIN_EMAIL_EXISTS =
+  'speradmin with this email already exists';
+export const SUPERADMIN_PASSWORD_MUST_MATCH =
+  'password and confirmation password must match';
