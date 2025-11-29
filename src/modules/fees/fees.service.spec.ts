@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, EntityManager } from 'typeorm';
@@ -14,8 +14,9 @@ import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
-import { CreateFeesDto } from './dto/fees.dto';
+import { CreateFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
+import { FeeStatus } from './enums/fees.enums';
 import { FeesService } from './fees.service';
 import { FeesModelAction } from './model-action/fees.model-action';
 
@@ -44,6 +45,8 @@ describe('FeesService', () => {
 
   const mockFeesModelAction = {
     create: jest.fn(),
+    get: jest.fn(),
+    save: jest.fn(),
   };
 
   const mockTermModelAction = {
@@ -323,6 +326,169 @@ describe('FeesService', () => {
           class_count: 1,
         }),
       );
+    });
+  });
+
+  describe('update', () => {
+    const feeId = 'fee-123';
+    const updateFeesDto: UpdateFeesDto = {
+      component_name: 'Updated Tuition Fee',
+      description: 'Updated description',
+      amount: 6000,
+      term_id: 'term-456',
+      class_ids: ['class-3'],
+      status: FeeStatus.INACTIVE,
+    };
+
+    const mockExistingFee: Fees = {
+      id: feeId,
+      component_name: 'Tuition Fee',
+      description: 'Quarterly tuition fee',
+      amount: 5000,
+      term_id: 'term-123',
+      classes: [{ id: 'class-1', name: 'Grade 1' } as Class],
+      status: FeeStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Fees;
+
+    const mockTerm: Term = {
+      id: 'term-456',
+      name: TermName.SECOND,
+      status: TermStatus.ACTIVE,
+    } as Term;
+
+    const mockClasses: Class[] = [{ id: 'class-3', name: 'Grade 3' } as Class];
+
+    beforeEach(() => {
+      mockDataSource.transaction.mockImplementation(async (callback) => {
+        return callback(mockEntityManager as EntityManager);
+      });
+    });
+
+    it('should update a fee successfully', async () => {
+      const mockSave = jest.fn().mockResolvedValue({
+        ...mockExistingFee,
+        ...updateFeesDto,
+        classes: mockClasses,
+      });
+
+      mockFeesModelAction.get.mockResolvedValue(mockExistingFee);
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: mockClasses,
+        total: 1,
+      });
+      mockFeesModelAction.save = mockSave;
+
+      const result = await service.update(feeId, updateFeesDto);
+
+      expect(feesModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+        relations: { classes: true },
+      });
+      expect(termModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: updateFeesDto.term_id },
+      });
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: { id: expect.any(Object) },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: mockEntityManager,
+        },
+      });
+      expect(mockSave).toHaveBeenCalled();
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fee component updated successfully',
+        expect.objectContaining({
+          fee_id: feeId,
+        }),
+      );
+      expect(result).toMatchObject(updateFeesDto);
+    });
+
+    it('should throw NotFoundException when fee does not exist', async () => {
+      mockFeesModelAction.get.mockResolvedValue(null);
+
+      await expect(service.update(feeId, updateFeesDto)).rejects.toThrow(
+        new NotFoundException(sysMsg.FEE_NOT_FOUND),
+      );
+
+      expect(feesModelAction.get).toHaveBeenCalled();
+      expect(termModelAction.get).not.toHaveBeenCalled();
+    });
+
+    it('should throw BadRequestException when term_id is invalid', async () => {
+      mockFeesModelAction.get.mockResolvedValue(mockExistingFee);
+      mockTermModelAction.get.mockResolvedValue(null);
+
+      await expect(service.update(feeId, updateFeesDto)).rejects.toThrow(
+        new BadRequestException(sysMsg.TERM_ID_INVALID),
+      );
+
+      expect(termModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: updateFeesDto.term_id },
+      });
+    });
+
+    it('should throw BadRequestException when class_ids are invalid', async () => {
+      mockFeesModelAction.get.mockResolvedValue(mockExistingFee);
+      mockTermModelAction.get.mockResolvedValue(mockTerm);
+      mockClassModelAction.find.mockResolvedValue({
+        payload: [],
+        total: 0,
+      });
+
+      await expect(service.update(feeId, updateFeesDto)).rejects.toThrow(
+        new BadRequestException(sysMsg.INVALID_CLASS_IDS),
+      );
+    });
+
+    it('should update only provided fields', async () => {
+      const partialUpdate = { amount: 7000 };
+      const mockSave = jest.fn().mockResolvedValue({
+        ...mockExistingFee,
+        amount: 7000,
+      });
+
+      mockFeesModelAction.get.mockResolvedValue(mockExistingFee);
+      mockFeesModelAction.save = mockSave;
+
+      const result = await service.update(feeId, partialUpdate);
+
+      expect(result.amount).toBe(7000);
+      expect(termModelAction.get).not.toHaveBeenCalled();
+      expect(classModelAction.find).not.toHaveBeenCalled();
+    });
+
+    it('should not validate term if term_id is not provided', async () => {
+      const updateWithoutTerm = { amount: 7000 };
+      const mockSave = jest.fn().mockResolvedValue({
+        ...mockExistingFee,
+        amount: 7000,
+      });
+
+      mockFeesModelAction.get.mockResolvedValue(mockExistingFee);
+      mockFeesModelAction.save = mockSave;
+
+      await service.update(feeId, updateWithoutTerm);
+
+      expect(termModelAction.get).not.toHaveBeenCalled();
+    });
+
+    it('should not validate classes if class_ids are not provided', async () => {
+      const updateWithoutClasses = { component_name: 'New Name' };
+      const mockSave = jest.fn().mockResolvedValue({
+        ...mockExistingFee,
+        component_name: 'New Name',
+      });
+
+      mockFeesModelAction.get.mockResolvedValue(mockExistingFee);
+      mockFeesModelAction.save = mockSave;
+
+      await service.update(feeId, updateWithoutClasses);
+
+      expect(classModelAction.find).not.toHaveBeenCalled();
     });
   });
 });
