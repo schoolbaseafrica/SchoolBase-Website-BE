@@ -2,12 +2,13 @@ import * as fs from 'fs';
 import { join } from 'path';
 
 import {
+  BadRequestException,
   Inject,
   Injectable,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -49,6 +50,25 @@ export class DatabaseService {
     };
   }
 
+  // Update configuration
+  async update(configureDatabaseDto: ConfigureDatabaseDto) {
+    if (!this.checkSetupCompleted()) {
+      throw new BadRequestException(
+        'Initial setup must be completed first before updating configuration.',
+      );
+    }
+
+    // Test new connection
+    await this.testConnectionAndCreateTables(configureDatabaseDto);
+
+    // Save new config
+    await this.saveConfigToFile(configureDatabaseDto);
+
+    return {
+      message: sysMsg.DATABASE_CONFIGURATION_UPDATED,
+    };
+  }
+
   private async testConnectionAndCreateTables(
     configureDatabaseDto: ConfigureDatabaseDto,
   ) {
@@ -66,7 +86,7 @@ export class DatabaseService {
         synchronize: true,
         logging: false,
         connectTimeoutMS: 10000,
-      });
+      } as DataSourceOptions);
 
       // Initialize connection
       await tempDataSource.initialize();
@@ -78,7 +98,37 @@ export class DatabaseService {
       return true;
     } catch (error) {
       this.logger.error('Database connection failed', { error });
-      throw error;
+      // Transform database errors to client-friendly messages
+      const errorCode = error?.code;
+      const errorMessage = error?.message || '';
+
+      if (errorCode === '28P01' || errorCode === '28000') {
+        // auth failed or invalid credentials
+        throw new BadRequestException(
+          'Invalid database credentials. Please check username and password.',
+        );
+      } else if (errorCode === '3D000') {
+        // db does not exist
+        throw new BadRequestException(
+          `Database "${configureDatabaseDto.database_name}" does not exist. Please create it first.`,
+        );
+      } else if (errorCode === 'ECONNREFUSED' || error?.code === 'ENOTFOUND') {
+        // connection refused or host not found
+        throw new BadRequestException(
+          `Cannot connect to database host "${configureDatabaseDto.database_host}:${configureDatabaseDto.database_port}". Please verify the host and port.`,
+        );
+      } else if (errorCode === 'ETIMEDOUT') {
+        throw new BadRequestException(
+          'Database connection timeout. Please check your network or firewall settings.',
+        );
+      } else if (errorMessage.includes('does not exist')) {
+        throw new BadRequestException(errorMessage.replace('error: ', ''));
+      } else {
+        // Unknown error
+        throw new InternalServerErrorException(
+          'Failed to connect to database. Please check your configuration.',
+        );
+      }
     } finally {
       if (tempDataSource?.isInitialized) {
         await tempDataSource.destroy();
@@ -113,9 +163,9 @@ export class DatabaseService {
       DB_TYPE=${escapeEnvValue(configureDatabaseDto.database_type)}
       DB_HOST=${escapeEnvValue(configureDatabaseDto.database_host)}
       DB_PORT=${configureDatabaseDto.database_port}
-      DB_USERNAME=${escapeEnvValue(configureDatabaseDto.database_username)}
-      DB_PASSWORD=${escapeEnvValue(configureDatabaseDto.database_password)}
-      DB_DATABASE=${escapeEnvValue(configureDatabaseDto.database_name)}
+      DB_USER=${escapeEnvValue(configureDatabaseDto.database_username)}
+      DB_PASS=${escapeEnvValue(configureDatabaseDto.database_password)}
+      DB_NAME=${escapeEnvValue(configureDatabaseDto.database_name)}
       SETUP_COMPLETED='true'
     `.trim();
 
@@ -126,7 +176,7 @@ export class DatabaseService {
       return true;
     } catch (error) {
       this.logger.error('Failed to write .env file', { error });
-      // restore backup on failure
+      // restore backup on failure fr any reason
       const backups = fs
         .readdirSync(process.cwd())
         .filter((f) => f.startsWith('.env.setup.backup.'))
@@ -137,5 +187,18 @@ export class DatabaseService {
       }
       throw error;
     }
+  }
+
+  //===> check if setup is already completed <====
+  private checkSetupCompleted(): boolean {
+    const envPath = join(process.cwd(), '.env');
+
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const setupCompletedRegex = /SETUP_COMPLETED\s*=\s*['"]?true['"]?/i;
+      return setupCompletedRegex.test(envContent);
+    }
+
+    return false;
   }
 }

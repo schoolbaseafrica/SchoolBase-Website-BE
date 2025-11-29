@@ -3,6 +3,10 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { ClassStudentModelAction } from 'src/modules/class/model-actions/class-student.action';
+import { ClassModelAction } from 'src/modules/class/model-actions/class.actions';
+
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { FileService } from '../../shared/file/file.service';
 import { UserModelAction } from '../../user/model-actions/user-actions';
 import { StudentModelAction } from '../model-actions';
@@ -37,12 +41,12 @@ const mockFileService = {
   validatePhotoUrl: jest.fn(),
 } as unknown as jest.Mocked<FileService>;
 
+const mockClassStudentModelAction = { list: jest.fn() };
+const mockClassModelAction = { find: jest.fn() };
+const mockAcademicSessionModelAction = { find: jest.fn() };
+
 describe('StudentService', () => {
   let service: StudentService;
-  // let studentModelAction: jest.Mocked<StudentModelAction>;
-  // let userModelAction: jest.Mocked<UserModelAction>;
-  // let fileService: jest.Mocked<FileService>;
-  // let dataSource: jest.Mocked<DataSource>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -68,14 +72,22 @@ describe('StudentService', () => {
           provide: FileService,
           useValue: mockFileService,
         },
+        {
+          provide: ClassStudentModelAction,
+          useValue: mockClassStudentModelAction,
+        },
+        {
+          provide: ClassModelAction,
+          useValue: mockClassModelAction,
+        },
+        {
+          provide: AcademicSessionModelAction,
+          useValue: mockAcademicSessionModelAction,
+        },
       ],
     }).compile();
 
     service = module.get<StudentService>(StudentService);
-    // studentModelAction = module.get(StudentModelAction);
-    // userModelAction = module.get(UserModelAction);
-    // fileService = module.get(FileService);
-    // dataSource = module.get(DataSource);
   });
 
   afterEach(() => {

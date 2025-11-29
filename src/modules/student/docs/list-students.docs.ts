@@ -4,7 +4,10 @@ import {
   ApiQuery,
   ApiResponse,
   ApiBearerAuth,
+  ApiOkResponse,
 } from '@nestjs/swagger';
+
+import { StudentGrowthReportResponseDto } from '../dto/student.growth.dto';
 
 export const ListStudentsDocs = () => {
   return applyDecorators(
@@ -66,5 +69,19 @@ export const ListStudentsDocs = () => {
       },
     }),
     ApiBearerAuth(),
+  );
+};
+
+export const studentGrowthDecorator = () => {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Get all students growth metrics (ADMIN only)',
+    }),
+    ApiOkResponse({
+      description:
+        'Returns the student growth report for a given academic year',
+      type: StudentGrowthReportResponseDto,
+    }),
   );
 };

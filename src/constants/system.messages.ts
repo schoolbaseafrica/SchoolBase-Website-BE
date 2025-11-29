@@ -272,6 +272,8 @@ export const DATABASE_ALREADY_CONFIGURED =
 export const DATABASE_CONFIGURATION_FAILED = 'Database configuration failed';
 export const DATABASE_CONFIGURATION_SUCCESS =
   'Database configuration successful';
+export const DATABASE_CONFIGURATION_UPDATED =
+  'Database configuration updated successfully';
 // Student messages
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
@@ -379,3 +381,16 @@ export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
 export const FEE_DEACTIVATED_SUCCESSFULLY =
   'Fee component deactivated successfully';
 export const FEE_ALREADY_INACTIVE = 'Fee component is already inactive';
+// Superadmin messages
+export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
+export const SUPERADMIN_PASSWORDS_REQUIRED =
+  'password and confirmation password are required';
+export const SUPERADMIN_INVALID_PASSWORD = 'invalid password';
+export const SUPERADMIN_EMAIL_EXISTS =
+  'superadmin with this email already exists';
+export const SUPERADMIN_PASSWORD_MUST_MATCH =
+  'password and confirmation password must match';
+export const SUPERADMIN_CONFLICT_GENERAL_MSG =
+  'conflict - request cannot be processed. See examples for possible causes.';
+export const SUPERADMIN_ALREADY_EXISTS =
+  'a superadmin account already exists. Only one is allowed.';

@@ -1,6 +1,7 @@
 import { PaginationMeta } from '@hng-sdk/orm';
 import {
   ConflictException,
+  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
@@ -8,6 +9,10 @@ import {
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, Like } from 'typeorm';
 import { Logger } from 'winston';
+
+import { AcademicSessionModelAction } from 'src/modules/academic-session/model-actions/academic-session-actions';
+import { ClassStudentModelAction } from 'src/modules/class/model-actions/class-student.action';
+import { ClassModelAction } from 'src/modules/class/model-actions/class.actions';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { UserRole } from '../../shared/enums';
@@ -20,6 +25,7 @@ import {
   ListStudentsDto,
   PatchStudentDto,
 } from '../dto';
+import { StudentGrowthReportResponseDto } from '../dto/student.growth.dto';
 import { Student } from '../entities';
 import { StudentModelAction } from '../model-actions';
 
@@ -32,6 +38,9 @@ export class StudentService {
     private readonly studentModelAction: StudentModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
+    private readonly classStudentModelAction: ClassStudentModelAction,
+    private readonly classModelAction: ClassModelAction,
+    private readonly academicSessionModelAction: AcademicSessionModelAction,
   ) {
     this.logger = baseLogger.child({ context: StudentService.name });
   }
@@ -368,5 +377,85 @@ export class StudentService {
 
     const sequenceStr = String(nextSequence).padStart(4, '0');
     return `${yearPrefix}${sequenceStr}`;
+  }
+
+  //student growth api
+
+  async getStudentGrowthReport(
+    academicYear: string,
+  ): Promise<StudentGrowthReportResponseDto> {
+    // --- 1. Find academic session ---
+    const academicSessionResponse = await this.academicSessionModelAction.find({
+      findOptions: { name: academicYear },
+      transactionOptions: { useTransaction: false },
+    });
+
+    const academicSession = academicSessionResponse.payload?.[0];
+
+    if (!academicSession) {
+      this.logger.warn(`Academic session not found: ${academicYear}`);
+      throw new NotFoundException(sysMsg.RESOURCE_NOT_FOUND);
+    }
+
+    // --- 2. Get classes under session ---
+    const classesResponse = await this.classModelAction.find({
+      findOptions: { academicSession: { id: academicSession.id } },
+      transactionOptions: { useTransaction: false },
+    });
+
+    const classes = classesResponse.payload || [];
+
+    if (classes.length === 0) {
+      return {
+        message: sysMsg.OPERATION_SUCCESSFUL,
+        status_code: HttpStatus.OK,
+        data: {
+          academic_year: academicYear,
+          report: [],
+        },
+      };
+    }
+
+    // --- 3. Build report for each class ---
+    const report = await Promise.all(
+      classes.map(async (cls) => {
+        const classStudentsResponse = await this.classStudentModelAction.list({
+          filterRecordOptions: {
+            class: { id: cls.id },
+            student: { is_deleted: false },
+          },
+          relations: { student: { user: true } },
+        });
+
+        const classStudents = classStudentsResponse.payload || [];
+        const students = classStudents.map((cs) => cs.student);
+
+        const boys = students.filter((s) => s.user?.gender === 'Male').length;
+        const girls = students.filter(
+          (s) => s.user?.gender === 'Female',
+        ).length;
+
+        return {
+          class_name: cls.name,
+          new_students: students.length,
+          boys,
+          girls,
+        };
+      }),
+    );
+
+    this.logger.info('Generated student growth report', {
+      academicYear,
+      classCount: report.length,
+    });
+
+    return {
+      message: sysMsg.OPERATION_SUCCESSFUL,
+      status_code: HttpStatus.OK,
+      data: {
+        academic_year: academicYear,
+        report,
+      },
+    };
   }
 }
