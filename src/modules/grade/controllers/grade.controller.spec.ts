@@ -337,7 +337,7 @@ describe('GradeController', () => {
       );
     });
 
-    it('should throw ForbiddenException when a student tries to access another student Gs grades', async () => {
+    it("should throw ForbiddenException when a student tries to access another student's grades", async () => {
       const studentId = 'student-uuid-456';
       const anotherStudentId = 'student-uuid-789';
       const mockStudentRequest = {
@@ -361,7 +361,7 @@ describe('GradeController', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
-    it('should throw ForbiddenException when a parent tries to access another student Gs grades', async () => {
+    it("1should throw ForbiddenException when a parent tries to access another student's grades", async () => {
       const parentId = 'parent-uuid-123';
       const anotherStudentId = 'student-uuid-456';
       const mockParentRequest = {

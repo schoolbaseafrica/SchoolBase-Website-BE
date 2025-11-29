@@ -477,14 +477,11 @@ export class GradeService {
         relations: { parent: true },
       });
 
-      if (
-        !student ||
-        !student.user ||
-        !student.parent ||
-        student.parent.id !== user.parent_id
-      ) {
+      if (!student || !student.parent || student.parent.id !== user.parent_id) {
         throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
       }
+    } else {
+      throw new ForbiddenException(sysMsg.UNAUTHORIZED_GRADE_ACCESS);
     }
 
     // Fetch only approved grades
