@@ -1,6 +1,6 @@
 import {
+  BadRequestException,
   ConflictException,
-  HttpStatus,
   NotFoundException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -8,9 +8,13 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import * as sysMsg from '../../../constants/system.messages';
+import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { StudentModelAction } from '../../student/model-actions/student-actions';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
+import { ClassStudentModelAction } from '../model-actions/class-student.action';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 
@@ -27,7 +31,10 @@ const mockDataSource = {
   createEntityManager: jest.fn(),
   getRepository: jest.fn().mockReturnValue(mockRepository),
   transaction: jest.fn().mockImplementation(async (callback) => {
-    return callback({});
+    const mockManager = {
+      findOne: jest.fn(),
+    };
+    return callback(mockManager);
   }),
 };
 
@@ -64,10 +71,22 @@ describe('ClassService', () => {
     get: jest.fn(),
     find: jest.fn(),
     create: jest.fn(),
+    findAllWithSession: jest.fn(),
+    findAllWithSessionRaw: jest.fn(),
+    list: jest.fn(),
   };
 
   const mockClassTeacherModelAction = {
     list: jest.fn(),
+  };
+
+  const mockClassStudentModelAction = {
+    list: jest.fn(),
+    create: jest.fn(),
+  };
+
+  const mockStudentModelAction = {
+    get: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -90,6 +109,14 @@ describe('ClassService', () => {
         {
           provide: ClassTeacherModelAction,
           useValue: mockClassTeacherModelAction,
+        },
+        {
+          provide: ClassStudentModelAction,
+          useValue: mockClassStudentModelAction,
+        },
+        {
+          provide: StudentModelAction,
+          useValue: mockStudentModelAction,
         },
         {
           provide: WINSTON_MODULE_PROVIDER,
@@ -202,10 +229,12 @@ describe('ClassService', () => {
       expect(result).toEqual(emptyPayload.payload);
     });
   });
+
   describe('create', () => {
     const createClassDto = {
       name: 'Grade 10',
       arm: 'A',
+      // teacherIds: ['valid-uuid-1', 'valid-uuid-2'], // Uncomment if teacherIds are supported
     };
     const mockCreatedClass = {
       id: 'class-uuid-1',
@@ -214,10 +243,7 @@ describe('ClassService', () => {
     } as unknown as Class;
 
     it('should successfully create a new class and link it to the active session', async () => {
-      // Setup
-      (classModelAction.find as jest.Mock).mockResolvedValue({
-        payload: [],
-      }); // Class does not exist
+      (classModelAction.find as jest.Mock).mockResolvedValue({ payload: [] });
       (classModelAction.create as jest.Mock).mockResolvedValue(
         mockCreatedClass,
       );
@@ -230,15 +256,14 @@ describe('ClassService', () => {
         paginationMeta: {},
       });
 
-      // Execute
       const result = await service.create(createClassDto);
 
-      // Assertions
       expect(classModelAction.find).toHaveBeenCalledWith({
         findOptions: {
           name: createClassDto.name,
           arm: createClassDto.arm,
           academicSession: { id: MOCK_ACTIVE_SESSION },
+          is_deleted: false,
         },
         transactionOptions: {
           useTransaction: false,
@@ -257,33 +282,347 @@ describe('ClassService', () => {
         },
       });
 
-      expect(result.status_code).toBe(HttpStatus.CREATED);
-      expect(result.data.name).toBe(createClassDto.name);
-      expect(result.data.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
+      expect(result.name).toBe(createClassDto.name);
+      expect(result.academicSession.id).toBe(MOCK_ACTIVE_SESSION);
     });
 
     it('should throw ConflictException if the class already exists in the active session', async () => {
-      // Setup
       (classModelAction.find as jest.Mock).mockResolvedValue({
         payload: [mockCreatedClass],
-      }); // Class already exists
+      });
 
-      // Execute & Assert
       await expect(service.create(createClassDto)).rejects.toThrow(
         ConflictException,
       );
     });
 
     it('should throw NotFoundException if no active academic session is found', async () => {
-      // Setup
       (academicSessionModelAction.list as jest.Mock).mockResolvedValue({
         payload: [],
-      }); // No active session
+      });
 
-      // Execute & Assert
       await expect(service.create(createClassDto)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('should throw BadRequestException if teacherIds contains invalid UUIDs', async () => {
+      const invalidDto = {
+        ...createClassDto,
+        teacherIds: ['not-a-uuid'],
+      };
+      await expect(service.create(invalidDto)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('updateClass', () => {
+    const classId = 'class-uuid-1';
+    const updateDto = { name: 'JSS2', arm: 'B' };
+    const mockAcademicSession = {
+      id: 'session-uuid-1',
+      name: '2026/2027',
+      startDate: new Date(),
+      endDate: new Date(),
+      status: SessionStatus.ACTIVE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      is_deleted: false,
+      deleted_at: null,
+    };
+
+    const existingClass = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      academicSession: mockAcademicSession,
+      teacher_assignment: [],
+      student_assignments: [],
+      streams: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as unknown as Class;
+
+    beforeEach(() => {
+      classModelAction.get.mockResolvedValue(existingClass);
+      classModelAction.find.mockResolvedValue({
+        payload: [],
+        paginationMeta: {},
+      });
+      classModelAction.update = jest.fn();
+    });
+
+    it('should update class and return updated response', async () => {
+      const result = await service.updateClass(classId, updateDto);
+
+      expect(classModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        relations: { academicSession: true },
+      });
+      expect(classModelAction.find).toHaveBeenCalledWith({
+        findOptions: {
+          name: updateDto.name,
+          arm: updateDto.arm,
+          academicSession: { id: existingClass.academicSession.id },
+          is_deleted: false,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(classModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        updatePayload: { name: updateDto.name, arm: updateDto.arm },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result).toEqual({
+        message: expect.any(String),
+        id: classId,
+        name: updateDto.name,
+        arm: updateDto.arm,
+        academicSession: {
+          id: existingClass.academicSession.id,
+          name: existingClass.academicSession.name,
+        },
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+      await expect(service.updateClass('wrong-id', updateDto)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException if name is empty', async () => {
+      await expect(service.updateClass(classId, { name: '' })).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should throw ConflictException if class with same name/arm exists', async () => {
+      classModelAction.find.mockResolvedValue({
+        payload: [
+          {
+            id: 'other-id',
+            name: 'JSS2',
+            arm: 'B',
+            academicSession: mockAcademicSession,
+            teacher_assignment: [],
+            student_assignments: [],
+            streams: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            classSubjects: [],
+            is_deleted: false,
+            deleted_at: null,
+          },
+        ],
+        paginationMeta: {},
+      });
+      await expect(service.updateClass(classId, updateDto)).rejects.toThrow(
+        ConflictException,
+      );
+    });
+  });
+
+  describe('getGroupedClasses', () => {
+    it('should return grouped classes with status_code 200 and message', async () => {
+      // Mock grouped data
+      const mockRawClasses = [
+        {
+          id: 'class-id-1',
+          name: 'JSS1',
+          arm: 'A',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+        {
+          id: 'class-id-2',
+          name: 'JSS1',
+          arm: 'B',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+        },
+      ];
+
+      mockClassModelAction.list.mockResolvedValue({
+        payload: mockRawClasses,
+        paginationMeta: { total: 1, page: 1, limit: 20 },
+      });
+
+      const expectedGrouped = [
+        {
+          name: 'JSS1',
+          academicSession: { id: 'session-id', name: '2027/2028' },
+          classes: [
+            { id: 'class-id-1', arm: 'A' },
+            { id: 'class-id-2', arm: 'B' },
+          ],
+        },
+      ];
+
+      const result = await service.getGroupedClasses();
+      expect(result.message).toBe(sysMsg.CLASS_FETCHED);
+      expect(result.items).toEqual(expectedGrouped);
+      expect(result.pagination).toBeDefined();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
+    });
+
+    it('should return status_code 200 and message for empty grouped classes', async () => {
+      mockClassModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page: 1, limit: 20 },
+      });
+
+      const result = await service.getGroupedClasses();
+
+      expect(result.items).toEqual([]);
+      expect(result.pagination).toBeDefined();
+      expect(mockClassModelAction.list).toHaveBeenCalled();
+    });
+  });
+
+  describe('getClassById', () => {
+    const classId = 'class-uuid-1';
+    const mockAcademicSession = {
+      id: 'session-uuid-1',
+      name: '2026/2027',
+    };
+    const existingClass = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      academicSession: mockAcademicSession,
+    } as unknown as Class;
+
+    it('should return the correct flattened response for getClassById', async () => {
+      classModelAction.get.mockResolvedValue(existingClass);
+      const result = await service.getClassById(classId);
+      expect(result).toEqual({
+        message: sysMsg.CLASS_FETCHED,
+        id: classId,
+        name: 'JSS1',
+        arm: 'A',
+        academicSession: {
+          id: 'session-uuid-1',
+          name: '2026/2027',
+        },
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+      await expect(service.getClassById('wrong-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+  });
+
+  describe('getTotalClasses', () => {
+    it('should return the total number of classes filtered by sessionId, name, and arm', async () => {
+      // Arrange
+      const sessionId = 'session-uuid-1';
+      const name = 'JSS1';
+      const arm = 'A';
+      const mockTotal = 5;
+
+      // Mock the list method to return the expected paginationMeta
+      classModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: mockTotal },
+      });
+
+      // Act
+      const result = await service.getTotalClasses(sessionId, name, arm);
+
+      // Assert
+      expect(classModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          academicSession: { id: sessionId },
+          name,
+          arm,
+        },
+        paginationPayload: { page: 1, limit: 1 },
+      });
+      expect(result).toEqual({
+        message: sysMsg.TOTAL_CLASSES_FETCHED,
+        total: mockTotal,
+      });
+    });
+
+    it('should return zero if no classes match the filter', async () => {
+      // Arrange
+      classModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0 },
+      });
+
+      // Act
+      const result = await service.getTotalClasses(
+        'session-uuid-2',
+        'JSS9',
+        'B',
+      );
+
+      // Assert
+      expect(result).toEqual({
+        message: sysMsg.TOTAL_CLASSES_FETCHED,
+        total: 0,
+      });
+    });
+  });
+
+  describe('deleteClass', () => {
+    const classId = 'class-uuid-1';
+
+    beforeEach(() => {
+      classModelAction.update = jest.fn();
+    });
+
+    it('should successfully soft delete a class from the active session', async () => {
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        name: 'JSS1',
+        arm: 'A',
+        academicSession: { id: MOCK_ACTIVE_SESSION },
+        is_deleted: false,
+      } as unknown as Class);
+
+      const result = await service.deleteClass(classId);
+
+      expect(classModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        updatePayload: {
+          is_deleted: true,
+          deleted_at: expect.any(Date),
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+      expect(result).toEqual({
+        status_code: 200,
+        message: sysMsg.CLASS_DELETED,
+      });
+    });
+
+    it('should throw NotFoundException if class does not exist', async () => {
+      classModelAction.get.mockResolvedValue(null);
+
+      await expect(service.deleteClass('non-existent-id')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw BadRequestException when trying to delete a class from a past session', async () => {
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        name: 'JSS2',
+        academicSession: { id: 'past-session-id' },
+        is_deleted: false,
+      } as unknown as Class);
+
+      await expect(service.deleteClass(classId)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(classModelAction.update).not.toHaveBeenCalled();
     });
   });
 });

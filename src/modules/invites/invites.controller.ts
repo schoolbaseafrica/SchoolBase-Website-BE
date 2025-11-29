@@ -1,56 +1,86 @@
 import {
   Controller,
-  Get,
   Post,
   Body,
   HttpStatus,
   HttpCode,
+  UseInterceptors,
+  UploadedFile,
+  UseGuards,
+  Query,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-import {
-  InviteUserDto,
-  CreatedInvitesResponseDto,
-} from './dto/invite-user.dto';
-import { PendingInvitesResponseDto } from './dto/pending-invite.dto';
+import * as sysMsg from '../../constants/system.messages';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
+
+import { csvUploadDocs } from './docs/csv-swagger-doc';
+import { ApiInviteTags } from './docs/invite.swagger';
+import { AcceptInviteDto } from './dto/accept-invite.dto';
+import { InviteRole, InviteUserDto } from './dto/invite-user.dto';
 import { InviteService } from './invites.service';
 
-@ApiTags('Invites')
+@ApiInviteTags()
 @Controller('auth/invites')
 export class InvitesController {
   constructor(private readonly inviteService: InviteService) {}
 
   @Post()
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Invite new teachers or parents' })
-  @ApiResponse({
-    status: HttpStatus.CREATED,
-    description: 'Invitation sent successfully',
-    type: CreatedInvitesResponseDto,
-  })
-  @ApiResponse({
-    status: HttpStatus.CONFLICT,
-    description: `Invitation already sent`,
-    type: CreatedInvitesResponseDto,
-  })
-  async inviteUser(@Body() payload: InviteUserDto) {
-    return this.inviteService.sendInvite(payload);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @Roles(UserRole.ADMIN)
+  async inviteUser(@Body() inviteUserDto: InviteUserDto) {
+    const result = await this.inviteService.inviteUser(inviteUserDto);
+    return {
+      message: sysMsg.INVITE_SENT,
+      data: result,
+    };
   }
 
-  @Get()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Retrieve all pending invites' })
+  @Post('accept')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Accept invitation and set password' })
   @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Returns pending invites',
-    type: PendingInvitesResponseDto,
+    status: HttpStatus.CREATED,
+    description: sysMsg.ACCOUNT_CREATED,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
-    description: 'No pending invites found',
-    type: PendingInvitesResponseDto,
+    description: sysMsg.INVALID_VERIFICATION_TOKEN,
   })
-  async getPendingInvites(): Promise<PendingInvitesResponseDto> {
-    return this.inviteService.getPendingInvites();
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.TOKEN_EXPIRED,
+  })
+  async acceptInvite(@Body() acceptInviteDto: AcceptInviteDto) {
+    const user = await this.inviteService.acceptInvite(acceptInviteDto);
+    return {
+      status_code: HttpStatus.OK,
+      message: 'Account activated successfully',
+      data: user,
+    };
+  }
+
+  @Post('csv-bulk-upload')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiBearerAuth()
+  @UseInterceptors(FileInterceptor('file'))
+  @HttpCode(HttpStatus.OK)
+  @csvUploadDocs()
+  async uploadCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @Query('type') selectedType: InviteRole,
+  ) {
+    const key = await this.inviteService.uploadCsv(file, selectedType);
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.OPERATION_SUCCESSFUL,
+      file_key: key,
+    };
   }
 }

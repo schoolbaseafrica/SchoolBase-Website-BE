@@ -12,6 +12,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags } from '@nestjs/swagger';
 
 import { installationApi } from './decorators/installation-api.decorator';
+import { DocsGetSchoolDetails } from './docs/school.decorator';
 import { CreateInstallationDto } from './dto/create-installation.dto';
 import { SchoolService } from './school.service';
 
@@ -38,8 +39,9 @@ export class SchoolController {
   }
 
   @Get()
-  findAll() {
-    return this.schoolService.findAll();
+  @DocsGetSchoolDetails()
+  getSchoolDetails() {
+    return this.schoolService.getSchoolDetails();
   }
 
   @Get(':id')

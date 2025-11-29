@@ -1,18 +1,14 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, Unique, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Class } from '../../class/entities/class.entity';
+import { ClassSubject } from '../../class/entities/class-subject.entity';
 
 @Entity('subjects')
+@Unique(['name'])
 export class Subject extends BaseEntity {
-  @Column({ type: 'varchar', nullable: false })
+  @Column({ type: 'varchar', length: 255, nullable: false, unique: true })
   name: string;
 
-  @Column({ type: 'varchar', nullable: false, unique: true })
-  code: string;
-
-  // class_level should be a FK → class table
-  @ManyToOne(() => Class, (cls) => cls.id, { nullable: false })
-  @JoinColumn({ name: 'class_id' })
-  class_id: Class;
+  @OneToMany(() => ClassSubject, (cs) => cs.subject)
+  classSubjects: ClassSubject[];
 }

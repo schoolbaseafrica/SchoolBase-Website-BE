@@ -95,8 +95,29 @@ export class SchoolService {
     return `/uploads/logos/${filename}`;
   }
 
-  findAll() {
-    return `This action returns all school`;
+  async getSchoolDetails() {
+    const { payload } = await this.schoolModelAction.list({
+      filterRecordOptions: { installation_completed: true },
+    });
+
+    if (!payload || payload.length === 0) {
+      throw new ConflictException(sysMsg.SCHOOL_NOT_FOUND);
+    }
+
+    const school = payload[0];
+
+    return {
+      id: school.id,
+      name: school.name,
+      address: school.address,
+      email: school.email,
+      phone: school.phone,
+      logo_url: school.logo_url,
+      primary_color: school.primary_color,
+      secondary_color: school.secondary_color,
+      accent_color: school.accent_color,
+      installation_completed: school.installation_completed,
+    };
   }
 
   findOne(id: number) {

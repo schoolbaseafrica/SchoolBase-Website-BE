@@ -8,7 +8,7 @@ export class StudentResponseDto {
     description: 'Response message',
     example: 'Student created successfully',
   })
-  message: string;
+  message?: string;
 
   @ApiProperty({
     description: 'Student ID (UUID)',
@@ -40,6 +40,12 @@ export class StudentResponseDto {
     example: 'Favour Chinaza',
   })
   full_name: string;
+
+  @ApiProperty({
+    description: 'Phone number',
+    example: '+234 810 942 3124',
+  })
+  phone: string;
 
   @ApiProperty({
     description: 'Email address',
@@ -89,10 +95,11 @@ export class StudentResponseDto {
   })
   updated_at: Date;
 
-  constructor(message: string, student: Student, user: User) {
+  constructor(student: Student, user: User, message?: string) {
     this.message = message;
     this.id = student.id;
     this.registration_number = student.registration_number;
+    this.phone = user.phone;
     this.first_name = user.first_name;
     this.last_name = user.last_name;
     this.middle_name = user.middle_name;

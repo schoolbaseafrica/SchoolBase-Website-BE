@@ -47,6 +47,7 @@ export const PASSWORD_RESET_SUCCESS = 'password reset success';
 export const PASSWORD_RESET_FAILED = 'password reset failed';
 export const PASSWORD_RESET_TOKEN_INVALID = 'password reset token invalid';
 export const PASSWORD_RESET_TOKEN_EXPIRED = 'password reset token expired';
+export const PASSWORD_RESET_TOKEN_SENT = 'password reset token has been sent';
 export const PASSWORD_SAME_AS_OLD =
   'new password cannot be same as old password';
 
@@ -130,13 +131,16 @@ export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
 
 // Streams
-export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
 export const CLASS_NOT_FOUND = 'Class with the provided ID does not exist';
+export const STREAMS_RETRIEVED = 'Streams retrieved successfully';
+
 // Invites
-export const INVITE_SENT = 'INVITE_SENT';
+export const INVITE_SENT = 'invite sent';
 export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
-export const INVITE_ALREADY_SENT = 'INVITE_ALREADY_SENT';
+export const INVITE_ALREADY_SENT = 'invite already sent';
+export const ACTIVE_INVITE_EXISTS = 'an active invite exist for this user';
 
 //Academic Session
 export const ACADEMIC_SESSION =
@@ -161,21 +165,63 @@ export const SESSION_ACTIVATION_FAILED =
   'Failed to activate academic session. Please try again.';
 export const ACADEMY_SESSION_ACTIVATED =
   'Academic session activated successfully.';
+export const ACADEMIC_SESSION_RETRIEVED =
+  'Academic session retrieved successfully.';
+export const ACADEMIC_SESSION_UPDATED =
+  'Academic session updated successfully.';
+export const ACADEMIC_SESSION_DELETED =
+  'Academic session deleted successfully.';
+export const INACTIVE_SESSION_LOCKED =
+  'Cannot modify an inactive academic session. Previous sessions are locked to preserve historical data integrity.';
+export const ARCHIVED_SESSION_LOCKED =
+  'Cannot modify an archived academic session. Archived sessions are read-only to preserve historical data.';
+export const ARCHIVED_SESSION_NO_DELETE =
+  'Cannot delete an archived academic session. Archived sessions must be preserved for historical records.';
+export const ACTIVE_SESSION_NO_DELETE =
+  'Cannot delete an active academic session. Please archive the session first before deletion.';
+export const SESSION_ARCHIVED = 'Academic session archived successfully.';
+export const ONGOING_SESSION_EXISTS =
+  'Cannot create a new session while an ongoing session exists. Please wait for the current session to end.';
 // Session management messages
 export const SESSION_REVOKED = 'session revoked successfully';
 export const SESSIONS_REVOKED = 'all user sessions revoked successfully';
 export const SESSION_NOT_FOUND = 'session not found';
 export const CANNOT_REVOKE_OTHER_SESSIONS = 'cannot revoke other user sessions';
-//department
-export const DEPARTMENT_NOT_FOUND = 'Department not found';
-export const DEPARTMENT_CREATED = 'Department created successfully';
-export const DEPARTMENT_ALREADY_EXISTS = 'Department already exists';
+
+// Room
+export const ROOM_CREATED_SUCCESSFULLY = 'Room created successfully.';
+export const DUPLICATE_ROOM_NAME = 'A room with this name already exists.';
+export const ROOM_RETRIEVED_SUCCESSFULLY =
+  'Room details retrieved successfully.';
+export const ROOM_LIST_RETRIEVED_SUCCESSFULLY =
+  'List of rooms retrieved successfully.';
+export const ROOM_UPDATED_SUCCESSFULLY = 'Room updated successfully.';
+export const ROOM_DELETED_SUCCESSFULLY = 'Room deleted successfully.';
+export const ROOM_NOT_FOUND = 'Room not found.';
+export const INVALID_ROOM_ID = 'Invalid room ID provided.';
+export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
+export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+export const CANNOT_DELETE_OCCUPIED_ROOM =
+  'Cannot delete a room that has an active class.';
+
+// Subject messages
+export const SUBJECT_CREATED = 'Subject created successfully';
+export const SUBJECT_ALREADY_EXISTS = 'Subject already exists';
+export const SUBJECTS_RETRIEVED = 'Subjects retrieved successfully';
+export const SUBJECT_RETRIEVED = 'Subject retrieved successfully';
+export const SUBJECT_NOT_FOUND = 'Subject not found';
+export const SUBJECT_UPDATED = 'Subject updated successfully';
+export const SUBJECT_DELETED = 'Subject deleted successfully';
+export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
+export const CLASSES_ASSIGNED_TO_SUBJECT =
+  'Classes successfully assigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
+export const SCHOOL_NOT_FOUND = 'School not found';
 
 // Classes
 export const CLASS_OR_TEACHER_OR_SESSION_NOT_FOUND =
@@ -186,12 +232,32 @@ export const TEACHER_ASSIGNED = 'teacher successfully assigned to the class';
 export const CLASS_CREATED = 'Class successfully created.';
 export const CLASS_ALREADY_EXIST =
   'A class with the same name and arm already exists in this session.';
+export const CLASS_NAME_EMPTY = 'class name cannot be empty';
+export const CLASS_UPDATED = 'class updated successfully';
+export const CLASS_FETCHED = 'class fetched successfully';
+export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
+export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
+export const CLASSES_NOT_IN_ACTIVE_SESSION =
+  'One or more classes are not in the active academic session';
+export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
+export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
+  'Class subjects fetched successfully';
+export const CLASS_SUBJECT_ALREADY_HAS_A_TEACHER =
+  'Teacher already assigned to this subject in this class';
+export const TEACHER_NOT_ASSIGNED_TO_SUBJECT =
+  'No teacher is assigned to this subject';
+export const TEACHER_UNASSIGNED_FROM_SUBJECT =
+  'Teacher successfully unassigned from this subject';
+export const CLASS_DELETED = 'Class deleted successfully';
+export const CANNOT_DELETE_PAST_SESSION_CLASS =
+  'Only classes from the active session can be deleted.';
 
 // Parent messages
 export const PARENT_CREATED = 'Parent created successfully';
 export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
 export const PARENTS_FETCHED = 'Parents fetched successfully';
+export const PARENT_DELETED = 'Parent deleted successfully';
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
@@ -212,5 +278,103 @@ export const DATABASE_CONFIGURATION_UPDATED =
 export const STUDENT_CREATED = 'Student created successfully';
 export const STUDENT_EMAIL_CONFLICT = `Student with email already exists.`;
 export const STUDENT_REGISTRATION_NUMBER_CONFLICT = `Student with registration number already exists.`;
+export const STUDENT_FETCHED = 'Student fetched successfully';
+export const STUDENTS_FETCHED = 'Students fetched successfully';
 export const STUDENT_NOT_FOUND = 'Student not found';
 export const STUDENT_UPDATED = 'Student updated successfully';
+
+//bulk upload message
+export const BULK_UPLOAD_NO_NEW_EMAILS =
+  'The Users with this email have received an invite before.';
+export const BULK_UPLOAD_NOT_ALLOWED =
+  'You are not permitted to perform a bulk upload.';
+export const NO_BULK_UPLOAD_DATA = 'No data was provided for bulk upload.';
+export const INVALID_BULK_UPLOAD_FILE =
+  'The uploaded file is invalid or improperly formatted.';
+export const BULK_UPLOAD_SUCCESS = 'Bulk upload completed successfully.';
+export const STUDENT_DELETED = 'Student deleted successfully';
+
+// Academic Term messages
+export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
+export const TERM_UPDATED = 'Term updated successfully';
+export const TERM_NOT_FOUND = 'Term not found';
+export const TERM_UPDATE_FAILED = 'Failed to update term';
+export const ARCHIVED_TERM_LOCKED =
+  'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
+
+// Academic Term - Validation errors
+export const TERM_INVALID_DATE_RANGE = 'end date must be after start date';
+export const TERM_START_AFTER_END =
+  'Start date must be before the current end date';
+export const TERM_END_BEFORE_START =
+  'End date must be after the current start date';
+export const TERM_SEQUENTIAL_INVALID =
+  'start date must be after the previous term end date';
+export const TERM_ID_INVALID = 'invalid term id';
+// Dashboard messages
+export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+
+// Teacher messages
+export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+
+// Timetable messages
+export const TIMETABLE_CREATED = 'Timetable created successfully';
+export const TIMETABLE_UPDATED = 'Timetable updated successfully';
+export const TIMETABLE_DELETED = 'Timetable deleted successfully';
+export const TIMETABLE_NOT_FOUND = 'Timetable not found';
+export const TIMETABLE_FETCHED = 'Timetable fetched successfully';
+export const TIMETABLES_FETCHED = 'Timetables fetched successfully';
+export const INVALID_TIME_RANGE = 'Start time must be before end time';
+export const TIMETABLE_OVERLAP_STREAM =
+  'Timetable period overlaps with another period for the same stream on the same day';
+export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
+  'Teacher is already scheduled for another class at this time';
+export const TEACHER_NOT_FOUND = 'Teacher not found';
+export const INVALID_DATE_RANGE_TIMETABLE =
+  'End date must be after effective date';
+export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
+export const TIMETABLE_INTERNAL_OVERLAP =
+  'Timetable contains overlapping schedules.';
+
+// Fees messages
+export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';
+export const FEES_RETRIEVED_SUCCESSFULLY =
+  'Fee components retrieved successfully';
+export const FEE_RETRIEVED_SUCCESSFULLY =
+  'Fee component retrieved successfully';
+export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
+export const FEE_STATUS_UPDATED_SUCCESSFULLY =
+  'Fee component status updated successfully';
+export const FEE_NOT_FOUND = 'Fees component not found';
+
+// Grade messages
+export const GRADE_SUBMISSION_CREATED = 'Grade submission created successfully';
+export const GRADE_SUBMISSION_UPDATED = 'Grade submission updated successfully';
+export const GRADE_SUBMISSION_NOT_FOUND = 'Grade submission not found';
+export const GRADE_SUBMISSION_EXISTS =
+  'A grade submission already exists for this class, subject, and term';
+export const GRADE_CREATED = 'Grade created successfully';
+export const GRADE_UPDATED = 'Grade updated successfully';
+export const GRADE_SUBMITTED = 'Grades submitted for approval successfully';
+export const GRADE_APPROVED = 'Grades approved successfully';
+export const GRADE_REJECTED = 'Grades rejected';
+export const GRADE_UNLOCKED = 'Grades unlocked for editing';
+export const GRADE_NOT_FOUND = 'Grade not found';
+export const GRADES_FETCHED = 'Grades fetched successfully';
+export const GRADE_ALREADY_APPROVED =
+  'Cannot modify an approved grade submission';
+export const GRADE_ALREADY_SUBMITTED =
+  'Cannot modify a submitted grade submission. Wait for admin review.';
+export const GRADE_NOT_SUBMITTED =
+  'Grade submission must be submitted before approval';
+export const GRADE_INCOMPLETE_SCORES =
+  'All students must have complete CA and exam scores before submission';
+export const GRADE_INVALID_STATUS_TRANSITION =
+  'Invalid status transition for grade submission';
+export const GRADE_TEACHER_NOT_ASSIGNED =
+  'You are not assigned to teach this subject for this class';
+export const TEACHER_PROFILE_NOT_FOUND =
+  'Teacher profile not found. Please ensure your account is properly linked to a teacher profile.';
+export const UNAUTHORIZED_GRADE_ACCESS =
+  'You are not authorized to access this grade submission';
+export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
