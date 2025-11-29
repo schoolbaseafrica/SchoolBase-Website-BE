@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { UserRole } from '../../shared/enums';
 import {
   CreateGradeSubmissionDto,
@@ -221,11 +222,15 @@ describe('GradeController', () => {
 
   describe('getStudentsForClass', () => {
     it('should get students for a class', async () => {
-      const expectedResult = [
+      const students = [
         { id: 'student-1', name: 'John Doe', registration_number: 'STU-001' },
       ];
+      const expectedResult = {
+        message: sysMsg.STUDENTS_FETCHED,
+        data: students,
+      };
 
-      gradeService.getStudentsForClass.mockResolvedValue(expectedResult);
+      gradeService.getStudentsForClass.mockResolvedValue(students);
 
       const result = await controller.getStudentsForClass(
         mockRequest as unknown as IRequestWithUser,

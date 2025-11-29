@@ -75,7 +75,71 @@ describe('GradeService', () => {
           provide: DataSource,
           useValue: {
             getRepository: jest.fn().mockReturnValue(mockClassSubjectRepo),
-            transaction: jest.fn((callback) => callback({})),
+            transaction: jest.fn((callback) => {
+              const mockManager = {
+                getRepository: jest.fn((entity) => {
+                  if (entity.name === 'GradeSubmission') {
+                    return {
+                      findOne: jest.fn().mockResolvedValue({
+                        id: mockSubmissionId,
+                        teacher_id: mockTeacherId,
+                        class_id: mockClassId,
+                        subject_id: mockSubjectId,
+                        term_id: mockTermId,
+                        academic_session_id: mockSessionId,
+                        status: GradeSubmissionStatus.DRAFT,
+                        teacher: {
+                          id: mockTeacherId,
+                          user: { first_name: 'Teacher', last_name: 'Name' },
+                          title: 'Mr',
+                        },
+                        class: { id: mockClassId, name: 'SS1', arm: 'A' },
+                        subject: { id: mockSubjectId, name: 'Mathematics' },
+                        term: { id: mockTermId, name: 'FIRST' },
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                      }),
+                    };
+                  }
+                  if (entity.name === 'Grade') {
+                    return {
+                      find: jest.fn().mockResolvedValue([
+                        {
+                          id: mockGradeId,
+                          submission_id: mockSubmissionId,
+                          student_id: 'student-1',
+                          ca_score: 25,
+                          exam_score: 60,
+                          total_score: 85,
+                          grade_letter: 'A',
+                          student: {
+                            id: 'student-1',
+                            user: { first_name: 'John', last_name: 'Doe' },
+                            registration_number: 'STU-001',
+                          },
+                        },
+                        {
+                          id: 'grade-2',
+                          submission_id: mockSubmissionId,
+                          student_id: 'student-2',
+                          ca_score: 20,
+                          exam_score: 55,
+                          total_score: 75,
+                          grade_letter: 'B',
+                          student: {
+                            id: 'student-2',
+                            user: { first_name: 'Jane', last_name: 'Smith' },
+                            registration_number: 'STU-002',
+                          },
+                        },
+                      ]),
+                    };
+                  }
+                  return mockClassSubjectRepo;
+                }),
+              };
+              return callback(mockManager);
+            }),
           },
         },
       ],
