@@ -44,10 +44,50 @@ describe('FeesService', () => {
     save: jest.fn(),
   };
 
+  // Define mockFee here
+  const mockFee: Fees = {
+    id: 'fee-123',
+    component_name: 'Tuition Fee',
+    description: 'Quarterly tuition fee',
+    amount: 5000,
+    term_id: 'term-123',
+    term: {
+      id: 'term-123',
+      name: TermName.FIRST,
+      sessionId: 'session-123',
+      startDate: new Date('2024-01-01'),
+      endDate: new Date('2024-04-30'),
+      status: TermStatus.ACTIVE,
+      isCurrent: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as Term,
+    created_by: 'admin-user-123',
+    classes: [
+      {
+        id: 'class-1',
+        name: 'Grade 1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Class,
+      {
+        id: 'class-2',
+        name: 'Grade 2',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as Class,
+    ],
+    status: FeeStatus.ACTIVE,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  } as Fees;
+
+  // Add get and update methods to mockFeesModelAction
   const mockFeesModelAction = {
     create: jest.fn(),
     get: jest.fn(),
     save: jest.fn(),
+    update: jest.fn(),
   };
 
   const mockFeesRepository = {
@@ -156,6 +196,7 @@ describe('FeesService', () => {
       term: mockTerm,
       created_by: createdBy,
       classes: mockClasses,
+      status: FeeStatus.ACTIVE,
       createdAt: new Date(),
       updatedAt: new Date(),
     } as Fees;
@@ -820,6 +861,83 @@ describe('FeesService', () => {
       await service.update(feeId, updateWithoutClasses);
 
       expect(classModelAction.find).not.toHaveBeenCalled();
+    });
+  });
+
+  // fees.service.spec.ts - Update test expectations
+
+  // fees.service.spec.ts - Fix test expectations
+
+  describe('deactivate', () => {
+    const feeId = 'fee-123';
+    const deactivatedBy = 'admin-user-123';
+
+    it('should deactivate an active fee successfully', async () => {
+      const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
+      const inactiveFee = { ...mockFee, status: FeeStatus.INACTIVE };
+
+      mockFeesModelAction.get.mockResolvedValue(activeFee);
+      mockFeesModelAction.update.mockResolvedValue(inactiveFee);
+
+      const result = await service.deactivate(feeId, deactivatedBy);
+
+      // get should be called WITHOUT transactionOptions
+      expect(feesModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+      });
+
+      // update should be called WITH transactionOptions
+      expect(feesModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+        updatePayload: { status: FeeStatus.INACTIVE },
+        transactionOptions: {
+          useTransaction: false,
+        },
+      });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fee component deactivated successfully',
+        expect.objectContaining({
+          fee_id: feeId,
+          deactivated_by: deactivatedBy,
+          previous_status: FeeStatus.ACTIVE,
+          new_status: FeeStatus.INACTIVE,
+        }),
+      );
+      expect(result.status).toBe(FeeStatus.INACTIVE);
+    });
+
+    it('should return idempotent success for already inactive fee', async () => {
+      const inactiveFee = { ...mockFee, status: FeeStatus.INACTIVE };
+
+      mockFeesModelAction.get.mockResolvedValue(inactiveFee);
+
+      const result = await service.deactivate(feeId, deactivatedBy);
+
+      // get should be called WITHOUT transactionOptions
+      expect(feesModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+      });
+      expect(feesModelAction.update).not.toHaveBeenCalled();
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fee component is already inactive',
+        expect.objectContaining({
+          fee_id: feeId,
+          deactivated_by: deactivatedBy,
+        }),
+      );
+      expect(result.status).toBe(FeeStatus.INACTIVE);
+    });
+
+    it('should throw NotFoundException when fee does not exist', async () => {
+      mockFeesModelAction.get.mockResolvedValue(null);
+
+      await expect(service.deactivate(feeId, deactivatedBy)).rejects.toThrow(
+        new NotFoundException(sysMsg.FEE_NOT_FOUND),
+      );
+
+      expect(feesModelAction.update).not.toHaveBeenCalled();
     });
   });
 });

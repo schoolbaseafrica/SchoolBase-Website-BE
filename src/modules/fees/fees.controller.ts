@@ -17,11 +17,13 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
 import {
-  swaggerCreateFee,
   swaggerGetAllFees,
+  swaggerCreateFee,
+  swaggerDeactivateFee,
   swaggerUpdateFee,
 } from './docs/fees.swagger';
-import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import { DeactivateFeeDto } from './dto/deactivate-fee.dto';
+import { QueryFeesDto, CreateFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { FeesService } from './fees.service';
 
 @Controller('fees')
@@ -50,6 +52,21 @@ export class FeesController {
     return {
       message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
       ...result,
+    };
+  }
+
+  @Patch(':id/deactivate')
+  @Roles(UserRole.ADMIN)
+  @swaggerDeactivateFee()
+  async deactivateFee(
+    @Param('id') id: string,
+    @Body() deactivateFeeDto: DeactivateFeeDto,
+    @Request() req: { user: { userId: string } },
+  ) {
+    const fee = await this.feesService.deactivate(id, req.user.userId);
+    return {
+      message: sysMsg.FEE_DEACTIVATED_SUCCESSFULLY,
+      data: fee,
     };
   }
 

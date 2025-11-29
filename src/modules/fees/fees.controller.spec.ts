@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -509,6 +510,90 @@ describe('FeesController', () => {
       await controller.getAllFees(queryDto);
 
       expect(service.findAll).toHaveBeenCalledWith(queryDto);
+    });
+  });
+
+  // fees.controller.spec.ts - Fix the controller test
+
+  describe('FeesController', () => {
+    let controller: FeesController;
+    let service: FeesService;
+
+    const mockUser = {
+      user: {
+        userId: 'user-123',
+      },
+    };
+
+    const mockDeactivateFeeDto = {
+      reason: 'No longer applicable',
+    };
+
+    const mockFee: Fees = {
+      id: 'fee-789',
+      component_name: 'Tuition Fee',
+      amount: 500,
+      description: 'Tuition fee for semester',
+      term_id: 'term-123',
+      term: {} as Term,
+      classes: [],
+      status: FeeStatus.ACTIVE,
+      created_by: 'user-123',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    beforeEach(async () => {
+      const module: TestingModule = await Test.createTestingModule({
+        controllers: [FeesController],
+        providers: [
+          {
+            provide: FeesService,
+            useValue: {
+              create: jest.fn(),
+              deactivate: jest.fn(), // Make sure this is included
+            },
+          },
+        ],
+      }).compile();
+
+      controller = module.get<FeesController>(FeesController);
+      service = module.get<FeesService>(FeesService);
+    });
+
+    describe('deactivateFee', () => {
+      it('should deactivate a fee successfully', async () => {
+        // Use jest.spyOn to ensure the method is properly mocked
+        jest.spyOn(service, 'deactivate').mockResolvedValue(mockFee);
+
+        const result = await controller.deactivateFee(
+          'fee-123',
+          mockDeactivateFeeDto,
+          mockUser,
+        );
+
+        expect(service.deactivate).toHaveBeenCalledWith(
+          'fee-123',
+          mockUser.user.userId,
+        );
+        expect(result).toEqual({
+          message: sysMsg.FEE_DEACTIVATED_SUCCESSFULLY,
+          data: mockFee,
+        });
+      });
+
+      it('should handle fee not found', async () => {
+        const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+        jest.spyOn(service, 'deactivate').mockRejectedValue(notFoundError);
+
+        await expect(
+          controller.deactivateFee(
+            'invalid-id',
+            mockDeactivateFeeDto,
+            mockUser,
+          ),
+        ).rejects.toThrow(notFoundError);
+      });
     });
   });
 });
