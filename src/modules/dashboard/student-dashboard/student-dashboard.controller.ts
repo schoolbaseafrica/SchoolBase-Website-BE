@@ -5,24 +5,21 @@ import {
   HttpStatus,
   Request,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 
-import {
-  ApiStudentDashboardTags,
-  ApiStudentDashboardBearerAuth,
-  ApiLoadStudentDashboard,
-} from './docs/student-dashboard.swagger';
+import { ApiLoadStudentDashboard } from './docs/student-dashboard.swagger';
 import { StudentDashboardDataDto } from './dto/student-dashboard-response.dto';
 import { StudentDashboardService } from './student-dashboard.service';
 
 @Controller('dashboard/student')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiStudentDashboardTags()
-@ApiStudentDashboardBearerAuth()
+@ApiTags('Dashboard')
+@ApiBearerAuth()
 export class StudentDashboardController {
   constructor(
     private readonly studentDashboardService: StudentDashboardService,

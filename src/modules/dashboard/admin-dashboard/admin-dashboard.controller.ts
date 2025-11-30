@@ -1,4 +1,5 @@
 import { Controller, Get, UseGuards, HttpStatus } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -6,17 +7,13 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 
 import { AdminDashboardService } from './admin-dashboard.service';
-import {
-  ApiAdminDashboardTags,
-  ApiAdminDashboardBearerAuth,
-  ApiLoadTodayActivities,
-} from './docs/admin-dashboard.swagger';
+import { ApiLoadTodayActivities } from './docs/admin-dashboard.swagger';
 import { AdminDashboardDataDto } from './dto/admin-dashboard-response.dto';
 
 @Controller('dashboard/admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiAdminDashboardTags()
-@ApiAdminDashboardBearerAuth()
+@ApiTags('Dashboard')
+@ApiBearerAuth()
 export class AdminDashboardController {
   constructor(private readonly adminDashboardService: AdminDashboardService) {}
 
