@@ -141,6 +141,11 @@ export const PENDING_INVITES_FETCHED = 'Pending invites retrieved successfully';
 export const NO_PENDING_INVITES = 'No pending invites found';
 export const INVITE_ALREADY_SENT = 'invite already sent';
 export const ACTIVE_INVITE_EXISTS = 'an active invite exist for this user';
+export const INVITE_EMAIL_MISMATCH =
+  'The email associated with this invite does not match your Google email.';
+export const INVALID_GOOGLE_TOKEN = 'Invalid Google token';
+export const REGISTRATION_INVITE_ONLY =
+  'Registration is by invitation only. Please provide an invite token.';
 
 //Academic Session
 export const ACADEMIC_SESSION =

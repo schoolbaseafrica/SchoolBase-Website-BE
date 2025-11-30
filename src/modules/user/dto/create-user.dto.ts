@@ -6,6 +6,7 @@ import {
   IsArray,
   IsEnum,
   MinLength,
+  IsOptional,
 } from 'class-validator';
 
 export enum UserRole {
@@ -25,7 +26,8 @@ export class CreateUserDto {
   last_name: string;
 
   @IsString()
-  middle_name: string;
+  @IsOptional()
+  middle_name?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -55,4 +57,12 @@ export class CreateUserDto {
 
   @IsBoolean()
   is_active?: boolean = true;
+
+  @IsString()
+  @IsOptional()
+  google_id?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  is_verified?: boolean;
 }

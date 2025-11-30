@@ -32,6 +32,7 @@ import {
   LogoutDto,
   RefreshTokenDto,
   ResetPasswordDto,
+  GoogleLoginDto,
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -77,6 +78,29 @@ export class AuthController {
   })
   login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('google-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login with Google' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: sysMsg.LOGIN_SUCCESS,
+    type: LoginResponseDto,
+  })
+  @ApiResponse({
+    status: HttpStatus.UNAUTHORIZED,
+    description: sysMsg.INVALID_CREDENTIALS,
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: sysMsg.VALIDATION_ERROR,
+  })
+  googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    return this.authService.googleLogin(
+      googleLoginDto.token,
+      googleLoginDto.invite_token,
+    );
   }
 
   @Post('refresh')

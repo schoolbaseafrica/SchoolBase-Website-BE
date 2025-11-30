@@ -57,13 +57,16 @@ export default () => ({
     url: process.env.FRONTEND_URL,
     superadmin_login_url: process.env.SUPERADMIN_LOGIN_URL,
   },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+  },
   school: {
     name: process.env.SCHOOL_NAME,
     logoUrl: process.env.SCHOOL_LOGO_URL,
   },
 
   invite: {
-    expiry: process.env.INVITE_EXPIRATION_DAYS,
+    expiry: process.env.INVITE_EXPIRATION_DAYS || '7',
   },
 
   isTest(): boolean {
