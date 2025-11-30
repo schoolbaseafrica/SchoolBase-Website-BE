@@ -468,4 +468,46 @@ describe('AcademicSessionService', () => {
       });
     });
   });
+
+  describe('activeSessions', () => {
+    it('should return active session', async () => {
+      const mockActiveSession: AcademicSession = {
+        id: 'session-123',
+        name: '2023/2024',
+        startDate: new Date('2023-09-01'),
+        endDate: new Date('2024-08-31'),
+        status: SessionStatus.ACTIVE,
+      } as AcademicSession;
+
+      sessionModelAction.list.mockResolvedValue({
+        payload: [mockActiveSession],
+        paginationMeta: { page: 1, limit: 20, total: 1 },
+      });
+
+      const result = await service.activeSessions();
+
+      expect(result.status_code).toBe(HttpStatus.OK);
+      expect(result.message).toBe(sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS);
+      expect(result.data).toEqual(mockActiveSession);
+      expect(sessionModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: SessionStatus.ACTIVE },
+      });
+    });
+
+    it('should throw NotFoundException when no active session exists', async () => {
+      sessionModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { page: 1, limit: 20, total: 0 },
+      });
+
+      await expect(service.activeSessions()).rejects.toThrow(NotFoundException);
+      await expect(service.activeSessions()).rejects.toThrow(
+        sysMsg.NO_ACTIVE_SESSION,
+      );
+
+      expect(sessionModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: SessionStatus.ACTIVE },
+      });
+    });
+  });
 });

@@ -516,4 +516,47 @@ describe('TermService', () => {
       });
     });
   });
+
+  describe('getActiveTerm', () => {
+    it('should return active term with academic session relation', async () => {
+      const mockActiveTerm: Term = {
+        id: 'term-123',
+        name: TermName.FIRST,
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-04-30'),
+        status: TermStatus.ACTIVE,
+        isCurrent: true,
+        sessionId: 'session-123',
+        deletedAt: null,
+      } as Term;
+
+      termModelAction.list.mockResolvedValue({
+        payload: [mockActiveTerm],
+        paginationMeta: { page: 1, limit: 20, total: 1 },
+      });
+
+      const result = await service.getActiveTerm();
+
+      expect(result).toEqual(mockActiveTerm);
+      expect(termModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: TermStatus.ACTIVE },
+      });
+    });
+
+    it('should throw NotFoundException when no active term exists', async () => {
+      termModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { page: 1, limit: 20, total: 0 },
+      });
+
+      await expect(service.getActiveTerm()).rejects.toThrow(NotFoundException);
+      await expect(service.getActiveTerm()).rejects.toThrow(
+        sysMsg.NO_ACTIVE_TERM,
+      );
+
+      expect(termModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: TermStatus.ACTIVE },
+      });
+    });
+  });
 });
