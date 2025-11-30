@@ -37,26 +37,26 @@ export class InviteQueryDto {
   @ApiPropertyOptional({ description: 'Invited from date (ISO format)' })
   @IsOptional()
   @IsDateString()
-  invited_from?: Date;
+  invited_from?: string;
 
   @ApiPropertyOptional({ description: 'Invited to date (ISO format)' })
   @IsOptional()
   @IsDateString()
-  invited_to?: Date;
+  invited_to?: string;
 
   @ApiPropertyOptional({
     description: 'Filter invites expiring after (ISO date)',
   })
   @IsOptional()
   @IsDateString()
-  expires_after?: Date;
+  expires_after?: string;
 
   @ApiPropertyOptional({
     description: 'Filter invites expiring before (ISO date)',
   })
   @IsOptional()
   @IsDateString()
-  expires_before?: Date;
+  expires_before?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()

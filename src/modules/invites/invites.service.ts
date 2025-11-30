@@ -265,17 +265,22 @@ export class InviteService {
     }
 
     // --- Date filters: expires_at ---
-
     if (expires_after) {
-      qb.andWhere('invite.expires_at >= :expAfter', {
-        expAfter: new Date(expires_after).toISOString(),
-      });
+      qb.andWhere(
+        'invite.expires_at IS NOT NULL AND invite.expires_at >= :expAfter',
+        {
+          expAfter: new Date(expires_after).toISOString(),
+        },
+      );
     }
 
     if (expires_before) {
-      qb.andWhere('invite.expires_at <= :expBefore', {
-        expBefore: new Date(expires_before).toISOString(),
-      });
+      qb.andWhere(
+        'invite.expires_at IS NOT NULL AND invite.expires_at <= :expBefore',
+        {
+          expBefore: new Date(expires_before).toISOString(),
+        },
+      );
     }
 
     // --- Sorting ---

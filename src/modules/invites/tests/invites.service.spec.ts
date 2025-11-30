@@ -8,8 +8,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { EmailService } from '../../email/email.service';
@@ -19,7 +20,7 @@ import { UserModelAction } from '../../user/model-actions/user-actions';
 import * as csvParser from '../csv-parser';
 import { AcceptInviteDto } from '../dto/accept-invite.dto';
 import { InviteRole, InviteUserDto } from '../dto/invite-user.dto';
-import { InviteStatus } from '../entities/invites.entity';
+import { Invite, InviteStatus } from '../entities/invites.entity';
 import { InviteModelAction } from '../invite.model-action';
 import { InviteService } from '../invites.service';
 
@@ -81,6 +82,14 @@ describe('InviteService', () => {
       child: jest.fn().mockReturnThis(),
     };
 
+    // Mock repositories
+    const inviteRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      findOne: jest.fn(),
+      createQueryBuilder: jest.fn(),
+    } as unknown as jest.Mocked<Repository<Invite>>;
+
     const mockDataSource = {
       transaction: jest.fn((cb) => cb({})),
     };
@@ -89,6 +98,7 @@ describe('InviteService', () => {
       providers: [
         InviteService,
         { provide: InviteModelAction, useValue: { ...mockAction } },
+        { provide: getRepositoryToken(Invite), useValue: inviteRepository },
         { provide: UserModelAction, useValue: { ...mockAction } },
         { provide: SchoolModelAction, useValue: { ...mockAction } },
         { provide: ConfigService, useValue: mockConfigService },
