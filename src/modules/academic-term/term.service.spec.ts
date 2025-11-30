@@ -3,6 +3,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
+import {
+  AcademicSession,
+  SessionStatus,
+} from '../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
 
 import { CreateTermDto } from './dto/create-term.dto';
@@ -513,6 +517,57 @@ describe('TermService', () => {
           useTransaction: true,
           transaction: mockEntityManager,
         },
+      });
+    });
+  });
+
+  describe('getActiveTerm', () => {
+    it('should return active term with academic session relation', async () => {
+      const mockActiveTerm: Term = {
+        id: 'term-123',
+        name: TermName.FIRST,
+        startDate: new Date('2024-01-01'),
+        endDate: new Date('2024-04-30'),
+        status: TermStatus.ACTIVE,
+        isCurrent: true,
+        sessionId: 'session-123',
+        academicSession: {
+          id: 'session-123',
+          name: '2023/2024',
+          startDate: new Date('2023-09-01'),
+          endDate: new Date('2024-08-31'),
+          status: SessionStatus.ACTIVE,
+        } as AcademicSession,
+      } as Term;
+
+      termModelAction.list.mockResolvedValue({
+        payload: [mockActiveTerm],
+        paginationMeta: { page: 1, limit: 20, total: 1 },
+      });
+
+      const result = await service.getActiveTerm();
+
+      expect(result).toEqual(mockActiveTerm);
+      expect(termModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: TermStatus.ACTIVE },
+        relations: { academicSession: true },
+      });
+    });
+
+    it('should throw NotFoundException when no active term exists', async () => {
+      termModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { page: 1, limit: 20, total: 0 },
+      });
+
+      await expect(service.getActiveTerm()).rejects.toThrow(NotFoundException);
+      await expect(service.getActiveTerm()).rejects.toThrow(
+        sysMsg.NO_ACTIVE_TERM,
+      );
+
+      expect(termModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: { status: TermStatus.ACTIVE },
+        relations: { academicSession: true },
       });
     });
   });

@@ -329,4 +329,18 @@ export class TermService {
       },
     });
   }
+
+  async getActiveTerm(): Promise<Term> {
+    // Fetch the active term directly
+    const { payload: activeTerms } = await this.termModelAction.list({
+      filterRecordOptions: { status: TermStatus.ACTIVE },
+      relations: { academicSession: true },
+    });
+
+    if (activeTerms.length === 0) {
+      throw new NotFoundException(sysMsg.NO_ACTIVE_TERM);
+    }
+
+    return activeTerms[0];
+  }
 }

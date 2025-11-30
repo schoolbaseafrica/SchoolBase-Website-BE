@@ -295,6 +295,7 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
 export const TERM_UPDATED = 'Term updated successfully';
 export const TERM_NOT_FOUND = 'Term not found';
+export const NO_ACTIVE_TERM = 'No active term found';
 export const TERM_UPDATE_FAILED = 'Failed to update term';
 export const ARCHIVED_TERM_LOCKED =
   'Cannot modify an archived term. Archived terms are read-only to preserve historical data.';
