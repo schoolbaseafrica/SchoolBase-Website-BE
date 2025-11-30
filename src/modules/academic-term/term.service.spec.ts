@@ -3,10 +3,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EntityManager } from 'typeorm';
 
 import * as sysMsg from '../../constants/system.messages';
-import {
-  AcademicSession,
-  SessionStatus,
-} from '../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
 
 import { CreateTermDto } from './dto/create-term.dto';
@@ -531,13 +527,7 @@ describe('TermService', () => {
         status: TermStatus.ACTIVE,
         isCurrent: true,
         sessionId: 'session-123',
-        academicSession: {
-          id: 'session-123',
-          name: '2023/2024',
-          startDate: new Date('2023-09-01'),
-          endDate: new Date('2024-08-31'),
-          status: SessionStatus.ACTIVE,
-        } as AcademicSession,
+        deletedAt: null,
       } as Term;
 
       termModelAction.list.mockResolvedValue({
@@ -550,7 +540,6 @@ describe('TermService', () => {
       expect(result).toEqual(mockActiveTerm);
       expect(termModelAction.list).toHaveBeenCalledWith({
         filterRecordOptions: { status: TermStatus.ACTIVE },
-        relations: { academicSession: true },
       });
     });
 
@@ -567,7 +556,6 @@ describe('TermService', () => {
 
       expect(termModelAction.list).toHaveBeenCalledWith({
         filterRecordOptions: { status: TermStatus.ACTIVE },
-        relations: { academicSession: true },
       });
     });
   });
