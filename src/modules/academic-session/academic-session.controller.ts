@@ -25,6 +25,7 @@ import {
   DocsGetAcademicSessionById,
   DocsUpdateAcademicSession,
   DocsDeleteAcademicSession,
+  DocsGetActiveAcademicSession,
 } from './docs';
 import {
   CreateAcademicSessionDto,
@@ -60,6 +61,16 @@ export class AcademicSessionController {
       page: query.page,
       limit: query.limit,
     });
+  }
+
+  @Get('active')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @DocsGetActiveAcademicSession()
+  async getActiveSession() {
+    return this.academicSessionService.activeSessions();
   }
 
   @Get(':id')

@@ -154,6 +154,7 @@ export const START_DATE_IN_PAST = 'Start date cannot be in the past.';
 export const END_DATE_IN_PAST = 'End date cannot be in the past.';
 export const ACTIVE_ACADEMIC_SESSION_SUCCESS =
   'Academic session retrieved successfully.';
+export const NO_ACTIVE_SESSION = 'No active academic session found.';
 export const MULTIPLE_ACTIVE_ACADEMIC_SESSION =
   'Multiple academic session records detected.';
 export const ACADEMIC_SESSION_LIST_SUCCESS =

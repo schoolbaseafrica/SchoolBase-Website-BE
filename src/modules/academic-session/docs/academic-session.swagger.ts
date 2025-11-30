@@ -150,5 +150,23 @@ export const AcademicSessionSwagger = {
         },
       },
     },
+    activeSession: {
+      operation: {
+        summary: 'Get Active Academic Session (Admin)',
+        description:
+          'Retrieves the currently active academic session. Only one session can be active at a time based on current date falling within session date range.',
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+          type: AcademicSessionResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'No active academic session found',
+        },
+      },
+    },
   },
 };

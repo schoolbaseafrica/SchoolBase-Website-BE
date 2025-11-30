@@ -381,4 +381,21 @@ export class AcademicSessionService {
       data: deletedSession,
     };
   }
+
+  async activeSessions(): Promise<IGetSessionByIdResponse> {
+    // Fetch the active session directly
+    const { payload: activeSessions } = await this.sessionModelAction.list({
+      filterRecordOptions: { status: SessionStatus.ACTIVE },
+    });
+
+    if (activeSessions.length === 0) {
+      throw new NotFoundException(sysMsg.NO_ACTIVE_SESSION);
+    }
+
+    return {
+      status_code: HttpStatus.OK,
+      message: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+      data: activeSessions[0],
+    };
+  }
 }

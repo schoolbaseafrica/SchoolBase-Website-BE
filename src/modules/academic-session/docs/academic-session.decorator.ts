@@ -59,3 +59,13 @@ export const DocsDeleteAcademicSession = () => {
     ApiNotFoundResponse(responses.notFound),
   );
 };
+
+export const DocsGetActiveAcademicSession = () => {
+  const { operation, responses } =
+    AcademicSessionSwagger.endpoints.activeSession;
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+  );
+};
