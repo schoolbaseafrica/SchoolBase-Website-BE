@@ -8,4 +8,5 @@ export enum EmailTemplateID {
   CONTACT_ADMIN_NOTIFICATION = 'contact-admin-notification.njk',
   CONTACT_USER_CONFIRMATION = 'contact-user-confirmation.njk',
   INVITE = 'invite.njk',
+  SUPERADMIN_WELCOME = 'superadmin-welcome.njk',
 }

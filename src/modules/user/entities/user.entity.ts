@@ -42,6 +42,9 @@ export class User extends BaseEntity {
   @Column({ nullable: true })
   phone: string;
 
+  @Column({ nullable: true, unique: true })
+  google_id: string;
+
   @Column({ name: 'home_address', nullable: true })
   homeAddress: string; // Added field for Teacher/Student/Parent common data
 

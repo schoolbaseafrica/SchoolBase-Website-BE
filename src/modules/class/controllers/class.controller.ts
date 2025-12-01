@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Post,
   Patch,
+  Delete,
   Body,
   UseGuards,
 } from '@nestjs/common';
@@ -20,12 +21,22 @@ import {
   DocsGetClassTeachers,
   DocsGetGroupedClasses,
   DocsUpdateClass,
+  DocsDeleteClass,
+  DocsGetClassById,
+  DocsGetTotalClasses,
+  DocsAssignStudents,
+  DocsGetClassStudents,
 } from '../docs/class.decorator';
 import {
   CreateClassDto,
   ListGroupedClassesDto,
   GroupedClassDto,
   UpdateClassDto,
+  ClassResponseDto,
+  GetTotalClassesQueryDto,
+  AssignStudentsToClassDto,
+  StudentAssignmentResponseDto,
+  GetStudentsQueryDto,
 } from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
@@ -64,6 +75,37 @@ export class ClassController {
     return this.classService.updateClass(classId, updateClassDto);
   }
 
+  // --- GET: TOTAL NUMBER OF CLASSES ---
+  @Get('count')
+  @DocsGetTotalClasses()
+  async getTotalClasses(@Query() query: GetTotalClassesQueryDto) {
+    return this.classService.getTotalClasses(
+      query.sessionId,
+      query.name,
+      query.arm,
+    );
+  }
+
+  // --- POST: ASSIGN STUDENTS TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students')
+  @DocsAssignStudents()
+  async assignStudents(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Body() assignStudentsDto: AssignStudentsToClassDto,
+  ) {
+    return this.classService.assignStudentsToClass(classId, assignStudentsDto);
+  }
+
+  // --- GET: GET STUDENTS IN CLASS ---
+  @Get(':id/students')
+  @DocsGetClassStudents()
+  async getStudents(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Query() query: GetStudentsQueryDto,
+  ): Promise<StudentAssignmentResponseDto[]> {
+    return this.classService.getStudentsByClass(classId, query.session_id);
+  }
+
   @Get(':id/teachers')
   @DocsGetClassTeachers()
   async getTeachers(
@@ -71,5 +113,20 @@ export class ClassController {
     @Query() query: GetTeachersQueryDto,
   ): Promise<TeacherAssignmentResponseDto[]> {
     return this.classService.getTeachersByClass(classId, query.session_id);
+  }
+
+  // --- GET: GET CLASS BY ID (ADMIN ONLY) ---
+  @Get(':id')
+  @DocsGetClassById()
+  async getClassById(
+    @Param('id', ParseUUIDPipe) classId: string,
+  ): Promise<ClassResponseDto> {
+    return this.classService.getClassById(classId);
+  }
+  // --- DELETE: SOFT DELETE CLASS (ADMIN ONLY) ---
+  @Delete(':id')
+  @DocsDeleteClass()
+  async deleteClass(@Param('id', ParseUUIDPipe) classId: string) {
+    return this.classService.deleteClass(classId);
   }
 }

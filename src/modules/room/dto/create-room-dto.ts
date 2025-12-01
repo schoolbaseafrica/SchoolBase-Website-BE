@@ -1,50 +1,37 @@
-import {
-  ArrayNotEmpty,
-  IsArray,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Min,
-} from 'class-validator';
-
-import { RoomType } from '../enums/room-enum';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 
 export class CreateRoomDTO {
+  @ApiProperty({
+    description: 'Unique name of the room',
+    example: 'Science Lab A',
+  })
   @IsNotEmpty()
   @IsString()
   name: string;
 
+  @ApiProperty({
+    description: 'Type of the room (e.g., Classroom, Laboratory)',
+    example: 'Laboratory',
+  })
   @IsNotEmpty()
-  @IsEnum(RoomType, { message: 'Type must be a valid room type' })
-  type: RoomType;
+  @IsString()
+  type: string;
 
-  @IsOptional()
+  @ApiProperty({
+    description: 'Maximum capacity of the room',
+    example: 30,
+    minimum: 1,
+  })
   @IsInt()
   @Min(1)
-  capacity?: number;
+  capacity: number;
 
+  @ApiProperty({
+    description: 'Physical location of the room',
+    example: 'North Wing',
+  })
   @IsNotEmpty()
   @IsString()
   location: string;
-
-  @IsOptional()
-  @IsString()
-  building?: string;
-
-  @IsOptional()
-  @IsString()
-  floor?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  @IsArray({ message: 'Streams must be provided as an array' })
-  @ArrayNotEmpty({ message: 'If providing streams, the list cannot be empty' })
-  @IsUUID('4', { each: true, message: 'Invalid Stream ID provided' })
-  streams?: string[];
 }

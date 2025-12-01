@@ -11,13 +11,15 @@ import { LoggerModule } from './common/logger.module';
 import configuration from './config/config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
+import { TermModule } from './modules/academic-term/term.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
 import { ContactModule } from './modules/contact/contact.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DatabaseModule } from './modules/database-setup/database.module';
-import { DepartmentModule } from './modules/department/department.module';
 import { EmailModule } from './modules/email/email.module';
+import { FeesModule } from './modules/fees/fees.module';
+import { GradeModule } from './modules/grade/grade.module';
 import { InviteModule } from './modules/invites/invites.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { RoomModule } from './modules/room/room.module';
@@ -26,12 +28,13 @@ import { SessionModule } from './modules/session/session.module';
 import { StreamModule } from './modules/stream/stream.module';
 import { StudentModule } from './modules/student/student.module';
 import { SubjectModule } from './modules/subject/subject.module';
+import { SuperadminModule } from './modules/superadmin/superadmin.module';
 import { TeachersModule } from './modules/teacher/teacher.module';
-import { TermModule } from './modules/term/term.module';
+import { TeacherSubjectModule } from './modules/teacher-subject/teacher-subject.module';
+import { TimetableModule } from './modules/timetable/timetable.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { UserModule } from './modules/user/user.module';
 import { WaitlistModule } from './modules/waitlist/waitlist.module';
-
 @Module({
   imports: [
     LoggerModule,
@@ -67,7 +70,6 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ClassModule,
     InviteModule,
     AcademicSessionModule,
-    DepartmentModule,
     SubjectModule,
     UploadModule,
     TermModule,
@@ -77,6 +79,11 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     StudentModule,
     DashboardModule,
     DatabaseModule,
+    TimetableModule,
+    TeacherSubjectModule,
+    FeesModule,
+    GradeModule,
+    SuperadminModule,
   ],
   controllers: [AppController],
   providers: [

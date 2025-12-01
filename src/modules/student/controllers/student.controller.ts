@@ -25,6 +25,7 @@ import {
   ListStudentsDocs,
   UpdateStudentDocs,
   DeleteStudentDocs,
+  studentGrowthDecorator,
 } from '../docs';
 import {
   CreateStudentDto,
@@ -59,6 +60,14 @@ export class StudentController {
     return this.studentService.findAll(listStudentsDto);
   }
 
+  // ----get student growth ----
+  @studentGrowthDecorator()
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get('student-growth-report')
+  async getStudentGrowthReport(@Query('academic_year') academicYear: string) {
+    return this.studentService.getStudentGrowthReport(academicYear);
+  }
   // --- GET: GET SINGLE STUDENT BY ID ---
   @Get(':id')
   @GetStudentDocs()
@@ -88,4 +97,6 @@ export class StudentController {
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.studentService.remove(id);
   }
+
+  // report.controller.ts
 }

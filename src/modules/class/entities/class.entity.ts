@@ -1,16 +1,21 @@
 import {
-  Entity,
   Column,
-  OneToMany,
-  ManyToOne,
+  Entity,
   JoinColumn,
+  ManyToOne,
+  OneToMany,
   Unique,
+  OneToOne,
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
+import { Room } from '../../room/entities/room.entity';
 import { Stream } from '../../stream/entities/stream.entity';
+import { Timetable } from '../../timetable/entities/timetable.entity';
 
+import { ClassStudent } from './class-student.entity';
+import { ClassSubject } from './class-subject.entity';
 import { ClassTeacher } from './class-teacher.entity';
 
 @Unique(['name', 'arm', 'academicSession'])
@@ -25,6 +30,9 @@ export class Class extends BaseEntity {
   @Column({ nullable: true })
   arm?: string;
 
+  @OneToOne(() => Room, (room) => room.current_class, { nullable: true })
+  room?: Room;
+
   @ManyToOne(() => AcademicSession, { nullable: false })
   @JoinColumn({ name: 'academic_session_id' })
   academicSession: AcademicSession;
@@ -32,6 +40,21 @@ export class Class extends BaseEntity {
   @OneToMany(() => ClassTeacher, (assignment) => assignment.class)
   teacher_assignment: ClassTeacher[];
 
+  @OneToMany(() => ClassStudent, (assignment) => assignment.class)
+  student_assignments: ClassStudent[];
+
   @OneToMany(() => Stream, (stream) => stream.class)
   streams: Stream[];
+
+  @OneToOne(() => Timetable, (timetable) => timetable.class)
+  timetable?: Timetable;
+
+  @OneToMany(() => ClassSubject, (cs) => cs.class)
+  classSubjects: ClassSubject[];
+
+  @Column({ type: 'boolean', default: false })
+  is_deleted: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  deleted_at: Date | null;
 }

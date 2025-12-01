@@ -60,16 +60,16 @@ export class ConfigureDatabaseDto {
   database_host: string;
 
   @ApiProperty({
-    description: 'Database username (alphanumeric, underscores, hyphens only)',
-    example: 'root',
+    description: 'Database username (alphanumeric, underscores, hyphens, dots)',
+    example: 'postgres',
   })
   @IsString()
   @IsNotEmpty()
   @MinLength(2)
   @MaxLength(50)
-  @Matches(/^[a-zA-Z0-9_-]+$/, {
+  @Matches(/^[a-zA-Z0-9._-]+$/, {
     message:
-      'Database username can only contain letters, numbers, underscores, and hyphens',
+      'Database username can only contain letters, numbers, underscores, hyphens, and dots',
   })
   database_username: string;
 

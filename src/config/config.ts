@@ -6,6 +6,7 @@ export default () => ({
   app: {
     name: process.env.APP_NAME || 'Open School Portal',
     slug: process.env.APP_SLUG,
+    logo_url: process.env.LOGO_URL,
   },
 
   database: {
@@ -33,6 +34,8 @@ export default () => ({
   jwt: {
     secret: process.env.JWT_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
+    accessDuration: process.env.TOKEN_ACCESS_DURATION,
+    refreshDuration: process.env.TOKEN_REFRESH_DURATION,
   },
 
   logger: {
@@ -49,8 +52,21 @@ export default () => ({
     apiKey: process.env.CLOUDINARY_API_KEY,
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
+
   frontend: {
     url: process.env.FRONTEND_URL,
+    superadmin_login_url: process.env.SUPERADMIN_LOGIN_URL,
+  },
+  google: {
+    clientId: process.env.GOOGLE_CLIENT_ID,
+  },
+  school: {
+    name: process.env.SCHOOL_NAME,
+    logoUrl: process.env.SCHOOL_LOGO_URL,
+  },
+
+  invite: {
+    expiry: process.env.INVITE_EXPIRATION_DAYS || '7',
   },
 
   isTest(): boolean {
@@ -67,5 +83,8 @@ export default () => ({
   },
   isProduction(): boolean {
     return process.env.NODE_ENV === 'production';
+  },
+  hash: {
+    salt: process.env.HASH_SALT || '10',
   },
 });

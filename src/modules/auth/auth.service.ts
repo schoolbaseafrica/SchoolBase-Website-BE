@@ -3,6 +3,7 @@ import * as crypto from 'crypto';
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
@@ -11,6 +12,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client } from 'google-auth-library';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
@@ -19,6 +21,8 @@ import { EmailTemplateID } from '../../constants/email-constants';
 import * as sysMsg from '../../constants/system.messages';
 import { EmailService } from '../email/email.service';
 import { EmailPayload } from '../email/email.types';
+import { InviteStatus } from '../invites/entities/invites.entity';
+import { InviteModelAction } from '../invites/invite.model-action';
 import { SessionService } from '../session/session.service';
 import { UserService } from '../user/user.service';
 
@@ -28,6 +32,7 @@ import {
   LogoutDto,
   RefreshTokenDto,
   ResetPasswordDto,
+  UserRole,
 } from './dto/auth.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -41,6 +46,7 @@ export class AuthService {
     private readonly emailService: EmailService,
     private readonly sessionService: SessionService,
     private readonly configService: ConfigService,
+    private readonly inviteModelAction: InviteModelAction,
   ) {
     this.logger = logger.child({ context: AuthService.name });
   }
@@ -151,6 +157,7 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: RefreshTokenDto) {
+    // Verify the refresh token signature
     const payload = await this.jwtService.verifyAsync(
       refreshToken.refresh_token,
       {
@@ -158,15 +165,37 @@ export class AuthService {
       },
     );
 
+    // Validate refresh token against stored session
+    let oldSession = null;
+    if (this.sessionService) {
+      oldSession = await this.sessionService.validateRefreshToken(
+        payload.sub,
+        refreshToken.refresh_token,
+      );
+
+      if (!oldSession) {
+        this.logger.warn(
+          `Refresh token validation failed for user: ${payload.sub}`,
+        );
+        throw new UnauthorizedException(
+          'Invalid or expired refresh token. Please login again.',
+        );
+      }
+    }
+
+    // Generate new tokens
     const tokens = await this.generateTokens(
       payload.sub,
       payload.email,
       payload.role,
     );
 
-    // Create session in DB
+    // Update session with new refresh token
     let sessionInfo = null;
-    if (this.sessionService && tokens.refresh_token) {
+    if (this.sessionService && tokens.refresh_token && oldSession) {
+      // Revoke old session and create new one
+      await this.sessionService.revokeSession(oldSession.id, payload.sub);
+
       sessionInfo = await this.sessionService.createSession(
         payload.sub,
         tokens.refresh_token,
@@ -339,7 +368,7 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
         secret: jwt.secret,
-        expiresIn: '15m',
+        expiresIn: '4h',
       }),
       this.jwtService.signAsync(payload, {
         secret: jwt.refreshSecret,
@@ -365,6 +394,133 @@ export class AuthService {
 
     return {
       message: sysMsg.LOGOUT_SUCCESS,
+    };
+  }
+
+  async googleLogin(token: string, inviteToken?: string) {
+    const { google } = config();
+    const client = new OAuth2Client(google.clientId);
+
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: google.clientId,
+    });
+    const payload = ticket.getPayload();
+
+    if (!payload) {
+      throw new UnauthorizedException(sysMsg.INVALID_GOOGLE_TOKEN);
+    }
+
+    const { email, sub: googleId, given_name, family_name, picture } = payload;
+
+    let user = await this.userService.findByEmail(email);
+
+    if (user) {
+      // If user exists but doesn't have google_id, update it
+      if (!user.google_id) {
+        await this.userService.updateUser(
+          { google_id: googleId },
+          { id: user.id },
+          { useTransaction: false },
+        );
+      }
+    } else {
+      // User does not exist, check for invite
+      if (!inviteToken) {
+        throw new ForbiddenException(sysMsg.REGISTRATION_INVITE_ONLY);
+      }
+
+      // Verify invite
+      const hashedToken = crypto
+        .createHash('sha256')
+        .update(inviteToken)
+        .digest('hex');
+
+      const invite = await this.inviteModelAction.get({
+        identifierOptions: {
+          token_hash: hashedToken,
+          status: InviteStatus.PENDING,
+        },
+      });
+
+      if (!invite) {
+        throw new NotFoundException(sysMsg.INVALID_VERIFICATION_TOKEN);
+      }
+
+      if (invite.accepted) {
+        throw new ConflictException('This invitation has already been used.');
+      }
+
+      if (new Date() > invite.expires_at) {
+        throw new BadRequestException(sysMsg.TOKEN_EXPIRED);
+      }
+
+      // Critical: Check if invite email matches Google email
+      if (invite.email.toLowerCase() !== email.toLowerCase()) {
+        throw new ConflictException(sysMsg.INVITE_EMAIL_MISMATCH);
+      }
+
+      // Create new user
+      const password = crypto.randomBytes(16).toString('hex');
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const names = invite.full_name
+        ? invite.full_name.split(' ')
+        : [given_name, family_name];
+      const firstName = names[0] || given_name;
+      const lastName = names.slice(1).join(' ') || family_name || '';
+
+      user = await this.userService.create({
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        middle_name: '',
+        password: hashedPassword,
+        google_id: googleId,
+        is_active: true,
+        is_verified: true,
+        role: [invite.role as UserRole], // Use role from invite
+        gender: 'Other',
+        dob: new Date().toISOString().split('T')[0],
+        phone: '',
+      });
+
+      // Mark invite as accepted
+      await this.inviteModelAction.update({
+        identifierOptions: { id: invite.id },
+        updatePayload: {
+          accepted: true,
+          status: InviteStatus.USED,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+    }
+
+    // Generate tokens
+    const tokens = await this.generateTokens(user.id, user.email, user.role);
+
+    // Create session
+    let sessionInfo = null;
+    if (this.sessionService && tokens.refresh_token) {
+      sessionInfo = await this.sessionService.createSession(
+        user.id,
+        tokens.refresh_token,
+      );
+    }
+
+    return {
+      message: sysMsg.LOGIN_SUCCESS,
+      user: {
+        id: user.id,
+        email: user.email,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        role: user.role,
+        picture,
+      },
+      ...tokens,
+      session_id: sessionInfo?.session_id,
+      session_expires_at: sessionInfo?.expires_at,
     };
   }
 }

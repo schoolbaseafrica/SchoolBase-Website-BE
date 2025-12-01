@@ -1,5 +1,7 @@
+import { HttpStatus } from '@nestjs/common';
+
 import * as sysMsg from '../../../constants/system.messages';
-import { CreateAcademicSessionDto } from '../dto/create-academic-session.dto';
+import { AcademicSessionResponseDto } from '../dto/academic-session-response.dto';
 
 /**
  * Swagger documentation for Academic Session endpoints.
@@ -14,434 +16,157 @@ export const AcademicSessionSwagger = {
     'Endpoints for creating, retrieving, updating, and deleting academic sessions.',
   endpoints: {
     create: {
-      summary: 'Create Academic Session',
-      description:
-        'Creates a new academic session. Session name must be unique. Start and end dates must be in the future, and end date must be after start date.',
-      requestBody: {
-        required: true,
-        content: {
-          ['application/json']: {
-            schema: {
-              type: 'object',
-              properties: {
-                name: { type: 'string', maxLength: 100, example: '2024/2025' },
-                startDate: {
-                  type: 'string',
-                  format: 'date',
-                  example: '2024-09-01',
-                },
-                endDate: {
-                  type: 'string',
-                  format: 'date',
-                  example: '2025-06-30',
-                },
-              },
-              required: ['name', 'startDate', 'endDate'],
-              example: {
-                name: '2024/2025',
-                startDate: '2024-09-01',
-                endDate: '2025-06-30',
-              },
-            },
-          },
-        },
+      operation: {
+        summary: 'Create Academic Session (Admin)',
+        description:
+          'Creates a new academic session with exactly 3 terms. Session name (academic year) must be unique. The session start date is the start of the first term, and the end date is the end of the third term. Active sessions cannot overlap.',
       },
       responses: {
-        ['201']: {
-          description: 'Academic session created successfully.',
-          content: {
-            ['application/json']: {
-              schema: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string', format: 'uuid' },
-                  name: { type: 'string' },
-                  startDate: { type: 'string', format: 'date' },
-                  endDate: { type: 'string', format: 'date' },
-                  status: { type: 'string', enum: ['Active', 'Inactive'] },
-                  createdAt: { type: 'string', format: 'date-time' },
-                  updatedAt: { type: 'string', format: 'date-time' },
-                },
-              },
-              example: {
-                id: '550e8400-e29b-41d4-a716-446655440000',
-                name: '2024/2025',
-                startDate: '2024-09-01',
-                endDate: '2025-06-30',
-                status: 'Inactive',
-                createdAt: '2024-01-15T10:30:00Z',
-                updatedAt: '2024-01-15T10:30:00Z',
-              },
-            },
-          },
+        created: {
+          status: HttpStatus.CREATED,
+          description: sysMsg.ACADEMIC_SESSION_CREATED,
+          type: AcademicSessionResponseDto,
         },
-        ['400']: {
-          description: 'Invalid date range or date in the past.',
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description:
+            'Validation failed: dates invalid, terms not sequential, or other business rules failed.',
         },
-        ['409']: {
-          description: 'Session name already exists.',
+        conflict: {
+          status: HttpStatus.CONFLICT,
+          description:
+            'Conflict occurred: session with same academic year exists or ongoing session already active.',
         },
       },
     },
     findAll: {
-      summary: 'Get All Academic Sessions',
-      description:
-        'Retrieves all academic sessions with pagination support. Defaults to page 1 and limit 20 if not provided.',
-      parameters: [
-        {
+      operation: {
+        summary: 'Get All Academic Sessions (Admin)',
+        description:
+          'Retrieves all academic sessions with pagination support. Defaults to page 1 and limit 20 if not provided.',
+      },
+      parameters: {
+        page: {
           name: 'page',
-          in: 'query',
           required: false,
-          schema: {
-            type: 'integer',
-            minimum: 1,
-            default: 1,
-          },
+          type: Number,
           description: 'Page number (defaults to 1)',
           example: 1,
         },
-        {
+        limit: {
           name: 'limit',
-          in: 'query',
           required: false,
-          schema: {
-            type: 'integer',
-            minimum: 1,
-            default: 20,
-          },
+          type: Number,
           description: 'Number of items per page (defaults to 20)',
           example: 20,
         },
-      ],
+      },
       responses: {
-        ['200']: {
-          description: 'Paginated list of academic sessions.',
-          content: {
-            ['application/json']: {
-              schema: {
-                type: 'object',
-                properties: {
-                  data: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        id: { type: 'string', format: 'uuid' },
-                        name: { type: 'string' },
-                        startDate: { type: 'string', format: 'date' },
-                        endDate: { type: 'string', format: 'date' },
-                        status: {
-                          type: 'string',
-                          enum: ['Active', 'Inactive'],
-                        },
-                        createdAt: { type: 'string', format: 'date-time' },
-                        updatedAt: { type: 'string', format: 'date-time' },
-                      },
-                    },
-                  },
-                  meta: {
-                    type: 'object',
-                    properties: {
-                      total: {
-                        type: 'integer',
-                        description: 'Total number of sessions',
-                      },
-                      limit: { type: 'integer', description: 'Items per page' },
-                      page: {
-                        type: 'integer',
-                        description: 'Current page number',
-                      },
-                      total_pages: {
-                        type: 'integer',
-                        description: 'Total number of pages',
-                      },
-                      has_next: {
-                        type: 'boolean',
-                        description: 'Whether there is a next page',
-                      },
-                      has_previous: {
-                        type: 'boolean',
-                        description: 'Whether there is a previous page',
-                      },
-                    },
-                  },
-                },
-              },
-              example: {
-                data: [
-                  {
-                    id: '550e8400-e29b-41d4-a716-446655440000',
-                    name: '2024/2025',
-                    startDate: '2024-09-01',
-                    endDate: '2025-06-30',
-                    status: 'Inactive',
-                    createdAt: '2024-01-15T10:30:00Z',
-                    updatedAt: '2024-01-15T10:30:00Z',
-                  },
-                  {
-                    id: '660e8400-e29b-41d4-a716-446655440001',
-                    name: '2025/2026',
-                    startDate: '2025-09-01',
-                    endDate: '2026-06-30',
-                    status: 'Active',
-                    createdAt: '2024-01-15T10:30:00Z',
-                    updatedAt: '2024-01-15T10:30:00Z',
-                  },
-                ],
-                meta: {
-                  total: 2,
-                  limit: 20,
-                  page: 1,
-                  total_pages: 1,
-                  has_next: false,
-                  has_previous: false,
-                },
-              },
-            },
-          },
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Academic sessions retrieved successfully',
+          type: AcademicSessionResponseDto,
+          isArray: true,
         },
       },
     },
     findOne: {
-      summary: 'Get Academic Session by ID',
-      description: 'Retrieves a single academic session by its ID.',
-      parameters: [
-        {
+      operation: {
+        summary: 'Get Academic Session by ID (Admin)',
+        description:
+          'Retrieves a single academic session by its ID including all associated terms.',
+      },
+      parameters: {
+        id: {
           name: 'id',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
+          description: 'The UUID of the academic session',
+          type: 'string',
+          example: '550e8400-e29b-41d4-a716-446655440000',
         },
-      ],
+      },
       responses: {
-        ['200']: {
-          description: 'Academic session details.',
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Academic session retrieved successfully',
+          type: AcademicSessionResponseDto,
         },
-        ['404']: {
-          description: 'Academic session not found.',
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Academic session not found',
         },
       },
     },
     update: {
-      summary: 'Update Academic Session',
-      description: 'Updates an existing academic session.',
-      parameters: [
-        {
+      operation: {
+        summary: 'Update Academic Session (Admin)',
+        description:
+          'Updates an existing academic session. Can update description and status.',
+      },
+      parameters: {
+        id: {
           name: 'id',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
+          description: 'The UUID of the academic session',
+          type: 'string',
+          example: '550e8400-e29b-41d4-a716-446655440000',
         },
-      ],
+      },
       responses: {
-        ['200']: {
-          description: 'Academic session updated.',
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Academic session updated successfully',
+          type: AcademicSessionResponseDto,
         },
-        ['404']: {
-          description: 'Academic session not found.',
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Validation failed',
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Academic session not found',
         },
       },
     },
     remove: {
-      summary: 'Delete Academic Session',
-      description: 'Deletes an academic session by its ID.',
-      parameters: [
-        {
-          name: 'id',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
-        },
-      ],
-      responses: {
-        ['200']: {
-          description: 'Academic session deleted.',
-        },
-        ['404']: {
-          description: 'Academic session not found.',
-        },
+      operation: {
+        summary: 'Delete Academic Session (Admin)',
+        description: 'Soft deletes an academic session by its ID.',
       },
-    },
-    getActiveSession: {
-      summary: sysMsg.ACADEMIC_SESSION,
-      description: 'Retrieves the currently active academic session.',
-      responses: {
-        ['200']: {
-          description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
-        },
-        ['404']: {
-          description: sysMsg.USER_NOT_FOUND,
-        },
-        ['401']: {
-          description: sysMsg.TOKEN_INVALID,
-        },
-        ['403']: {
-          description: sysMsg.PERMISSION_DENIED,
-        },
-        ['500']: {
-          description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
-        },
-      },
-    },
-    activateSession: {
-      summary: 'Activate Academic Session',
-      description:
-        'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
-      parameters: [
-        {
+      parameters: {
+        id: {
           name: 'id',
-          in: 'path',
-          required: true,
-          schema: { type: 'string' },
-          description: 'The ID of the academic session to activate',
+          description: 'The UUID of the academic session',
+          type: 'string',
           example: '550e8400-e29b-41d4-a716-446655440000',
         },
-      ],
+      },
       responses: {
-        ['200']: {
-          description: 'Session activated successfully.',
-          content: {
-            ['application/json']: {
-              schema: {
-                type: 'object',
-                properties: {
-                  status_code: {
-                    type: 'number',
-                    example: 200,
-                    description: 'HTTP status code',
-                  },
-                  message: {
-                    type: 'string',
-                    example: 'Session activated successfully',
-                  },
-                  data: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string', format: 'uuid' },
-                      name: { type: 'string' },
-                      startDate: { type: 'string', format: 'date' },
-                      endDate: { type: 'string', format: 'date' },
-                      status: {
-                        type: 'string',
-                        enum: ['Active', 'Inactive'],
-                      },
-                      createdAt: { type: 'string', format: 'date-time' },
-                      updatedAt: { type: 'string', format: 'date-time' },
-                    },
-                  },
-                },
-              },
-              example: {
-                status_code: 200,
-                message: 'Session activated successfully',
-                data: {
-                  id: '550e8400-e29b-41d4-a716-446655440000',
-                  name: '2024/2025',
-                  startDate: '2024-09-01',
-                  endDate: '2025-06-30',
-                  status: 'Active',
-                  createdAt: '2024-01-15T10:30:00Z',
-                  updatedAt: '2024-01-15T10:30:00Z',
-                },
-              },
-            },
-          },
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Academic session deleted successfully',
         },
-        ['400']: {
-          description: 'Session not found.',
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Academic session not found',
         },
-        ['500']: {
-          description: 'Activation failed due to server error.',
-        },
-      },
-    },
-  },
-  decorators: {
-    create: {
-      operation: {
-        summary: 'Create Academic Session',
-        description:
-          'Creates a new academic session. Session name must be unique. Start and end dates must be in the future, and end date must be after start date.',
-      },
-      body: {
-        type: CreateAcademicSessionDto,
-        description: 'Create academic session payload',
-        examples: {
-          example1: {
-            summary: '2024/2025 Academic Session',
-            value: {
-              name: '2024/2025',
-              startDate: '2024-09-01',
-              endDate: '2025-06-30',
-            },
-          },
-        },
-      },
-      response: {
-        status: 201,
-        description: 'Academic session created successfully.',
-      },
-    },
-    findAll: {
-      operation: {
-        summary: 'Get All Academic Sessions',
-        description:
-          'Retrieves all academic sessions with pagination support. Defaults to page 1 and limit 20 if not provided.',
-      },
-      response: {
-        status: 200,
-        description: 'Paginated list of academic sessions.',
       },
     },
     activeSession: {
       operation: {
-        summary: sysMsg.ACADEMIC_SESSION,
+        summary: 'Get Active Academic Session (Admin)',
         description:
-          'Retrieves the currently active academic session. Ensures only one session is active at a time.',
+          'Retrieves the currently active academic session. Only one session can be active at a time based on current date falling within session date range.',
       },
-      response: {
-        status: 200,
-        description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.ACTIVE_ACADEMIC_SESSION_SUCCESS,
+          type: AcademicSessionResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'No active academic session found',
+        },
       },
-      errorResponses: [
-        {
-          status: 404,
-          description: sysMsg.USER_NOT_FOUND,
-        },
-        {
-          status: 401,
-          description: sysMsg.TOKEN_INVALID,
-        },
-        {
-          status: 403,
-          description: sysMsg.PERMISSION_DENIED,
-        },
-        {
-          status: 500,
-          description: sysMsg.MULTIPLE_ACTIVE_ACADEMIC_SESSION,
-        },
-      ],
-    },
-    activateSession: {
-      operation: {
-        summary: 'Activate Academic Session',
-        description:
-          'Activates a specific academic session by ID. This will deactivate all other sessions and activate the specified one. Only one session can be active at a time.',
-      },
-      response: {
-        status: 200,
-        description: 'Session activated successfully.',
-      },
-      errorResponses: [
-        {
-          status: 400,
-          description: 'Session not found.',
-        },
-        {
-          status: 500,
-          description: 'Activation failed due to server error.',
-        },
-      ],
     },
   },
 };

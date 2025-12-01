@@ -1,6 +1,15 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToOne } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinColumn,
+  ManyToOne,
+  OneToOne,
+  OneToMany,
+} from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { ClassStudent } from '../../class/entities/class-student.entity';
+import { Parent } from '../../parent/entities/parent.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 import { User } from '../../user/entities/user.entity';
 
@@ -20,9 +29,16 @@ export class Student extends BaseEntity {
   @JoinColumn({ name: 'stream_id' })
   stream: Stream;
 
+  @OneToMany(() => ClassStudent, (assignment) => assignment.student)
+  class_assignments: ClassStudent[];
+
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
   deleted_at: Date | null;
+
+  @ManyToOne(() => Parent, (parent) => parent.students)
+  @JoinColumn({ name: 'parent_id' })
+  parent: Parent;
 }

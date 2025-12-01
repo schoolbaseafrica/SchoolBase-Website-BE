@@ -2,6 +2,7 @@ import { HttpStatus } from '@nestjs/common';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { ClassResponseDto } from '../dto/create-class.dto';
+import { StudentAssignmentResponseDto } from '../dto/student-assignment.dto';
 import { TeacherAssignmentResponseDto } from '../dto/teacher-response.dto';
 
 /**
@@ -58,6 +59,14 @@ export const ClassSwagger = {
           enum: ['A', 'B', 'C'],
           required: false,
         },
+        teacherIds: {
+          name: 'teacherIds',
+          description: 'Array of teacher IDs to assign to the class (optional)',
+          type: 'array',
+          items: { type: 'string' },
+          required: false,
+          example: ['teacher-uuid-1', 'teacher-uuid-2'],
+        },
       },
       responses: {
         created: {
@@ -111,19 +120,26 @@ export const ClassSwagger = {
               status_code: { type: 'integer', example: 200 },
               message: {
                 type: 'string',
-                example: 'classes fetched successfully',
+                example: 'class fetched successfully',
               },
               data: {
-                type: 'array',
-                items: { $ref: '#/components/schemas/GroupedClassDto' },
-              },
-              pagination: {
                 type: 'object',
                 properties: {
-                  page: { type: 'integer', example: 1 },
-                  limit: { type: 'integer', example: 20 },
-                  total: { type: 'integer', example: 100 },
-                  totalPages: { type: 'integer', example: 5 },
+                  items: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/GroupedClassDto' },
+                  },
+                  pagination: {
+                    type: 'object',
+                    properties: {
+                      total: { type: 'integer', example: 4 },
+                      limit: { type: 'integer', example: 20 },
+                      page: { type: 'integer', example: 1 },
+                      total_pages: { type: 'integer', example: 1 },
+                      has_next: { type: 'boolean', example: false },
+                      has_previous: { type: 'boolean', example: false },
+                    },
+                  },
                 },
               },
             },
@@ -176,6 +192,187 @@ export const ClassSwagger = {
           status: HttpStatus.CONFLICT,
           description:
             'Class with this name/arm already exists in the session.',
+        },
+      },
+    },
+    getClassById: {
+      operation: {
+        summary: 'Get class by ID',
+        description: 'Returns details of a class by its unique ID.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Class found',
+          type: ClassResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class not found',
+        },
+      },
+    },
+    getTotalClasses: {
+      operation: {
+        summary: 'Get total number of classes',
+        description:
+          'Returns the total count of classes in the system. Supports filtering by sessionId, name, and arm via query parameters.',
+      },
+      parameters: {
+        sessionId: {
+          name: 'sessionId',
+          in: 'query',
+          required: false,
+          description: 'Academic session ID to filter by',
+          schema: { type: 'string' },
+        },
+        name: {
+          name: 'name',
+          in: 'query',
+          required: false,
+          description: 'Class name to filter by',
+          schema: { type: 'string' },
+        },
+        arm: {
+          name: 'arm',
+          in: 'query',
+          required: false,
+          description: 'Class arm to filter by',
+          schema: { type: 'string' },
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Total number of classes',
+          schema: {
+            type: 'object',
+            properties: {
+              total: { type: 'integer', example: 42 },
+            },
+          },
+        },
+      },
+    },
+    deleteClass: {
+      operation: {
+        summary: 'Delete a class (Admin)',
+        description:
+          'Attention! Soft deletes a class by ID. Only classes from the active session can be deleted. Classes from past sessions cannot be deleted to preserve historical records.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID to delete',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: sysMsg.CLASS_DELETED,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 200 },
+              message: { type: 'string', example: sysMsg.CLASS_DELETED },
+            },
+          },
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 400 },
+              message: {
+                example: sysMsg.CANNOT_DELETE_PAST_SESSION_CLASS,
+              },
+              warning: {
+                type: 'string',
+                example:
+                  'This class belongs to a past session and cannot be deleted to preserve historical records.',
+              },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: sysMsg.CLASS_NOT_FOUND,
+          schema: {
+            type: 'object',
+            properties: {
+              status_code: { type: 'integer', example: 404 },
+              message: { type: 'string', example: sysMsg.CLASS_NOT_FOUND },
+            },
+          },
+        },
+      },
+    },
+    assignStudents: {
+      operation: {
+        summary: 'Assign students to a class',
+        description:
+          'Assigns multiple students to a specific class. Students are automatically assigned to the class in the same academic session the class belongs to. Students already assigned will be skipped.',
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          description: 'Students assigned successfully',
+          schema: {
+            type: 'object',
+            properties: {
+              message: {
+                type: 'string',
+                example: 'Successfully assigned 3 student(s) to class',
+              },
+              assigned: { type: 'number', example: 3 },
+              classId: { type: 'string' },
+            },
+          },
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          description: 'Class or student not found',
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Validation failed: invalid student IDs or empty array.',
+        },
+      },
+    },
+    getStudents: {
+      operation: {
+        summary: 'Get students assigned to a class',
+        description:
+          "Returns a list of students assigned to a specific class ID. Returns students from the class's academic session by default, but can be filtered by a different sessionId if provided.",
+      },
+      parameters: {
+        id: {
+          name: 'id',
+          description: 'The Class ID',
+        },
+      },
+      responses: {
+        ok: {
+          description: 'List of assigned students',
+          type: StudentAssignmentResponseDto,
+          isArray: true,
+        },
+        notFound: {
+          description: 'Class not found',
         },
       },
     },

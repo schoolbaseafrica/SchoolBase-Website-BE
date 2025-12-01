@@ -1,5 +1,3 @@
-import { ClassResponseDto } from '../dto/create-class.dto';
-
 export interface IPaginationMeta {
   total: number;
   page: number;
@@ -10,9 +8,15 @@ export interface IPaginationMeta {
 }
 
 export interface ICreateClassResponse {
-  status_code: number;
   message: string;
-  data: ClassResponseDto;
+  id: string;
+  name: string;
+  arm?: string;
+  academicSession: {
+    id: string;
+    name: string;
+  };
+  teacherIds?: string[];
 }
 
 export interface IUpdateClassResponse {
@@ -20,6 +24,18 @@ export interface IUpdateClassResponse {
   id: string;
   name: string;
   arm?: string;
+  academicSession: {
+    id: string;
+    name: string;
+  };
+}
+
+export interface IGetClassByIdResponse {
+  message: string;
+  id: string;
+  name: string;
+  arm?: string;
+  is_deleted: boolean;
   academicSession: {
     id: string;
     name: string;
