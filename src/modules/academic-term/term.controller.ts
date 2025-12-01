@@ -59,11 +59,11 @@ export class TermController {
 
   @Get('active')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Get Active Academic Term (Admin)',
+    summary: 'Get Active Academic Term (Admin/Teacher)',
     description:
       'Retrieves the currently active academic term. A term is active when the current date falls within its start and end date range.',
   })
