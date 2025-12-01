@@ -94,7 +94,7 @@ export class ClassController {
 
   // --- GET: TOTAL NUMBER OF CLASSES ---
   @Get('count')
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @Roles(UserRole.ADMIN)
   @DocsGetTotalClasses()
   async getTotalClasses(@Query() query: GetTotalClassesQueryDto) {
     return this.classService.getTotalClasses(
