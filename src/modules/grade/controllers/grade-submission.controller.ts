@@ -66,7 +66,7 @@ export class GradeSubmissionController {
 
   @Get()
   @listTeacherSubmissionsDocs()
-  @Roles(UserRole.TEACHER)
+  @Roles(UserRole.TEACHER, UserRole.ADMIN)
   async listTeacherSubmissions(
     @Req() req: IRequestWithUser,
     @Query() listDto: ListGradeSubmissionsDto,

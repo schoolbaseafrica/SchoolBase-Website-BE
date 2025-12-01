@@ -25,6 +25,7 @@ import {
   UpdateClassDto,
   AssignStudentsToClassDto,
   StudentAssignmentResponseDto,
+  ClassResponseDto,
 } from '../dto';
 import { ClassStudent } from '../entities/class-student.entity';
 import { ClassStudentModelAction } from '../model-actions/class-student.action';
@@ -543,5 +544,51 @@ export class ClassService {
         is_active: assignment.is_active,
       };
     });
+  }
+
+  /**
+   * Fetches classes assigned to a specific teacher.
+   * Optionally filters by session ID, defaults to active session.
+   */
+  async getClassesByTeacher(
+    teacherId: string,
+    sessionId?: string,
+  ): Promise<ClassResponseDto[]> {
+    // 1. Handle Session Logic (Default to active if null)
+    const target_session = sessionId || (await this.getActiveSession());
+
+    // 2. Fetch Assignments with Relations
+    const assignments = await this.classTeacherModelAction.list({
+      filterRecordOptions: {
+        teacher: { id: teacherId },
+        session_id:
+          typeof target_session === 'string'
+            ? target_session
+            : target_session.id,
+        is_active: true,
+      },
+      relations: {
+        class: { academicSession: true },
+      },
+    });
+
+    // 3. Map to DTO and remove duplicates (in case teacher is assigned multiple times)
+    const uniqueClasses = new Map<string, ClassResponseDto>();
+    assignments.payload.forEach((assignment) => {
+      const classEntity = assignment.class;
+      if (!classEntity.is_deleted && !uniqueClasses.has(classEntity.id)) {
+        uniqueClasses.set(classEntity.id, {
+          id: classEntity.id,
+          name: classEntity.name,
+          arm: classEntity.arm,
+          academicSession: {
+            id: classEntity.academicSession.id,
+            name: classEntity.academicSession.name,
+          },
+        });
+      }
+    });
+
+    return Array.from(uniqueClasses.values());
   }
 }

@@ -23,14 +23,15 @@ import { AssignTeacherToClassSubjectRequestDto } from '../dto';
 import { ClassSubjectService } from '../services/class-subject.service';
 
 @ApiTags(ClassSubjectSwagger.tags[0])
-@Controller('classes/:classId/subjects')
+@Controller('classes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassSubjectController {
   constructor(private readonly classStudentService: ClassSubjectService) {}
 
   // --- GET: LIST CLASS SUBJECTS ---
-  @Get()
+  @Get('/:classId/subjects')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @DocsListClassSubjects()
   async list(@Param('classId', ParseUUIDPipe) classId: string) {
     return this.classStudentService.list(classId);

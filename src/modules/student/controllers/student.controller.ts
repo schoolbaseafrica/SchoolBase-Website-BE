@@ -54,7 +54,7 @@ export class StudentController {
   // --- GET: LIST ALL STUDENTS (with pagination and search) ---
   @Get()
   @ListStudentsDocs()
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   findAll(@Query() listStudentsDto: ListStudentsDto) {
     return this.studentService.findAll(listStudentsDto);

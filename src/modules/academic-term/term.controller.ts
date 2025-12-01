@@ -23,7 +23,6 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
 
-import { TermResponseDto } from './dto/academic-term-response.dto';
 import { UpdateTermDto } from './dto/update-term.dto';
 import { TermService } from './term.service';
 
@@ -34,7 +33,7 @@ export class TermController {
 
   @Get('session/:sessionId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all terms for a specific academic session' })
@@ -57,37 +56,9 @@ export class TermController {
     };
   }
 
-  @Get('active')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    summary: 'Get Active Academic Term (Admin)',
-    description:
-      'Retrieves the currently active academic term. A term is active when the current date falls within its start and end date range.',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Active term retrieved successfully',
-    type: TermResponseDto,
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'No active term found',
-  })
-  async getActiveTerm() {
-    const activeTerm = await this.termService.getActiveTerm();
-    return {
-      status_code: HttpStatus.OK,
-      message: sysMsg.TERM_RETRIEVED,
-      data: activeTerm,
-    };
-  }
-
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a term by ID' })
