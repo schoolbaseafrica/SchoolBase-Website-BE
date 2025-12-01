@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { UserRole } from '../../shared/enums';
 import {
   CreateGradeSubmissionDto,
@@ -54,7 +55,7 @@ describe('GradeController', () => {
           provide: GradeSubmissionService,
           useValue: {
             createSubmission: jest.fn(),
-            listTeacherSubmissions: jest.fn(),
+            listGradeSubmissions: jest.fn(),
             getSubmission: jest.fn(),
             submitForApproval: jest.fn(),
           },
@@ -105,26 +106,24 @@ describe('GradeController', () => {
     });
   });
 
-  describe('listTeacherSubmissions', () => {
-    it('should list teacher submissions', async () => {
+  describe('listGradeSubmissions', () => {
+    it('should list grade submissions', async () => {
       const listDto: ListGradeSubmissionsDto = { page: 1, limit: 10 };
       const expectedResult = {
-        data: [],
+        items: [],
         meta: { total: 0, page: 1, limit: 10 },
+        message: sysMsg.GRADE_SUBMISSIONS_FETCHED,
       };
 
-      service.listTeacherSubmissions.mockResolvedValue(expectedResult);
+      service.listGradeSubmissions.mockResolvedValue(expectedResult);
 
-      const result = await controller.listTeacherSubmissions(
+      const result = await controller.listGradeSubmissions(
         mockRequest as unknown as IRequestWithUser,
         listDto,
       );
 
       expect(result).toEqual(expectedResult);
-      expect(service.listTeacherSubmissions).toHaveBeenCalledWith(
-        mockTeacherId,
-        listDto,
-      );
+      expect(service.listGradeSubmissions).toHaveBeenCalledWith(listDto);
     });
   });
 

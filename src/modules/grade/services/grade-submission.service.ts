@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource } from 'typeorm';
+import { DataSource, FindOptionsWhere } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -296,13 +296,11 @@ export class GradeSubmissionService {
   }
 
   /**
-   * List teacher's submissions
+   * List grade submissions
    */
-  async listTeacherSubmissions(
-    teacherId: string,
-    listDto: ListGradeSubmissionsDto,
-  ): Promise<{
-    data: GradeSubmissionResponseDto[];
+  async listGradeSubmissions(listDto: ListGradeSubmissionsDto): Promise<{
+    message: string;
+    items: GradeSubmissionResponseDto[];
     meta: Partial<PaginationMeta>;
   }> {
     const {
@@ -312,13 +310,15 @@ export class GradeSubmissionService {
       subject_id,
       term_id,
       status,
+      teacher_id,
     } = listDto;
 
-    const filterOptions: Record<string, unknown> = { teacher_id: teacherId };
+    const filterOptions: FindOptionsWhere<GradeSubmission> = {};
     if (class_id) filterOptions.class_id = class_id;
     if (subject_id) filterOptions.subject_id = subject_id;
     if (term_id) filterOptions.term_id = term_id;
     if (status) filterOptions.status = status;
+    if (teacher_id) filterOptions.teacher_id = teacher_id;
 
     const result = await this.gradeSubmissionModelAction.list({
       filterRecordOptions: filterOptions,
@@ -337,7 +337,11 @@ export class GradeSubmissionService {
       this.transformToResponse(submission, submission.grades),
     );
 
-    return { data, meta: result.paginationMeta };
+    return {
+      message: sysMsg.GRADE_SUBMISSIONS_FETCHED,
+      items: data,
+      meta: result.paginationMeta,
+    };
   }
 
   /**
