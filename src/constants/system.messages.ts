@@ -31,6 +31,8 @@ export const ACCOUNT_NOT_FOUND = 'account not found';
 export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
+export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
+export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
