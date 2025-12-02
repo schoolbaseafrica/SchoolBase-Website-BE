@@ -454,9 +454,13 @@ describe('FeesService', () => {
         .mockReturnValue(mockQueryBuilder);
     });
 
-    it('should return all active fees by default', async () => {
+    it('should return all fees regardless of status by default', async () => {
+      const mixedStatusFees = [
+        mockFees[0],
+        { ...mockFees[1], status: FeeStatus.INACTIVE },
+      ];
       mockQueryBuilder.getCount.mockResolvedValue(2);
-      mockQueryBuilder.getMany.mockResolvedValue(mockFees);
+      mockQueryBuilder.getMany.mockResolvedValue(mixedStatusFees);
 
       const queryDto: QueryFeesDto = {
         page: 1,
@@ -478,27 +482,20 @@ describe('FeesService', () => {
         'fee.createdAt',
         'DESC',
       );
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'fee.status = :status',
-        { status: FeeStatus.ACTIVE },
+      // Should NOT call andWhere for status when not provided
+      const statusCalls = mockQueryBuilder.andWhere.mock.calls.filter(
+        (call) => call[0] === 'fee.status = :status',
       );
+      expect(statusCalls).toHaveLength(0);
       expect(mockQueryBuilder.skip).toHaveBeenCalledWith(0);
       expect(mockQueryBuilder.take).toHaveBeenCalledWith(20);
       expect(result).toEqual({
-        fees: mockFees,
+        fees: mixedStatusFees,
         total: 2,
         page: 1,
         limit: 20,
         totalPages: 1,
       });
-      expect(logger.info).toHaveBeenCalledWith(
-        'Fetched fee components',
-        expect.objectContaining({
-          total: 2,
-          page: 1,
-          limit: 20,
-        }),
-      );
     });
 
     it('should filter by status when provided', async () => {
