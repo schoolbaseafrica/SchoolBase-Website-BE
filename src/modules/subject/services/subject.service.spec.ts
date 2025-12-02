@@ -108,6 +108,7 @@ describe('SubjectService', () => {
       name: baseDto.name,
       createdAt: new Date('2024-01-03T00:00:00Z'),
       updatedAt: new Date('2024-01-04T00:00:00Z'),
+      classSubjects: [],
     };
 
     subjectModelActionMock.get.mockResolvedValue(undefined);
@@ -122,6 +123,7 @@ describe('SubjectService', () => {
         name: subject.name,
         created_at: subject.createdAt,
         updated_at: subject.updatedAt,
+        classes: undefined,
       },
     });
 
@@ -158,12 +160,14 @@ describe('SubjectService', () => {
           name: 'Chemistry',
           createdAt: new Date('2024-01-03T00:00:00Z'),
           updatedAt: new Date('2024-01-04T00:00:00Z'),
+          classSubjects: [],
         },
         {
           id: 'subject-2',
           name: 'Biology',
           createdAt: new Date('2024-01-05T00:00:00Z'),
           updatedAt: new Date('2024-01-06T00:00:00Z'),
+          classSubjects: [],
         },
       ];
 
@@ -191,12 +195,14 @@ describe('SubjectService', () => {
             name: 'Chemistry',
             created_at: subjects[0].createdAt,
             updated_at: subjects[0].updatedAt,
+            classes: undefined,
           },
           {
             id: 'subject-2',
             name: 'Biology',
             created_at: subjects[1].createdAt,
             updated_at: subjects[1].updatedAt,
+            classes: undefined,
           },
         ],
         pagination: paginationMeta,
@@ -260,12 +266,13 @@ describe('SubjectService', () => {
   });
 
   describe('findOne', () => {
-    it('should return a subject successfully when found', async () => {
+    it('should return a subject successfully when found without classes', async () => {
       const subject = {
         id: 'subject-1',
         name: 'Chemistry',
         createdAt: new Date('2024-01-03T00:00:00Z'),
         updatedAt: new Date('2024-01-04T00:00:00Z'),
+        classSubjects: [],
       };
 
       subjectModelActionMock.get.mockResolvedValue(subject);
@@ -279,11 +286,112 @@ describe('SubjectService', () => {
           name: subject.name,
           created_at: subject.createdAt,
           updated_at: subject.updatedAt,
+          classes: undefined,
         },
       });
 
       expect(subjectModelActionMock.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'subject-1' },
+        relations: {
+          classSubjects: {
+            class: {
+              academicSession: true,
+            },
+            teacher: true,
+          },
+        },
+      });
+    });
+
+    it('should return a subject with assigned classes when found', async () => {
+      const academicSession = {
+        id: 'session-1',
+        name: '2024/2025 Academic Year',
+      };
+
+      const class1 = {
+        id: 'class-1',
+        name: 'Grade 10',
+        arm: 'A',
+        stream: 'Science',
+        academicSession,
+      };
+
+      const class2 = {
+        id: 'class-2',
+        name: 'Grade 10',
+        arm: 'B',
+        stream: undefined,
+        academicSession,
+      };
+
+      const classSubjects = [
+        {
+          class: class1,
+          teacher_assignment_date: new Date('2024-01-20T08:00:00Z'),
+        },
+        {
+          class: class2,
+          teacher_assignment_date: null,
+        },
+      ];
+
+      const subject = {
+        id: 'subject-1',
+        name: 'Chemistry',
+        createdAt: new Date('2024-01-03T00:00:00Z'),
+        updatedAt: new Date('2024-01-04T00:00:00Z'),
+        classSubjects,
+      };
+
+      subjectModelActionMock.get.mockResolvedValue(subject);
+
+      const result = await service.findOne('subject-1');
+
+      expect(result).toEqual({
+        message: sysMsg.SUBJECT_RETRIEVED,
+        data: {
+          id: subject.id,
+          name: subject.name,
+          created_at: subject.createdAt,
+          updated_at: subject.updatedAt,
+          classes: [
+            {
+              id: 'class-1',
+              name: 'Grade 10',
+              arm: 'A',
+              stream: 'Science',
+              academicSession: {
+                id: 'session-1',
+                name: '2024/2025 Academic Year',
+              },
+              teacher_assignment_date: new Date('2024-01-20T08:00:00Z'),
+            },
+            {
+              id: 'class-2',
+              name: 'Grade 10',
+              arm: 'B',
+              stream: undefined,
+              academicSession: {
+                id: 'session-1',
+                name: '2024/2025 Academic Year',
+              },
+              teacher_assignment_date: null,
+            },
+          ],
+        },
+      });
+
+      expect(subjectModelActionMock.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'subject-1' },
+        relations: {
+          classSubjects: {
+            class: {
+              academicSession: true,
+            },
+            teacher: true,
+          },
+        },
       });
     });
 
@@ -297,6 +405,14 @@ describe('SubjectService', () => {
 
       expect(subjectModelActionMock.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'non-existent-id' },
+        relations: {
+          classSubjects: {
+            class: {
+              academicSession: true,
+            },
+            teacher: true,
+          },
+        },
       });
     });
   });
@@ -312,12 +428,14 @@ describe('SubjectService', () => {
         name: 'Chemistry',
         createdAt: new Date('2024-01-03T00:00:00Z'),
         updatedAt: new Date('2024-01-04T00:00:00Z'),
+        classSubjects: [],
       };
 
       const updatedSubject = {
         ...existingSubject,
         name: updateDto.name,
         updatedAt: new Date('2024-01-05T00:00:00Z'),
+        classSubjects: [],
       };
 
       subjectModelActionMock.get
@@ -334,6 +452,7 @@ describe('SubjectService', () => {
           name: updatedSubject.name,
           created_at: updatedSubject.createdAt,
           updated_at: updatedSubject.updatedAt,
+          classes: undefined,
         },
       });
 
