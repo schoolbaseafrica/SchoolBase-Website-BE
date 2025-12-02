@@ -10,6 +10,7 @@ import {
   IsBoolean,
   IsOptional,
   Matches,
+  IsPhoneNumber,
 } from 'class-validator';
 
 import { TeacherTitle } from '../enums/teacher.enum';
@@ -114,6 +115,7 @@ export class CreateTeacherDto {
     example: '+234 810 942 3124',
   })
   @IsString()
+  @IsPhoneNumber()
   @IsNotEmpty()
   phone: string;
 
