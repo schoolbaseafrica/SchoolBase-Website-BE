@@ -108,6 +108,14 @@ export class SubjectService {
   async findOne(id: string): Promise<IBaseResponse<SubjectResponseDto>> {
     const subject = await this.subjectModelAction.get({
       identifierOptions: { id },
+      relations: {
+        classSubjects: {
+          class: {
+            academicSession: true,
+          },
+          teacher: true,
+        },
+      },
     });
 
     if (!subject) {
@@ -318,11 +326,27 @@ export class SubjectService {
   }
 
   private mapToResponseDto(subject: Subject): SubjectResponseDto {
+    const classes =
+      subject.classSubjects?.map((classSubject) => ({
+        id: classSubject.class.id,
+        name: classSubject.class.name,
+        arm: classSubject.class.arm,
+        stream: classSubject.class.stream,
+        academicSession: classSubject.class.academicSession
+          ? {
+              id: classSubject.class.academicSession.id,
+              name: classSubject.class.academicSession.name,
+            }
+          : undefined,
+        teacher_assignment_date: classSubject.teacher_assignment_date,
+      })) || [];
+
     return {
       id: subject.id,
       name: subject.name,
       created_at: subject.createdAt,
       updated_at: subject.updatedAt,
+      classes: classes.length > 0 ? classes : undefined,
     };
   }
 }
