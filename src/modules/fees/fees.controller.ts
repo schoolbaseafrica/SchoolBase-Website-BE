@@ -22,6 +22,7 @@ import {
   swaggerGetAllFees,
   swaggerDeactivateFee,
   swaggerUpdateFee,
+  swaggerActivateFee,
 } from './docs/fees.swagger';
 import { DeactivateFeeDto } from './dto/deactivate-fee.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
@@ -96,6 +97,20 @@ export class FeesController {
     return {
       message: sysMsg.FEE_RETRIEVED_SUCCESSFULLY,
       ...result,
+    };
+  }
+
+  @Patch(':id/activate')
+  @Roles(UserRole.ADMIN)
+  @swaggerActivateFee()
+  async activateFee(
+    @Param('id') id: string,
+    @Request() req: { user: { userId: string } },
+  ) {
+    const fee = await this.feesService.activate(id, req.user.userId);
+    return {
+      message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
+      data: fee,
     };
   }
 }
