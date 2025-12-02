@@ -12,10 +12,7 @@ import {
 } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
-import {
-  AssignClassesToSubjectDto,
-  UnassignClassesToSubjectDto,
-} from '../dto/assign-classes-to-subject.dto';
+import { AssignClassesToSubjectDto, UnassignClassesToSubjectDto } from '../dto';
 import { CreateSubjectDto } from '../dto/create-subject.dto';
 import { SubjectResponseDto } from '../dto/subject-response.dto';
 import { UpdateSubjectDto } from '../dto/update-subject.dto';

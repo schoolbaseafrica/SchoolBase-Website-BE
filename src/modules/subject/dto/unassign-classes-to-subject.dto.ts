@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsUUID, ArrayNotEmpty, ArrayUnique } from 'class-validator';
 
-export class AssignClassesToSubjectDto {
+export class UnassignClassesToSubjectDto {
   @ApiProperty({
     type: [String],
-    description: 'Array of class IDs to assign the subject to',
+    description: 'Array of class IDs to unassign the subject from',
   })
   @IsArray()
   @ArrayNotEmpty({ message: 'classIds array must not be empty' })
