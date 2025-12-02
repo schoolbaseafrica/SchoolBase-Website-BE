@@ -93,6 +93,7 @@ describe('FeesController', () => {
             findAll: jest.fn(),
             update: jest.fn(),
             deactivate: jest.fn(),
+            activate: jest.fn(),
           },
         },
       ],
@@ -604,6 +605,47 @@ describe('FeesController', () => {
     it('should have correct route path', () => {
       const path = Reflect.getMetadata('path', FeesController);
       expect(path).toBe('fees');
+    });
+  });
+
+  describe('activateFee', () => {
+    it('should activate a fee successfully', async () => {
+      const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
+      service.activate.mockResolvedValue(activeFee);
+
+      const result = await controller.activateFee('fee-123', mockUser);
+
+      expect(service.activate).toHaveBeenCalledWith(
+        'fee-123',
+        mockUser.user.userId,
+      );
+      expect(result).toEqual({
+        message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
+        fee: activeFee,
+      });
+    });
+
+    it('should handle fee not found', async () => {
+      const notFoundError = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.activate.mockRejectedValue(notFoundError);
+
+      await expect(
+        controller.activateFee('invalid-id', mockUser),
+      ).rejects.toThrow(notFoundError);
+    });
+
+    it('should pass correct userId to service', async () => {
+      const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
+      service.activate.mockResolvedValue(activeFee);
+
+      await controller.activateFee('fee-123', mockUser);
+
+      expect(service.activate).toHaveBeenCalledWith('fee-123', 'user-123');
+    });
+
+    it('should require ADMIN role for activateFee', () => {
+      const roles = Reflect.getMetadata('roles', controller.activateFee);
+      expect(roles).toContain(UserRole.ADMIN);
     });
   });
 });
