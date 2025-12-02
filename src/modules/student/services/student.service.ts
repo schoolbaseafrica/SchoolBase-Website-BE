@@ -449,12 +449,45 @@ export class StudentService {
       classCount: report.length,
     });
 
+    // --- 4. AGGREGATE class arms like JSS1A, JSS1B into JSS1 ---
+    const aggregatedReport = Object.values(
+      report.reduce(
+        (acc, curr) => {
+          const baseName = curr.class_name.replace(/\s?[A-Z]$/, ''); // removes trailing section letter
+
+          if (!acc[baseName]) {
+            acc[baseName] = {
+              class_name: baseName,
+              new_students: 0,
+              boys: 0,
+              girls: 0,
+            };
+          }
+
+          acc[baseName].new_students += curr.new_students;
+          acc[baseName].boys += curr.boys;
+          acc[baseName].girls += curr.girls;
+
+          return acc;
+        },
+        {} as Record<
+          string,
+          {
+            class_name: string;
+            new_students: number;
+            boys: number;
+            girls: number;
+          }
+        >,
+      ),
+    );
+
     return {
       message: sysMsg.OPERATION_SUCCESSFUL,
       status_code: HttpStatus.OK,
       data: {
         academic_year: academicYear,
-        report,
+        report: aggregatedReport,
       },
     };
   }

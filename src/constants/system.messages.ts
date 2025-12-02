@@ -220,6 +220,8 @@ export const SUBJECT_DELETED = 'Subject deleted successfully';
 export const SUBJECT_REQUIRED_FOR_LESSON = 'Subject is required for lessons';
 export const CLASSES_ASSIGNED_TO_SUBJECT =
   'Classes successfully assigned to subject';
+export const CLASSES_UNASSIGNED_TO_SUBJECT =
+  'Classes successfully unassigned to subject';
 
 // School Installation messages
 export const INSTALLATION_COMPLETED =

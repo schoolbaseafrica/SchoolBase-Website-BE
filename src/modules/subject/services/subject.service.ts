@@ -108,6 +108,14 @@ export class SubjectService {
   async findOne(id: string): Promise<IBaseResponse<SubjectResponseDto>> {
     const subject = await this.subjectModelAction.get({
       identifierOptions: { id },
+      relations: {
+        classSubjects: {
+          class: {
+            academicSession: true,
+          },
+          teacher: true,
+        },
+      },
     });
 
     if (!subject) {
@@ -272,12 +280,73 @@ export class SubjectService {
     });
   }
 
+  // UNASSIGN CLASSES TO SUBJECT
+  async unassignClassesToSubject(
+    subjectId: string,
+    dto: AssignClassesToSubjectDto,
+  ) {
+    return this.dataSource.transaction(async (manager) => {
+      // Check if subject exists
+      const subject = await manager.findOne(Subject, {
+        where: { id: subjectId },
+      });
+      if (!subject) throw new NotFoundException(sysMsg.SUBJECT_NOT_FOUND);
+
+      // Get active session
+      const activeSession = await this.getActiveSession();
+
+      // Fetch all classes
+      const classes = await manager.find(Class, {
+        where: { id: In(dto.classIds) },
+        relations: ['academicSession'],
+      });
+
+      if (classes.length !== dto.classIds.length)
+        throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+
+      // Check if all classes are in the active session
+      const invalidClasses = classes.filter(
+        (cls) => cls.academicSession.id !== activeSession.id,
+      );
+      if (invalidClasses.length > 0) {
+        throw new ConflictException(sysMsg.CLASSES_NOT_IN_ACTIVE_SESSION);
+      }
+
+      // Remove links
+      await manager.delete(ClassSubject, {
+        subject: { id: subjectId },
+        class: { id: In(dto.classIds) },
+      });
+
+      return {
+        message: sysMsg.CLASSES_UNASSIGNED_TO_SUBJECT,
+        data: null,
+      };
+    });
+  }
+
   private mapToResponseDto(subject: Subject): SubjectResponseDto {
+    const classes =
+      subject.classSubjects?.map((classSubject) => ({
+        id: classSubject.class.id,
+        name: classSubject.class.name,
+        arm: classSubject.class.arm,
+        stream: classSubject.class.stream,
+        academicSession: classSubject.class.academicSession
+          ? {
+              id: classSubject.class.academicSession.id,
+              name: classSubject.class.academicSession.name,
+            }
+          : undefined,
+        teacher_assignment_date: classSubject.teacher_assignment_date,
+      })) || [];
+
     return {
       id: subject.id,
       name: subject.name,
       created_at: subject.createdAt,
       updated_at: subject.updatedAt,
+      classes: classes.length > 0 ? classes : undefined,
     };
   }
 }
