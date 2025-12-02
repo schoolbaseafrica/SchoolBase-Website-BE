@@ -120,3 +120,15 @@ export const DocsGetClassStudents = () => {
     ApiNotFoundResponse(responses.notFound),
   );
 };
+
+export const DocsGetTeacherClasses = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.getTeacherClasses;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiQuery(parameters.sessionId),
+    ApiOkResponse(responses.ok),
+    ApiResponse(responses.badRequest),
+  );
+};

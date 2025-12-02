@@ -26,7 +26,6 @@ import { UserRole } from '../shared/enums';
 import { TermResponseDto } from './dto/academic-term-response.dto';
 import { UpdateTermDto } from './dto/update-term.dto';
 import { TermService } from './term.service';
-
 @ApiTags('Academic Term')
 @Controller('academic-term')
 export class TermController {
@@ -34,7 +33,7 @@ export class TermController {
 
   @Get('session/:sessionId')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all terms for a specific academic session' })
@@ -56,7 +55,6 @@ export class TermController {
       data: terms,
     };
   }
-
   @Get('active')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
@@ -84,10 +82,9 @@ export class TermController {
       data: activeTerm,
     };
   }
-
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a term by ID' })

@@ -123,6 +123,16 @@ export class ListGroupedClassesDto {
   @Min(1)
   @Type(() => Number)
   limit?: number = 20;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter classes by teacher ID. Only returns classes assigned to this teacher.',
+    example: 'teacher-uuid-1',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  teacherId?: string;
 }
 
 export class GetTotalClassesQueryDto {

@@ -30,7 +30,8 @@ export class ClassSubjectController {
   constructor(private readonly classStudentService: ClassSubjectService) {}
 
   // --- GET: LIST CLASS SUBJECTS ---
-  @Get()
+  @Get('')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @DocsListClassSubjects()
   async list(@Param('classId', ParseUUIDPipe) classId: string) {
     return this.classStudentService.list(classId);

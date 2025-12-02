@@ -59,6 +59,7 @@ export class SubjectController {
   }
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiFindAllSubjects()
   findAll(@Query() query: ListSubjectsDto) {
@@ -74,6 +75,7 @@ export class SubjectController {
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiFindOneSubject()
   findOne(@Param('id') id: string) {

@@ -376,5 +376,33 @@ export const ClassSwagger = {
         },
       },
     },
+    getTeacherClasses: {
+      operation: {
+        summary: 'Get classes assigned to the authenticated teacher',
+        description:
+          'Returns a list of classes assigned to the currently authenticated teacher. Filters by active session by default, but can be filtered by a specific sessionId via query parameter.',
+      },
+      parameters: {
+        sessionId: {
+          name: 'session_id',
+          in: 'query',
+          required: false,
+          description:
+            'Academic session ID to filter by (optional, defaults to active session)',
+          schema: { type: 'string' },
+        },
+      },
+      responses: {
+        ok: {
+          description: 'List of classes assigned to the teacher',
+          type: ClassResponseDto,
+          isArray: true,
+        },
+        badRequest: {
+          status: HttpStatus.BAD_REQUEST,
+          description: 'Teacher profile not found for the authenticated user',
+        },
+      },
+    },
   },
 };
