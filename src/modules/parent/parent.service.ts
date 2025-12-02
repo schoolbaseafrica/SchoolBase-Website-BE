@@ -60,6 +60,8 @@ export class ParentService {
     const rawPassword = createDto.password || generateStrongPassword(12);
     const hashedPassword = await hashPassword(rawPassword);
 
+    const middleNameForDb =
+      createDto.middle_name === '' ? null : createDto.middle_name;
     // 3. Validate Photo URL if provided
     let photo_url: string | undefined = undefined;
     if (createDto.photo_url) {
@@ -72,7 +74,7 @@ export class ParentService {
         createPayload: {
           first_name: createDto.first_name,
           last_name: createDto.last_name,
-          middle_name: createDto.middle_name,
+          middle_name: middleNameForDb,
           email: createDto.email,
           phone: createDto.phone,
           gender: createDto.gender,
