@@ -7,7 +7,6 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiParam,
-  ApiQuery,
   ApiResponse,
 } from '@nestjs/swagger';
 
@@ -16,9 +15,9 @@ import {
   CreateGradeSubmissionDto,
   GradeResponseDto,
   GradeSubmissionResponseDto,
+  ListGradeSubmissionsResponseDto,
   UpdateGradeDto,
 } from '../dto';
-import { GradeSubmissionStatus } from '../entities/grade-submission.entity';
 export const GradeSwagger = {
   tags: ['Grades'],
 };
@@ -48,52 +47,18 @@ export function createGradeSubmissionDocs() {
   );
 }
 
-export function listTeacherSubmissionsDocs() {
+export function listGradeSubmissionsDocs() {
   return applyDecorators(
     ApiBearerAuth(),
     ApiOperation({
-      summary: 'List teacher submissions',
-      description: 'Get all grade submissions for the authenticated teacher',
-    }),
-    ApiQuery({
-      name: 'page',
-      required: false,
-      type: Number,
-      description: 'Page number',
-    }),
-    ApiQuery({
-      name: 'limit',
-      required: false,
-      type: Number,
-      description: 'Items per page',
-    }),
-    ApiQuery({
-      name: 'class_id',
-      required: false,
-      type: String,
-      description: 'Filter by class ID',
-    }),
-    ApiQuery({
-      name: 'subject_id',
-      required: false,
-      type: String,
-      description: 'Filter by subject ID',
-    }),
-    ApiQuery({
-      name: 'term_id',
-      required: false,
-      type: String,
-      description: 'Filter by term ID',
-    }),
-    ApiQuery({
-      name: 'status',
-      required: false,
-      enum: GradeSubmissionStatus,
-      description: 'Filter by status',
+      summary: 'List grade submissions (ADMIN/TEACHER)',
+      description:
+        'Get all grade submissions, Only gets submissions for authenticated teacher if authenticated user is a teacher',
     }),
     ApiResponse({
       status: 200,
       description: 'List of grade submissions',
+      type: ListGradeSubmissionsResponseDto,
     }),
   );
 }
@@ -181,47 +146,6 @@ export function updateGradeDocs() {
     ApiResponse({
       status: 404,
       description: 'Grade not found',
-    }),
-  );
-}
-
-export function getStudentsForClassDocs() {
-  return applyDecorators(
-    ApiBearerAuth(),
-    ApiOperation({
-      summary: 'Get students for grade entry',
-      description:
-        'Get list of students in a class for grade entry. Teacher must be assigned to the subject.',
-    }),
-    ApiParam({
-      name: 'classId',
-      type: String,
-      description: 'Class ID',
-    }),
-    ApiQuery({
-      name: 'subject_id',
-      required: true,
-      type: String,
-      description: 'Subject ID',
-    }),
-    ApiResponse({
-      status: 200,
-      description: 'List of students',
-      schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            name: { type: 'string' },
-            registration_number: { type: 'string' },
-          },
-        },
-      },
-    }),
-    ApiResponse({
-      status: 403,
-      description: 'Forbidden - teacher not assigned to this subject/class',
     }),
   );
 }

@@ -355,6 +355,8 @@ export const GRADE_SUBMISSION_UPDATED = 'Grade submission updated successfully';
 export const GRADE_SUBMISSION_NOT_FOUND = 'Grade submission not found';
 export const GRADE_SUBMISSION_EXISTS =
   'A grade submission already exists for this class, subject, and term';
+export const GRADE_SUBMISSIONS_FETCHED =
+  'Grade submissions fetched successfully';
 export const GRADE_CREATED = 'Grade created successfully';
 export const GRADE_UPDATED = 'Grade updated successfully';
 export const GRADE_SUBMITTED = 'Grades submitted for approval successfully';
