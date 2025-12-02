@@ -315,6 +315,8 @@ export const TERM_SEQUENTIAL_INVALID =
 export const TERM_ID_INVALID = 'Invalid term ID.';
 // Dashboard messages
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
+export const TODAYS_CLASSES_FETCHED = "Today's classes retrieved successfully";
+export const NO_CLASSES_TODAY = 'No classes scheduled for today';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
