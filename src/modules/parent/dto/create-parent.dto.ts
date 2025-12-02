@@ -41,7 +41,7 @@ export class CreateParentDto {
     maxLength: 50,
   })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(50)
   middle_name: string;
 
