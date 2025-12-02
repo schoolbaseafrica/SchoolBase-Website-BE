@@ -12,6 +12,7 @@ import configuration from './config/config';
 import { LoggingInterceptor } from './middleware/logging.interceptor';
 import { AcademicSessionModule } from './modules/academic-session/academic-session.module';
 import { TermModule } from './modules/academic-term/term.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ClassModule } from './modules/class/class.module';
 import { ContactModule } from './modules/contact/contact.module';
@@ -71,6 +72,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     ClassModule,
     InviteModule,
     AcademicSessionModule,
+    AttendanceModule,
     SubjectModule,
     UploadModule,
     TermModule,
