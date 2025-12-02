@@ -110,7 +110,7 @@ export class FeesController {
     const fee = await this.feesService.activate(id, req.user.userId);
     return {
       message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
-      data: fee,
+      fee,
     };
   }
 }
