@@ -23,7 +23,7 @@ import {
   approveSubmissionDocs,
   createGradeSubmissionDocs,
   getSubmissionDocs,
-  listTeacherSubmissionsDocs,
+  listGradeSubmissionsDocs,
   rejectSubmissionDocs,
   submitForApprovalDocs,
 } from '../docs/grade.swagger';
@@ -65,17 +65,21 @@ export class GradeSubmissionController {
   }
 
   @Get()
-  @listTeacherSubmissionsDocs()
+  @listGradeSubmissionsDocs()
   @Roles(UserRole.TEACHER, UserRole.ADMIN)
-  async listTeacherSubmissions(
+  async listGradeSubmissions(
     @Req() req: IRequestWithUser,
     @Query() listDto: ListGradeSubmissionsDto,
   ) {
-    const teacherId = req.user.teacher_id;
-    if (!teacherId) {
-      throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+    if (req.user.roles.includes(UserRole.TEACHER)) {
+      const teacherId = req.user.teacher_id;
+      if (!teacherId) {
+        throw new BadRequestException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
+      }
+      listDto.teacher_id = teacherId;
     }
-    return this.service.listTeacherSubmissions(teacherId, listDto);
+
+    return this.service.listGradeSubmissions(listDto);
   }
 
   @Get(':id')

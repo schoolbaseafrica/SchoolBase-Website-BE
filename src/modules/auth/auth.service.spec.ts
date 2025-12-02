@@ -131,8 +131,8 @@ describe('AuthService', () => {
       const result = await service.logout(logoutDto);
 
       expect(sessionService.revokeSession).toHaveBeenCalledWith(
-        logoutDto.user_id,
         logoutDto.session_id,
+        logoutDto.user_id,
       );
       expect(mockLogger.info).toHaveBeenCalledWith(sysMSG.LOGOUT_SUCCESS);
       expect(result).toEqual({
@@ -204,8 +204,8 @@ describe('AuthService', () => {
       await service.logout(logoutDto);
 
       expect(sessionService.revokeSession).toHaveBeenCalledWith(
-        'different-user-id',
         'different-session-id',
+        'different-user-id',
       );
       expect(sessionService.revokeSession).toHaveBeenCalledTimes(1);
     });
@@ -236,8 +236,8 @@ describe('AuthService', () => {
         'Session revocation failed',
       );
       expect(sessionService.revokeSession).toHaveBeenCalledWith(
-        logoutDto.user_id,
         logoutDto.session_id,
+        logoutDto.user_id,
       );
     });
   });

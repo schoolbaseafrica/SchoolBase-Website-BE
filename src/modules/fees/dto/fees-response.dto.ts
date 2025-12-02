@@ -122,3 +122,11 @@ export class DeactivateFeeResponseDto {
   @ApiProperty({ type: FeesResponseDto })
   data: FeesResponseDto;
 }
+
+export class ActivateFeeResponseDto {
+  @ApiProperty({ example: 'Fee component activated successfully' })
+  message: string;
+
+  @ApiProperty({ type: FeesResponseDto })
+  data: FeesResponseDto;
+}

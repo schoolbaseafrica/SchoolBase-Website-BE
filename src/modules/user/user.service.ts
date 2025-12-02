@@ -48,7 +48,7 @@ export class UserService {
     return this.userModelAction.update({
       updatePayload: payload,
       identifierOptions,
-      transactionOptions: options,
+      transactionOptions: options ?? { useTransaction: false },
     });
   }
 
@@ -68,14 +68,6 @@ export class UserService {
     return this.userModelAction.get({
       identifierOptions: { id },
     });
-  }
-
-  findAll() {
-    return `This action returns all user`;
-  }
-
-  update(id: number) {
-    return `This action updates a #${id} user`;
   }
 
   async remove(id: string) {

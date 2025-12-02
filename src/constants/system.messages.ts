@@ -31,6 +31,8 @@ export const ACCOUNT_NOT_FOUND = 'account not found';
 export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
+export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
+export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -353,6 +355,8 @@ export const GRADE_SUBMISSION_UPDATED = 'Grade submission updated successfully';
 export const GRADE_SUBMISSION_NOT_FOUND = 'Grade submission not found';
 export const GRADE_SUBMISSION_EXISTS =
   'A grade submission already exists for this class, subject, and term';
+export const GRADE_SUBMISSIONS_FETCHED =
+  'Grade submissions fetched successfully';
 export const GRADE_CREATED = 'Grade created successfully';
 export const GRADE_UPDATED = 'Grade updated successfully';
 export const GRADE_SUBMITTED = 'Grades submitted for approval successfully';

@@ -51,6 +51,68 @@ describe('UserService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('findOne', () => {
+    it('should return a user when found', async () => {
+      const fakeUser = {
+        id: '123',
+        email: 'test@example.com',
+      } as unknown as User;
+
+      userModelAction.get.mockResolvedValue(fakeUser);
+
+      const result = await service.findOne('123');
+
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: '123' },
+      });
+
+      expect(result).toEqual(fakeUser);
+    });
+
+    it('should return null when user is not found', async () => {
+      userModelAction.get.mockResolvedValue(null);
+
+      const result = await service.findOne('invalid-id');
+
+      expect(userModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: 'invalid-id' },
+      });
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('update', () => {
+    it('should call userModelAction.update with default transactionOptions', async () => {
+      type UpdateArgs = Parameters<typeof userModelAction.update>[0];
+
+      const payload: UpdateArgs['updatePayload'] = {
+        email: 'updated@example.com',
+      };
+
+      const identifierOptions: UpdateArgs['identifierOptions'] = {
+        id: '123',
+      };
+
+      const updatedUser = {
+        id: '123',
+        email: 'updated@example.com',
+      } as unknown as User;
+
+      userModelAction.update.mockResolvedValue(updatedUser);
+
+      const result = await service.updateUser(payload, identifierOptions);
+
+      expect(userModelAction.update).toHaveBeenCalledWith({
+        updatePayload: payload,
+        identifierOptions,
+        transactionOptions: { useTransaction: false },
+      });
+
+      expect(result).toEqual(updatedUser);
+    });
+  });
+
   describe('remove', () => {
     it('should remove a user and return a success response', async () => {
       const fakeUser = {

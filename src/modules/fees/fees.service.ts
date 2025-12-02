@@ -113,14 +113,9 @@ export class FeesService {
       .leftJoinAndSelect('fee.classes', 'classes')
       .orderBy('fee.createdAt', 'DESC');
 
-    // Filter by status - default to ACTIVE if not specified
+    // Only filter by status if explicitly provided
     if (status) {
       queryBuilder.andWhere('fee.status = :status', { status });
-    } else {
-      // Default to ACTIVE if no status is specified
-      queryBuilder.andWhere('fee.status = :status', {
-        status: FeeStatus.ACTIVE,
-      });
     }
 
     // Filter by term_id
@@ -296,6 +291,44 @@ export class FeesService {
       reason,
       previous_status: fee.status,
       new_status: FeeStatus.INACTIVE,
+    });
+
+    return updatedFee;
+  }
+
+  async activate(id: string, activatedBy: string): Promise<Fees> {
+    const fee = await this.feesModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    if (fee.status === FeeStatus.ACTIVE) {
+      this.logger.info('Fee component is already active', {
+        fee_id: id,
+        activated_by: activatedBy,
+      });
+      return fee;
+    }
+
+    const updatedFee = await this.feesModelAction.update({
+      identifierOptions: { id },
+      updatePayload: {
+        status: FeeStatus.ACTIVE,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info('Fee component activated successfully', {
+      fee_id: id,
+      component_name: fee.component_name,
+      activated_by: activatedBy,
+      previous_status: fee.status,
+      new_status: FeeStatus.ACTIVE,
     });
 
     return updatedFee;

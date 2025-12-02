@@ -385,8 +385,8 @@ export class AuthService {
   async logout(logoutPayload: LogoutDto) {
     if (this.sessionService) {
       await this.sessionService.revokeSession(
-        logoutPayload.user_id,
         logoutPayload.session_id,
+        logoutPayload.user_id,
       );
     }
 

@@ -15,6 +15,7 @@ import {
   FeesListResponseDto,
   FeesResponseDto,
   DeactivateFeeResponseDto,
+  ActivateFeeResponseDto,
 } from '../dto/fees-response.dto';
 import { CreateFeesDto, UpdateFeesDto } from '../dto/fees.dto';
 
@@ -54,7 +55,7 @@ export function swaggerGetAllFees() {
     ApiOperation({
       summary: 'Get all fee components',
       description:
-        'Retrieve all fee components with optional filtering by status, class, term, or search term. By default, returns only ACTIVE fees. Use status query parameter to include INACTIVE fees.',
+        'Retrieve all fee components with optional filtering by status, class, term, or search term. Returns all fees regardless of status by default. Use status query parameter to include INACTIVE fees.',
     }),
     ApiBearerAuth(),
     ApiQuery({ name: 'status', required: false, enum: ['ACTIVE', 'INACTIVE'] }),
@@ -159,6 +160,44 @@ export function swaggerDeactivateFee() {
     ApiResponse({
       status: 400,
       description: 'Bad request - Fee component is already inactive',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Not found - Fee component not found',
+    }),
+  );
+}
+
+export function swaggerActivateFee() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Activate a fee component',
+      description:
+        'Activate a previously deactivated fee component to make it available for billing operations. Only admins can perform this action.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'id',
+      description: 'The ID of the fee component to activate',
+      example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Fee component activated successfully',
+      type: ActivateFeeResponseDto,
+    }),
+    ApiResponse({
+      status: 400,
+      description: 'Bad request - Fee component is already active',
     }),
     ApiResponse({
       status: 401,

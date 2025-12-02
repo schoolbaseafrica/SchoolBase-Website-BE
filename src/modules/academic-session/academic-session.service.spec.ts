@@ -195,12 +195,22 @@ describe('AcademicSessionService', () => {
     });
 
     it('should throw BadRequestException for invalid term date ranges', async () => {
+      const nextYear = futureDate.getFullYear() + 2;
       const invalidDto: CreateAcademicSessionDto = {
         description: 'Invalid session',
         terms: {
-          first_term: { startDate: '2025-12-01', endDate: '2025-11-01' },
-          second_term: { startDate: '2026-01-01', endDate: '2026-12-31' },
-          third_term: { startDate: '2027-01-01', endDate: '2027-12-31' },
+          first_term: {
+            startDate: `${nextYear}-12-01`,
+            endDate: `${nextYear}-11-01`,
+          },
+          second_term: {
+            startDate: `${nextYear + 1}-01-01`,
+            endDate: `${nextYear + 1}-12-31`,
+          },
+          third_term: {
+            startDate: `${nextYear + 2}-01-01`,
+            endDate: `${nextYear + 2}-12-31`,
+          },
         },
       };
 
