@@ -1,4 +1,5 @@
 import * as sysMsg from '../../../constants/system.messages';
+import { BulkCreateClassSubjectResponseDto } from '../dto';
 /**
  * Swagger documentation for Class Subject endpoints.
  *
@@ -11,17 +12,30 @@ export const ClassSubjectSwagger = {
   description:
     'Endpoints for creating, retrieving, updating, and deleting class subjects.',
   endpoints: {
+    create: {
+      operation: {
+        summary: 'Create Class Subjects (Admin)',
+        description:
+          'Creates multiple class subjects by assigning subjects to a specific class ID.',
+      },
+      responses: {
+        created: {
+          description: sysMsg.CLASS_SUBJECTS_CREATED(1),
+          type: BulkCreateClassSubjectResponseDto,
+        },
+        notFound: {
+          description: sysMsg.CLASS_NOT_FOUND,
+        },
+        badRequest: {
+          description: sysMsg.BAD_REQUEST,
+        },
+      },
+    },
     list: {
       operation: {
         summary: 'Get subjects assigned to a class',
         description:
           'Returns a list of subjects assigned to a specific class ID.',
-      },
-      parameters: {
-        classId: {
-          name: 'classId',
-          description: 'The Class ID',
-        },
       },
       responses: {
         ok: {
@@ -86,7 +100,6 @@ export const ClassSubjectSwagger = {
                             },
                           },
                         },
-
                         teacher: {
                           type: 'object',
                           nullable: true,
@@ -128,14 +141,45 @@ export const ClassSubjectSwagger = {
                             },
                           },
                         },
+                        class: {
+                          type: 'object',
+                          properties: {
+                            id: {
+                              type: 'string',
+                              example: 'b499d214-6cc7-447d-b4de-6259f34f955d',
+                            },
+                            createdAt: {
+                              type: 'string',
+                              format: 'date-time',
+                              example: '2025-11-28T19:54:40.551Z',
+                            },
+                            updatedAt: {
+                              type: 'string',
+                              format: 'date-time',
+                              example: '2025-11-28T19:54:40.551Z',
+                            },
+                            name: {
+                              type: 'string',
+                              example: 'JSS1',
+                            },
+                            arm: {
+                              type: 'string',
+                              example: 'B',
+                            },
+                          },
+                        },
                       },
                     },
                   },
-
                   paginationMeta: {
                     type: 'object',
                     properties: {
                       total: { type: 'integer', example: 2 },
+                      limit: { type: 'integer', example: 10 },
+                      page: { type: 'integer', example: 1 },
+                      totalPages: { type: 'integer', example: 1 },
+                      hasNext: { type: 'boolean', example: false },
+                      hasPrevious: { type: 'boolean', example: false },
                     },
                   },
                 },
@@ -154,13 +198,9 @@ export const ClassSubjectSwagger = {
         description: 'Assigns a teacher to a subject in a class.',
       },
       parameters: {
-        classId: {
-          name: 'classId',
-          description: 'The Class ID',
-        },
-        subjectId: {
-          name: 'subjectId',
-          description: 'The Subject ID',
+        id: {
+          name: 'id',
+          description: 'The Class Subject ID',
         },
       },
       responses: {
@@ -181,17 +221,13 @@ export const ClassSubjectSwagger = {
         description: 'Unassign a teacher from a subject in a class.',
       },
       parameters: {
-        classId: {
-          name: 'classId',
-          description: 'The Class ID',
-        },
-        subjectId: {
-          name: 'subjectId',
-          description: 'The Subject ID',
+        id: {
+          name: 'id',
+          description: 'The Class Subject ID',
         },
       },
       responses: {
-        ok: {
+        noContent: {
           description: sysMsg.TEACHER_UNASSIGNED_FROM_SUBJECT,
         },
         notFound: {

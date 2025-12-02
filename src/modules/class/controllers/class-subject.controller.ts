@@ -6,6 +6,10 @@ import {
   Post,
   Body,
   UseGuards,
+  Query,
+  Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
@@ -18,50 +22,60 @@ import {
   DocsListClassSubjects,
   DocsAssignTeacherToSubject,
   DocsUnassignTeacherFromSubject,
+  DocsCreateClassSubjects,
 } from '../docs';
-import { AssignTeacherToClassSubjectRequestDto } from '../dto';
+import {
+  AssignTeacherToClassSubjectRequestDto,
+  BulkCreateClassSubjectRequestDto,
+  ListClassSubjectQueryDto,
+} from '../dto';
 import { ClassSubjectService } from '../services/class-subject.service';
 
 @ApiTags(ClassSubjectSwagger.tags[0])
-@Controller('classes/:classId/subjects')
+@Controller('class-subjects')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ClassSubjectController {
-  constructor(private readonly classStudentService: ClassSubjectService) {}
+  constructor(private readonly service: ClassSubjectService) {}
 
-  // --- GET: LIST CLASS SUBJECTS ---
-  @Get('')
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @DocsListClassSubjects()
-  async list(@Param('classId', ParseUUIDPipe) classId: string) {
-    return this.classStudentService.list(classId);
-  }
-
+  // --- POST: CREATE CLASS SUBJECTS ---
+  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  @Post(':subjectId/assign-teacher')
-  @DocsAssignTeacherToSubject()
-  async assignTeacher(
-    @Param('classId', ParseUUIDPipe) classId: string,
-    @Param('subjectId', ParseUUIDPipe) subjectId: string,
-    @Body() { teacherId }: AssignTeacherToClassSubjectRequestDto,
-  ) {
-    return this.classStudentService.assignTeacher(
-      classId,
-      subjectId,
-      teacherId,
-    );
+  @DocsCreateClassSubjects()
+  @HttpCode(HttpStatus.CREATED)
+  create(@Body() { classId, subjectIds }: BulkCreateClassSubjectRequestDto) {
+    return this.service.create(classId, subjectIds);
   }
 
+  // --- GET: LIST CLASS SUBJECTS ---
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  @DocsListClassSubjects()
+  async list(@Query() query: ListClassSubjectQueryDto) {
+    return this.service.list(query);
+  }
+
+  // --- POST: ASSIGN TEACHER TO CLASS SUBJECT ---
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post(':id/teacher')
+  @DocsAssignTeacherToSubject()
+  async assignTeacher(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() { teacherId }: AssignTeacherToClassSubjectRequestDto,
+  ) {
+    return this.service.assignTeacher(id, teacherId);
+  }
+
+  // --- DELETE: DELETE TEACHER FROM CLASS SUBJECT ---
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @DocsUnassignTeacherFromSubject()
-  @Post(':subjectId/unassign-teacher')
+  @Delete(':id/teacher')
   @DocsAssignTeacherToSubject()
-  async unassignTeacher(
-    @Param('classId', ParseUUIDPipe) classId: string,
-    @Param('subjectId', ParseUUIDPipe) subjectId: string,
-  ) {
-    return this.classStudentService.unassignTeacher(classId, subjectId);
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unassignTeacher(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.unassignTeacher(id);
   }
 }

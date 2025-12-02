@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
 import { StudentModule } from '../student/student.module';
+import { SubjectModule } from '../subject/subject.module';
 import { TeachersModule } from '../teacher/teacher.module';
 
 import { ClassSubjectController } from './controllers/class-subject.controller';
@@ -23,6 +24,7 @@ import { ClassService } from './services/class.service';
     AcademicSessionModule,
     StudentModule,
     TeachersModule,
+    forwardRef(() => SubjectModule),
   ],
   controllers: [ClassController, ClassSubjectController],
   providers: [

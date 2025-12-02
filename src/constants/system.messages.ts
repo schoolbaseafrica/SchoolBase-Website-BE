@@ -244,6 +244,8 @@ export const TOTAL_CLASSES_FETCHED = 'total classes fetched successfully';
 export const INVALID_CLASS_IDS = 'One or more class IDs are invalid';
 export const CLASSES_NOT_IN_ACTIVE_SESSION =
   'One or more classes are not in the active academic session';
+export const CLASS_SUBJECTS_CREATED = (length: number) =>
+  `${length} class subjects created successfully.`;
 export const CLASS_SUBJECT_NOT_FOUND = 'Subject not found in class';
 export const CLASS_SUBJECTS_FETCHED_SUCCESSFUL =
   'Class subjects fetched successfully';
