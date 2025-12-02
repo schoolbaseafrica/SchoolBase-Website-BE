@@ -978,4 +978,74 @@ describe('FeesService', () => {
       expect(feesModelAction.update).not.toHaveBeenCalled();
     });
   });
+
+  describe('activate', () => {
+    const feeId = 'fee-123';
+    const activatedBy = 'admin-user-123';
+
+    it('should activate an inactive fee successfully', async () => {
+      const inactiveFee = { ...mockFee, status: FeeStatus.INACTIVE };
+      const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
+
+      mockFeesModelAction.get.mockResolvedValue(inactiveFee);
+      mockFeesModelAction.update.mockResolvedValue(activeFee);
+
+      const result = await service.activate(feeId, activatedBy);
+
+      expect(feesModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+      });
+
+      expect(feesModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+        updatePayload: { status: FeeStatus.ACTIVE },
+        transactionOptions: {
+          useTransaction: false,
+        },
+      });
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fee component activated successfully',
+        expect.objectContaining({
+          fee_id: feeId,
+          activated_by: activatedBy,
+          previous_status: FeeStatus.INACTIVE,
+          new_status: FeeStatus.ACTIVE,
+        }),
+      );
+      expect(result.status).toBe(FeeStatus.ACTIVE);
+    });
+
+    it('should return idempotent success for already active fee', async () => {
+      const activeFee = { ...mockFee, status: FeeStatus.ACTIVE };
+
+      mockFeesModelAction.get.mockResolvedValue(activeFee);
+
+      const result = await service.activate(feeId, activatedBy);
+
+      expect(feesModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: feeId },
+      });
+      expect(feesModelAction.update).not.toHaveBeenCalled();
+
+      expect(logger.info).toHaveBeenCalledWith(
+        'Fee component is already active',
+        expect.objectContaining({
+          fee_id: feeId,
+          activated_by: activatedBy,
+        }),
+      );
+      expect(result.status).toBe(FeeStatus.ACTIVE);
+    });
+
+    it('should throw NotFoundException when fee does not exist', async () => {
+      mockFeesModelAction.get.mockResolvedValue(null);
+
+      await expect(service.activate(feeId, activatedBy)).rejects.toThrow(
+        new NotFoundException(sysMsg.FEE_NOT_FOUND),
+      );
+
+      expect(feesModelAction.update).not.toHaveBeenCalled();
+    });
+  });
 });
