@@ -38,13 +38,11 @@ export class TeacherDashboardController {
     data: TodaysClassesResponseDto;
   }> {
     const userId = user.id;
-    console.log('Debug: userId from token:', userId);
 
     // Get teacher record from user_id
     const teacher = await this.teacherModelAction.get({
       identifierOptions: { user_id: userId },
     });
-    console.log('Debug: teacher record found:', teacher ? teacher.id : 'null');
 
     if (!teacher) {
       throw new NotFoundException(sysMsg.TEACHER_PROFILE_NOT_FOUND);
