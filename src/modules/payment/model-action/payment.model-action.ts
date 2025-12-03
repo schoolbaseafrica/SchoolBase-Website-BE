@@ -3,15 +3,15 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { FeePayment } from '../entities/payment.entity';
+import { Payment } from '../entities/payment.entity';
 
 @Injectable()
-export class PaymentModelAction extends AbstractModelAction<FeePayment> {
+export class PaymentModelAction extends AbstractModelAction<Payment> {
   constructor(
-    @InjectRepository(FeePayment)
-    feePaymentRepository: Repository<FeePayment>,
+    @InjectRepository(Payment)
+    feePaymentRepository: Repository<Payment>,
   ) {
-    super(feePaymentRepository, FeePayment);
+    super(feePaymentRepository, Payment);
   }
 
   async getTotalPaidByStudent(

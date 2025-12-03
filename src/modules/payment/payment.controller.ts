@@ -8,7 +8,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { plainToInstance } from 'class-transformer';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -17,6 +17,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UserRole } from '../shared/enums';
+import { FileService } from '../shared/file/file.service';
+import { UploadService } from '../upload/upload.service';
 
 import { recordPaymentDoc } from './docs/payment.doc';
 import { PaymentResponseDto, RecordPaymentDto } from './dto/payment.dto';
@@ -25,15 +27,17 @@ import { PaymentService } from './payment.service';
 @ApiTags('Fee Payments')
 @Controller('fee-payments')
 @UseGuards(JwtAuthGuard, RolesGuard)
-export class FeePaymentController {
+export class PaymentController {
   constructor(
     private readonly paymentService: PaymentService,
-    private readonly fileService: File,
+    private readonly fileService: FileService,
+    private readonly uploadService: UploadService,
   ) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
   @recordPaymentDoc()
+  @ApiBearerAuth()
   @UseInterceptors(
     FileInterceptor('receipt_file', {
       limits: { fileSize: 5 * 1024 * 1024 },
@@ -56,9 +60,9 @@ export class FeePaymentController {
     let receipt_url: string | undefined;
 
     if (receiptFile) {
-      // TODO: Implement file upload condition
-      // const uploaded_url = await this.uploadService.upload(receipt_file);
-      // receipt_url = this.fileService.validatePhotoUrl(uploaded_url);
+      const uploadedResult =
+        await this.uploadService.uploadPicture(receiptFile);
+      receipt_url = this.fileService.validatePhotoUrl(uploadedResult.url);
     }
 
     const payment = await this.paymentService.recordPayment(

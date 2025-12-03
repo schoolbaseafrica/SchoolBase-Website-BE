@@ -38,7 +38,6 @@ export function recordPaymentDoc() {
           term_id: { type: 'string', format: 'uuid' },
           session_id: { type: 'string', format: 'uuid' },
           invoice_number: { type: 'string', nullable: true },
-          transaction_id: { type: 'string', nullable: true },
           receipt_file: {
             type: 'string',
             format: 'binary',

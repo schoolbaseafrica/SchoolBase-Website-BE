@@ -3,21 +3,23 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { FeesModule } from '../fees/fees.module';
 import { FileModule } from '../shared/file/file.module';
+import { UploadModule } from '../upload/upload.module';
 
 import { Payment } from './entities/payment.entity';
 import { PaymentModelAction } from './model-action/payment.model-action';
-import { FeePaymentController } from './payment.controller';
+import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
 import { PaymentValidationService } from './services/payment-validation.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Payment]),
-    FeesModule, // Ensure FeesModelAction is exported
-    FileModule, // Ensure FileService is exported
+    FeesModule,
+    FileModule,
+    UploadModule,
   ],
-  controllers: [FeePaymentController],
+  controllers: [PaymentController],
   providers: [PaymentModelAction, PaymentService, PaymentValidationService],
   exports: [PaymentModelAction, PaymentService],
 })
-export class FeePaymentModule {}
+export class PaymentModule {}

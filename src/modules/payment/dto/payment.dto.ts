@@ -21,6 +21,7 @@ export class RecordPaymentDto {
   @IsNotEmpty()
   fee_component_id: string;
 
+  @Type(() => Number)
   @IsNumber()
   @Min(0.01)
   @IsNotEmpty()
@@ -45,6 +46,9 @@ export class RecordPaymentDto {
   @IsString()
   @IsOptional()
   invoice_number?: string;
+
+  @IsOptional()
+  receipt_file?: unknown;
 }
 
 class StudentDto {
