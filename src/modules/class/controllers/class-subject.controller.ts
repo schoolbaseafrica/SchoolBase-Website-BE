@@ -44,7 +44,6 @@ export class ClassSubjectController {
 
   // --- POST: CREATE CLASS SUBJECTS ---
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   @DocsCreateClassSubjects()
   @HttpCode(HttpStatus.CREATED)
@@ -55,6 +54,7 @@ export class ClassSubjectController {
   // --- GET: LIST CLASS SUBJECTS ---
   @Get()
   @DocsListClassSubjects()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async list(
     @Req() req: IRequestWithUser,
     @Query() query: ListClassSubjectQueryDto,
