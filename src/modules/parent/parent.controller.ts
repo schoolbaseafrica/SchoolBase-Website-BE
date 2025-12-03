@@ -13,6 +13,7 @@ import {
   HttpStatus,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -148,6 +149,22 @@ export class ParentController {
   // --- GET: VIEW CHILD'S SUBJECTS AND TEACHERS (PARENT OR ADMIN) ---
   @Get('children/:studentId/subjects')
   @Roles(UserRole.PARENT, UserRole.ADMIN)
+  @ApiOperation({ summary: "View child's subjects and teachers" })
+  @ApiResponse({
+    status: 200,
+    description: 'Subjects retrieved successfully',
+    type: StudentSubjectResponseDto,
+    isArray: true,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Parent accessing non-child student',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Student or Parent profile not found',
+  })
   async getStudentSubjects(
     @Param('studentId', ParseUUIDPipe) studentId: string,
     @CurrentUser() user: IUserPayload,
