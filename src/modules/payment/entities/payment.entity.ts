@@ -13,8 +13,8 @@ import { Fees } from '../../fees/entities/fees.entity';
 import { User } from '../../user/entities/user.entity';
 import { PaymentMethod, PaymentStatus } from '../enums/payment.enums';
 
-@Entity('fee_payments')
-export class FeePayment extends BaseEntity {
+@Entity('payments')
+export class Payment extends BaseEntity {
   @Column({ name: 'student_id', type: 'uuid' })
   @IsNotEmpty()
   student_id: string;
@@ -65,7 +65,7 @@ export class FeePayment extends BaseEntity {
   @Column({ nullable: true })
   @IsString()
   @IsOptional()
-  transaction_id: string;
+  transaction_id?: string;
 
   @Column({ nullable: true })
   @IsString()

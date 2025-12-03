@@ -45,10 +45,6 @@ export class RecordPaymentDto {
   @IsString()
   @IsOptional()
   invoice_number?: string;
-
-  @IsString()
-  @IsOptional()
-  transaction_id?: string;
 }
 
 class StudentDto {
