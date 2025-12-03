@@ -217,3 +217,54 @@ export const ApiLinkStudents = () =>
       description: 'Invalid student IDs provided',
     }),
   );
+
+/**
+ * Swagger decorators for Get Linked Students endpoint
+ */
+export const ApiGetLinkedStudents = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get linked students for a parent (ADMIN only)',
+      description:
+        'Retrieves basic information for all students linked to a specific parent. Returns only non-deleted students.',
+    }),
+    ApiParam({
+      name: 'parentId',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Linked students retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Parent students fetched successfully',
+          },
+          status_code: {
+            type: 'number',
+            example: 200,
+          },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                registration_number: { type: 'string' },
+                first_name: { type: 'string' },
+                last_name: { type: 'string' },
+                middle_name: { type: 'string' },
+                full_name: { type: 'string' },
+                photo_url: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiResponse({ status: 404, description: 'Parent not found' }),
+  );
