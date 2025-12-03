@@ -28,6 +28,7 @@ import {
 } from '../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
 import { ClassStudent } from '../class/entities/class-student.entity';
+import { Teacher } from '../teacher/entities/teacher.entity';
 import { Schedule } from '../timetable/entities/schedule.entity';
 
 import {
@@ -77,7 +78,7 @@ export class AttendanceService {
    * Teacher marks attendance for multiple students at once
    */
   async markAttendance(
-    teacherId: string,
+    userId: string,
     dto: BulkMarkAttendanceDto,
   ): Promise<{
     message: string;
@@ -98,6 +99,17 @@ export class AttendanceService {
     if (attendanceDate > today) {
       throw new BadRequestException(ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
     }
+
+    // Get teacher ID from user ID
+    const teacher = await this.dataSource.manager.findOne(Teacher, {
+      where: { user: { id: userId } },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException('Teacher profile not found');
+    }
+
+    const teacherId = teacher.id;
 
     // Get active session
     const activeSession = await this.getActiveSession();
@@ -162,7 +174,7 @@ export class AttendanceService {
             {
               status,
               notes: notes || existingAttendance.notes,
-              marked_by: teacherId,
+              marked_by: userId,
               marked_at: new Date(),
             },
           );
@@ -176,7 +188,7 @@ export class AttendanceService {
               session_id: activeSession.id,
               date: attendanceDate,
               status,
-              marked_by: teacherId,
+              marked_by: userId,
               marked_at: new Date(),
               notes,
             },
