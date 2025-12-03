@@ -1,6 +1,55 @@
 import { Expose, Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsUUID,
+  IsEnum,
+  IsDateString,
+  IsOptional,
+  Min,
+} from 'class-validator';
 
 import { PaymentMethod, PaymentStatus } from '../enums/payment.enums';
+
+export class RecordPaymentDto {
+  @IsUUID()
+  @IsNotEmpty()
+  student_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  fee_component_id: string;
+
+  @IsNumber()
+  @Min(0.01)
+  @IsNotEmpty()
+  amount_paid: number;
+
+  @IsEnum(PaymentMethod)
+  @IsNotEmpty()
+  payment_method: PaymentMethod;
+
+  @IsDateString()
+  @IsNotEmpty()
+  payment_date: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  term_id: string;
+
+  @IsUUID()
+  @IsNotEmpty()
+  session_id: string;
+
+  @IsString()
+  @IsOptional()
+  invoice_number?: string;
+
+  @IsString()
+  @IsOptional()
+  transaction_id?: string;
+}
 
 class StudentDto {
   @Expose()

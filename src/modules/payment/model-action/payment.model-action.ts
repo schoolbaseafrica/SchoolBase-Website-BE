@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { FeePayment } from '../entities/payment.entity';
 
 @Injectable()
-export class FeePaymentModelAction extends AbstractModelAction<FeePayment> {
+export class PaymentModelAction extends AbstractModelAction<FeePayment> {
   constructor(
     @InjectRepository(FeePayment)
     feePaymentRepository: Repository<FeePayment>,

@@ -356,6 +356,8 @@ export const FEE_UPDATED_SUCCESSFULLY = 'Fee component updated successfully';
 export const FEE_STATUS_UPDATED_SUCCESSFULLY =
   'Fee component status updated successfully';
 export const FEE_NOT_FOUND = 'Fees component not found';
+export const FEE_NOT_FOR_TERM =
+  'Fee component does not belong to the specified term';
 
 // Grade messages
 export const GRADE_SUBMISSION_CREATED = 'Grade submission created successfully';
