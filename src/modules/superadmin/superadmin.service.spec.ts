@@ -35,6 +35,7 @@ describe('SuperadminService', () => {
     get: jest.fn(),
     create: jest.fn(),
     update: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mock_data_source = {

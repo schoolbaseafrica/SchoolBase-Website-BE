@@ -87,17 +87,13 @@ export class SuperadminService {
     }
 
     const existing = await this.superadminModelAction.get({
-      identifierOptions: { email: createSuperadminDto.email },
+      identifierOptions: { role: Role.SUPERADMIN },
     });
-
-    // if (existing) {
-    //   throw new ConflictException(sysMsg.SUPERADMIN_EMAIL_EXISTS);
-    // }
 
     const passwordHash: string = await bcrypt.hash(password, 10);
 
     const createNewRecord = async (manager) => {
-      const newSuperadmin = await this.superadminModelAction.create({
+      const updatedSuperadminRecord = await this.superadminModelAction.create({
         createPayload: {
           ...restData,
           email,
@@ -107,8 +103,7 @@ export class SuperadminService {
         },
         transactionOptions: { useTransaction: true, transaction: manager },
       });
-
-      return newSuperadmin;
+      return updatedSuperadminRecord;
     };
 
     const updateRecord = async (manager) => {
@@ -120,7 +115,7 @@ export class SuperadminService {
           role: Role.SUPERADMIN,
           is_active: createSuperadminDto.school_name ? true : false,
         },
-        identifierOptions: { email: createSuperadminDto.email },
+        identifierOptions: { role: Role.SUPERADMIN },
         transactionOptions: { useTransaction: true, transaction: manager },
       });
       return updatedSuperadminRecord;
