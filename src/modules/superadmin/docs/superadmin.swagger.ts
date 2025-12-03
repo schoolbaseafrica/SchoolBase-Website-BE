@@ -2,7 +2,10 @@ import { applyDecorators, HttpStatus } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 import * as sysMsg from '../../../constants/system.messages';
-import { SuperadminCreateResponseDto } from '../dto/create-superadmin-response.dto';
+import {
+  SuperadminCreateResponseDto,
+  SuperadminUpdateResponseDto,
+} from '../dto/create-superadmin-response.dto';
 import { SuperadminLoginResponseDto } from '../dto/login-superadmin-response.dto';
 import { SuperadminLogoutResponseDto } from '../dto/logout-superadmin-response.dto';
 
@@ -13,6 +16,11 @@ export const ApiCreateSuperadmin = () => {
       status: HttpStatus.CREATED,
       description: sysMsg.SUPERADMIN_ACCOUNT_CREATED,
       type: SuperadminCreateResponseDto,
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: sysMsg.SUPERADMIN_ACCOUNT_UPDATED,
+      type: SuperadminUpdateResponseDto,
     }),
     ApiResponse({
       status: HttpStatus.UNAUTHORIZED,

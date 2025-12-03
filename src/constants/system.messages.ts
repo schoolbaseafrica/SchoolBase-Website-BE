@@ -226,6 +226,7 @@ export const CLASSES_UNASSIGNED_TO_SUBJECT =
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
+export const INSTALLATION_UPDATED = 'school installation updated successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
 export const SCHOOL_NOT_FOUND = 'School not found';
@@ -410,3 +411,4 @@ export const SUPERADMIN_CONFLICT_GENERAL_MSG =
   'conflict - request cannot be processed. See examples for possible causes.';
 export const SUPERADMIN_ALREADY_EXISTS =
   'a superadmin account already exists. Only one is allowed.';
+export const SUPERADMIN_ACCOUNT_UPDATED = 'superadmin account updated';

@@ -4,12 +4,15 @@ import {
   Body,
   HttpStatus,
   HttpCode,
-  UseGuards,
   Put,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
-import { SetupGuard } from '../shared/guards/setup.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { UserRole } from '../shared/enums';
 
 import { DatabaseService } from './database.service';
 import {
@@ -25,7 +28,7 @@ export class DatabaseController {
 
   //===> save database config (Super Admin) <====
   @Post()
-  @UseGuards(SetupGuard)
+  // @UseGuards(SetupGuard)
   @HttpCode(HttpStatus.CREATED)
   @CreateDatabaseDocs() // <=== Swagger docs
   create(@Body() configureDatabaseDto: ConfigureDatabaseDto) {
@@ -33,6 +36,8 @@ export class DatabaseController {
   }
 
   @Put()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN) //todo: replace with super-admin
   @HttpCode(HttpStatus.OK)
   @UpdateDatabaseDocs() // <=== Swagger docs
   update(@Body() configureDatabaseDto: ConfigureDatabaseDto) {

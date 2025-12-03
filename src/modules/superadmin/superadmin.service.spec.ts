@@ -34,6 +34,8 @@ describe('SuperadminService', () => {
   const mock_model_action_impl = {
     get: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mock_data_source = {
@@ -122,7 +124,7 @@ describe('SuperadminService', () => {
     };
     const dto = dtoInput as unknown as CreateSuperadminDto;
 
-    it('should assign SUPERADMIN role when creating a superadmin', async () => {
+    it('should create a new superadmin if one does not exist', async () => {
       mock_model_action_impl.get.mockResolvedValue(null);
       const hashSpy = jest.spyOn(bcrypt, 'hash') as unknown as jest.SpyInstance<
         Promise<string>,
@@ -152,7 +154,8 @@ describe('SuperadminService', () => {
       };
       mock_model_action_impl.create.mockResolvedValue(createdEntity);
       mock_email_service.sendMail.mockResolvedValue(undefined);
-      await service.createSuperAdmin(dto);
+      const result = await service.createSuperAdmin(dto);
+
       expect(model_action.create).toHaveBeenCalledWith(
         expect.objectContaining({
           createPayload: expect.objectContaining({
@@ -160,6 +163,57 @@ describe('SuperadminService', () => {
           }),
         }),
       );
+      expect(mock_email_service.sendMail).toHaveBeenCalled();
+      expect(result.message).toBe(sysMsg.SUPERADMIN_ACCOUNT_CREATED);
+      expect(result.status_code).toBe(201);
+    });
+
+    it('should update an existing superadmin if one exists', async () => {
+      const existingSuperadmin: SuperAdmin = {
+        id: 'uuid-1',
+        email: dto.email,
+        first_name: 'Old Name',
+        last_name: 'Old Last Name',
+        password: 'old_hashed_pw',
+        school_name: 'Old School',
+        is_active: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        reset_token: null,
+        reset_token_expiration: null,
+        sessions: [],
+        role: Role.SUPERADMIN,
+      };
+
+      mock_model_action_impl.get.mockResolvedValue(existingSuperadmin);
+
+      const hashSpy = jest.spyOn(bcrypt, 'hash') as unknown as jest.SpyInstance<
+        Promise<string>,
+        [string | Buffer, string | number]
+      >;
+      hashSpy.mockResolvedValue('new_hashed_pw');
+
+      mock_data_source.transaction.mockImplementation(
+        async (cb: (manager: Record<string, unknown>) => Promise<unknown>) => {
+          const result = await cb({} as Record<string, unknown>);
+          return result;
+        },
+      );
+
+      const updatedEntity = {
+        ...existingSuperadmin,
+        ...dto,
+        password: 'new_hashed_pw',
+      };
+      mock_model_action_impl.update.mockResolvedValue(updatedEntity);
+
+      const result = await service.createSuperAdmin(dto);
+
+      expect(model_action.update).toHaveBeenCalled();
+      expect(mock_email_service.sendMail).not.toHaveBeenCalled();
+      expect(result.message).toBe(sysMsg.SUPERADMIN_ACCOUNT_UPDATED);
+      expect(result.status_code).toBe(200);
+      expect(result.data.first_name).toBe(dto.first_name);
     });
 
     it('should throw ConflictException when passwords are not provided', async () => {
