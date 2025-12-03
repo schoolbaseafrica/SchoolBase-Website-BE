@@ -26,6 +26,7 @@ describe('SchoolService', () => {
     const mockSchoolModelAction = {
       list: jest.fn(),
       create: jest.fn(),
+      update: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -106,9 +107,30 @@ describe('SchoolService', () => {
       });
     });
 
-    it('should throw ConflictException if installation already completed', async () => {
+    it('should update existing school installation with new data', async () => {
       const existingSchool: Partial<School> = {
         id: 'existing-id',
+        name: 'Old School Name',
+        address: 'Old Address',
+        email: 'old@email.com',
+        phone: '+0000000000',
+        logo_url: '/uploads/logos/old-logo.png',
+        primary_color: '#000000',
+        secondary_color: '#111111',
+        accent_color: '#222222',
+        installation_completed: true,
+      };
+
+      const updatedSchool: Partial<School> = {
+        id: 'existing-id',
+        name: 'Test School',
+        address: '123 Main Street, Springfield',
+        email: 'contact@testschool.edu',
+        phone: '+1234567890',
+        logo_url: '/uploads/logos/old-logo.png',
+        primary_color: '#1E40AF',
+        secondary_color: '#3B82F6',
+        accent_color: '#60A5FA',
         installation_completed: true,
       };
 
@@ -116,28 +138,91 @@ describe('SchoolService', () => {
         payload: [existingSchool as School],
         paginationMeta: {},
       });
+      schoolModelAction.update.mockResolvedValue(updatedSchool as School);
 
-      await expect(service.processInstallation(validDto)).rejects.toThrow(
-        ConflictException,
-      );
-      await expect(service.processInstallation(validDto)).rejects.toThrow(
-        'school installation already completed',
-      );
+      const result = await service.processInstallation(validDto);
+
+      expect(schoolModelAction.update).toHaveBeenCalledWith({
+        identifierOptions: { id: 'existing-id' },
+        updatePayload: {
+          name: validDto.name,
+          address: validDto.address,
+          email: validDto.email,
+          phone: validDto.phone,
+          logo_url: '/uploads/logos/old-logo.png',
+          primary_color: validDto.primary_color,
+          secondary_color: validDto.secondary_color,
+          accent_color: validDto.accent_color,
+          installation_completed: true,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+      expect(result).toEqual({
+        id: 'existing-id',
+        name: 'Test School',
+        address: '123 Main Street, Springfield',
+        email: 'contact@testschool.edu',
+        phone: '+1234567890',
+        logo_url: '/uploads/logos/old-logo.png',
+        primary_color: '#1E40AF',
+        secondary_color: '#3B82F6',
+        accent_color: '#60A5FA',
+        installation_completed: true,
+        message: 'school installation updated successfully',
+      });
     });
 
-    it('should throw ConflictException if school name already exists', async () => {
-      // First call checks for installation_completed: true (should return empty)
-      // Second call checks for name: 'Test School' (should return existing school)
-      schoolModelAction.list
-        .mockResolvedValueOnce({ payload: [], paginationMeta: {} })
-        .mockResolvedValueOnce({
-          payload: [{ id: 'existing', name: 'Test School' } as School],
-          paginationMeta: {},
-        });
+    it('should update existing school with new logo file', async () => {
+      const existingSchool: Partial<School> = {
+        id: 'existing-id',
+        name: 'Old School',
+        address: 'Old Address',
+        email: 'old@email.com',
+        phone: '+0000000000',
+        logo_url: '/uploads/logos/old-logo.png',
+        primary_color: '#000000',
+        secondary_color: '#111111',
+        accent_color: '#222222',
+        installation_completed: true,
+      };
 
-      await expect(service.processInstallation(validDto)).rejects.toThrow(
-        ConflictException,
+      const mockFile = {
+        buffer: Buffer.from('new-image-data'),
+        originalname: 'new-logo.png',
+        mimetype: 'image/png',
+        size: 2048,
+      };
+
+      schoolModelAction.list.mockResolvedValue({
+        payload: [existingSchool as School],
+        paginationMeta: {},
+      });
+
+      // Mock the update to return the school with a dynamically generated logo URL
+      schoolModelAction.update.mockImplementation(async (options) => {
+        return {
+          id: 'existing-id',
+          name: validDto.name,
+          address: validDto.address,
+          email: validDto.email,
+          phone: validDto.phone,
+          logo_url: options.updatePayload.logo_url,
+          primary_color: validDto.primary_color,
+          secondary_color: validDto.secondary_color,
+          accent_color: validDto.accent_color,
+          installation_completed: true,
+        } as School;
+      });
+
+      const result = await service.processInstallation(validDto, mockFile);
+
+      expect(fs.mkdir).toHaveBeenCalled();
+      expect(mockSharp).toHaveBeenCalledWith(mockFile.buffer);
+      expect(result.logo_url).toMatch(
+        /^\/uploads\/logos\/logo-[a-f0-9]+\.png$/,
       );
+      expect(result.message).toBe('school installation updated successfully');
     });
 
     it('should handle installation without optional colors', async () => {

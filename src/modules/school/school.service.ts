@@ -27,61 +27,90 @@ export class SchoolService {
     createInstallationDto: CreateInstallationDto,
     logoFile?: IUploadedFile,
   ) {
-    // Check for existing installation and duplicate name in parallel
-    const [installations, schools] = await Promise.all([
-      this.schoolModelAction.list({
-        filterRecordOptions: { installation_completed: true },
-      }),
-      this.schoolModelAction.list({
-        filterRecordOptions: { name: createInstallationDto.name },
-      }),
-    ]);
-
-    if (installations.payload && installations.payload.length > 0) {
-      throw new ConflictException(sysMsg.INSTALLATION_ALREADY_COMPLETED);
-    }
-
-    if (schools.payload && schools.payload.length > 0) {
-      throw new ConflictException(
-        `School with name "${createInstallationDto.name}" already exists`,
-      );
-    }
-
-    // Process logo file if provided
-    let logoUrl: string | null = null;
-    if (logoFile) {
-      logoUrl = await this.uploadLogo(logoFile);
-    }
-
-    // Create school record
-    const school = await this.schoolModelAction.create({
-      createPayload: {
-        name: createInstallationDto.name,
-        address: createInstallationDto.address,
-        email: createInstallationDto.email,
-        phone: createInstallationDto.phone,
-        logo_url: logoUrl,
-        primary_color: createInstallationDto.primary_color,
-        secondary_color: createInstallationDto.secondary_color,
-        accent_color: createInstallationDto.accent_color,
-        installation_completed: true,
-      },
-      transactionOptions: { useTransaction: false },
+    // Check for existing installation
+    const { payload: installations } = await this.schoolModelAction.list({
+      filterRecordOptions: { installation_completed: true },
     });
 
-    return {
-      id: school.id,
-      name: school.name,
-      address: school.address,
-      email: school.email,
-      phone: school.phone,
-      logo_url: school.logo_url,
-      primary_color: school.primary_color,
-      secondary_color: school.secondary_color,
-      accent_color: school.accent_color,
-      installation_completed: school.installation_completed,
-      message: sysMsg.INSTALLATION_COMPLETED,
-    };
+    const existingSchool =
+      installations && installations.length > 0 ? installations[0] : null;
+
+    if (existingSchool) {
+      // UPDATE PATH - School installation already exists
+      // Process new logo if provided, otherwise keep existing logo
+      let logoUrl = existingSchool.logo_url;
+      if (logoFile) {
+        logoUrl = await this.uploadLogo(logoFile);
+      }
+
+      // Update existing school record
+      const updatedSchool = await this.schoolModelAction.update({
+        identifierOptions: { id: existingSchool.id },
+        updatePayload: {
+          name: createInstallationDto.name,
+          address: createInstallationDto.address,
+          email: createInstallationDto.email,
+          phone: createInstallationDto.phone,
+          logo_url: logoUrl,
+          primary_color: createInstallationDto.primary_color,
+          secondary_color: createInstallationDto.secondary_color,
+          accent_color: createInstallationDto.accent_color,
+          installation_completed: true,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+      return {
+        id: updatedSchool.id,
+        name: updatedSchool.name,
+        address: updatedSchool.address,
+        email: updatedSchool.email,
+        phone: updatedSchool.phone,
+        logo_url: updatedSchool.logo_url,
+        primary_color: updatedSchool.primary_color,
+        secondary_color: updatedSchool.secondary_color,
+        accent_color: updatedSchool.accent_color,
+        installation_completed: updatedSchool.installation_completed,
+        message: sysMsg.INSTALLATION_UPDATED,
+      };
+    } else {
+      // CREATE PATH - First time installation
+      // Process logo file if provided
+      let logoUrl: string | null = null;
+      if (logoFile) {
+        logoUrl = await this.uploadLogo(logoFile);
+      }
+
+      // Create school record
+      const school = await this.schoolModelAction.create({
+        createPayload: {
+          name: createInstallationDto.name,
+          address: createInstallationDto.address,
+          email: createInstallationDto.email,
+          phone: createInstallationDto.phone,
+          logo_url: logoUrl,
+          primary_color: createInstallationDto.primary_color,
+          secondary_color: createInstallationDto.secondary_color,
+          accent_color: createInstallationDto.accent_color,
+          installation_completed: true,
+        },
+        transactionOptions: { useTransaction: false },
+      });
+
+      return {
+        id: school.id,
+        name: school.name,
+        address: school.address,
+        email: school.email,
+        phone: school.phone,
+        logo_url: school.logo_url,
+        primary_color: school.primary_color,
+        secondary_color: school.secondary_color,
+        accent_color: school.accent_color,
+        installation_completed: school.installation_completed,
+        message: sysMsg.INSTALLATION_COMPLETED,
+      };
+    }
   }
 
   private async uploadLogo(file: IUploadedFile): Promise<string> {

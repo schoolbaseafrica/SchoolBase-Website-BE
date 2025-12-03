@@ -226,6 +226,7 @@ export const CLASSES_UNASSIGNED_TO_SUBJECT =
 // School Installation messages
 export const INSTALLATION_COMPLETED =
   'school installation completed successfully';
+export const INSTALLATION_UPDATED = 'school installation updated successfully';
 export const INSTALLATION_ALREADY_COMPLETED =
   'school installation already completed';
 export const SCHOOL_NOT_FOUND = 'School not found';
