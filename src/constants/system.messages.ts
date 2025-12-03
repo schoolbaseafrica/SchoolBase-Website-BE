@@ -121,7 +121,7 @@ export const IMAGE_UPLOAD_SUCCESS = 'image uploaded successfully';
 export const IMAGE_UPLOAD_FAILED = 'image upload failed';
 
 // Payment / Billing
-export const PAYMENT_SUCCESS = 'payment success';
+export const PAYMENT_SUCCESS = 'payment recorded successfully';
 export const PAYMENT_FAILED = 'payment failed';
 export const PAYMENT_DECLINED = 'payment declined';
 export const INSUFFICIENT_FUNDS = 'insufficient funds';
