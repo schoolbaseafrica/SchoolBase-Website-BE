@@ -13,12 +13,12 @@ import {
   Req,
 } from '@nestjs/common';
 
-import { Roles } from '../auth/decorators/roles.decorator';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { UserRole } from '../shared/enums';
+import { IRequestWithUser } from 'src/common/types/request.interface';
 
-import { AttendanceService } from './attendance.service';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { UserRole } from '../../shared/enums';
 import {
   ApiAttendanceTags,
   ApiAttendanceBearerAuth,
@@ -28,35 +28,29 @@ import {
   ApiGetStudentAttendance,
   ApiGetAttendanceRecords,
   ApiCheckAttendanceMarked,
-} from './docs';
+} from '../docs';
 import {
-  BulkMarkAttendanceDto,
+  MarkAttendanceDto,
   UpdateAttendanceDto,
-  GetAttendanceQueryDto,
-} from './dto';
+  GetScheduleAttendanceQueryDto,
+} from '../dto';
+import { AttendanceService } from '../services/attendance.service';
 
-interface IRequestWithUser extends Request {
-  user: {
-    userId: string;
-    role: UserRole;
-  };
-}
-
-@Controller('attendance')
+@Controller('attendance/schedule-based')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiAttendanceTags()
 @ApiAttendanceBearerAuth()
-export class AttendanceController {
+export class ScheduleBasedAttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
-  // --- POST: BULK MARK ATTENDANCE (TEACHER ONLY) ---
-  @Post('mark')
+  // --- POST: MARK ATTENDANCE (TEACHER ONLY) ---
+  @Post()
   @Roles(UserRole.TEACHER)
   @HttpCode(HttpStatus.OK)
   @ApiBulkMarkAttendance()
   async markAttendance(
     @Req() req: IRequestWithUser,
-    @Body() dto: BulkMarkAttendanceDto,
+    @Body() dto: MarkAttendanceDto,
   ) {
     return this.attendanceService.markAttendance(req.user.userId, dto);
   }
@@ -73,18 +67,6 @@ export class AttendanceController {
     return this.attendanceService.getScheduleAttendance(scheduleId, date);
   }
 
-  // --- PATCH: UPDATE ATTENDANCE RECORD (TEACHER ONLY) ---
-  @Patch(':id')
-  @Roles(UserRole.TEACHER)
-  @HttpCode(HttpStatus.OK)
-  @ApiUpdateAttendance()
-  async updateAttendance(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: UpdateAttendanceDto,
-  ) {
-    return this.attendanceService.updateAttendance(id, dto);
-  }
-
   // --- GET: STUDENT'S OWN ATTENDANCE (STUDENT ONLY) ---
   @Get('student/me')
   @Roles(UserRole.STUDENT)
@@ -92,18 +74,9 @@ export class AttendanceController {
   @ApiGetStudentAttendance()
   async getMyAttendance(
     @Req() req: IRequestWithUser,
-    @Query() query: GetAttendanceQueryDto,
+    @Query() query: GetScheduleAttendanceQueryDto,
   ) {
     return this.attendanceService.getStudentAttendance(req.user.userId, query);
-  }
-
-  // --- GET: ALL ATTENDANCE RECORDS (ADMIN/TEACHER) ---
-  @Get()
-  @Roles(UserRole.ADMIN, UserRole.TEACHER)
-  @HttpCode(HttpStatus.OK)
-  @ApiGetAttendanceRecords()
-  async getAttendanceRecords(@Query() query: GetAttendanceQueryDto) {
-    return this.attendanceService.getAttendanceRecords(query);
   }
 
   // --- GET: CHECK IF ATTENDANCE IS MARKED (TEACHER) ---
@@ -116,5 +89,26 @@ export class AttendanceController {
     @Param('date') date: string,
   ) {
     return this.attendanceService.isAttendanceMarked(scheduleId, date);
+  }
+
+  // --- GET: ALL ATTENDANCE RECORDS (ADMIN/TEACHER) ---
+  @Get()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetAttendanceRecords()
+  async getAttendanceRecords(@Query() query: GetScheduleAttendanceQueryDto) {
+    return this.attendanceService.getAttendanceRecords(query);
+  }
+
+  // --- PATCH: UPDATE ATTENDANCE RECORD (TEACHER ONLY) ---
+  @Patch(':id')
+  @Roles(UserRole.TEACHER)
+  @HttpCode(HttpStatus.OK)
+  @ApiUpdateAttendance()
+  async updateAttendance(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateAttendanceDto,
+  ) {
+    return this.attendanceService.updateAttendance(id, dto);
   }
 }

@@ -16,12 +16,13 @@ import {
   ATTENDANCE_MARKED_SUCCESSFULLY,
   ATTENDANCE_RECORDS_RETRIEVED,
   ATTENDANCE_NOT_FOUND,
+  ATTENDANCE_UPDATED_SUCCESSFULLY,
 } from 'src/constants/system.messages';
 
 import {
-  BulkMarkAttendanceDto,
+  MarkAttendanceDto,
   UpdateAttendanceDto,
-  AttendanceResponseDto,
+  UpdateStudentDailyAttendanceDto,
 } from '../dto';
 
 /**
@@ -38,19 +39,20 @@ export const ApiAttendanceTags = () => applyDecorators(ApiTags('Attendance'));
 export const ApiAttendanceBearerAuth = () => applyDecorators(ApiBearerAuth());
 
 /**
- * Swagger decorators for Bulk Mark Attendance endpoint
+ * Swagger decorators for Bulk Mark Attendance endpoint (Schedule-Based)
  */
 export const ApiBulkMarkAttendance = () =>
   applyDecorators(
     ApiOperation({
-      summary: 'Bulk mark attendance for a schedule/period (Teacher only)',
+      summary:
+        'Mark schedule-based attendance for a schedule/period (Teacher only)',
       description:
         'Teacher marks attendance for multiple students in a specific schedule (subject period) on a specific date. ' +
         'Validates that the teacher is assigned to the schedule and students are enrolled in the class. ' +
-        'Updates existing records if attendance is already marked.',
+        'Updates existing records if attendance is already marked. Uses unified MarkAttendanceDto.',
     }),
     ApiBody({
-      type: BulkMarkAttendanceDto,
+      type: MarkAttendanceDto,
       description: 'Bulk attendance marking payload',
       examples: {
         mathPeriod: {
@@ -61,16 +63,16 @@ export const ApiBulkMarkAttendance = () =>
             attendance_records: [
               {
                 student_id: '456e4567-e89b-12d3-a456-426614174001',
-                status: 'present',
+                status: 'PRESENT',
               },
               {
                 student_id: '456e4567-e89b-12d3-a456-426614174002',
-                status: 'late',
+                status: 'LATE',
                 notes: 'Arrived at 9:15 AM',
               },
               {
                 student_id: '456e4567-e89b-12d3-a456-426614174003',
-                status: 'absent',
+                status: 'ABSENT',
                 notes: 'Sick leave',
               },
             ],
@@ -222,7 +224,17 @@ export const ApiUpdateAttendance = () =>
     }),
     ApiOkResponse({
       description: 'Attendance updated successfully',
-      type: AttendanceResponseDto,
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: ATTENDANCE_UPDATED_SUCCESSFULLY,
+          },
+          status_code: { type: 'number', example: 200 },
+          data: { $ref: '#/components/schemas/AttendanceResponseDto' },
+        },
+      },
     }),
     ApiNotFoundResponse({
       description: ATTENDANCE_NOT_FOUND,
@@ -429,5 +441,364 @@ export const ApiCheckAttendanceMarked = () =>
           },
         },
       },
+    }),
+  );
+
+/**
+ * Swagger decorators for Student Daily Attendance endpoints
+ */
+
+/**
+ * Mark Student Daily Attendance endpoint
+ */
+export const ApiMarkStudentDailyAttendance = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Mark daily attendance for a class (Teacher/Admin only)',
+      description:
+        'Bulk mark once-per-day attendance for students in a class. ' +
+        'System automatically records check-in time when marking attendance. ' +
+        'Teacher only needs to specify student_id and status for each student. ' +
+        'Optional notes can be added for context (e.g., "Traffic delay", "Sick leave").',
+    }),
+    ApiBody({
+      type: MarkAttendanceDto,
+      description: 'Student daily attendance marking payload',
+      examples: {
+        morningRegister: {
+          summary: 'Morning Register - Bulk attendance for entire class',
+          value: {
+            class_id: '123e4567-e89b-12d3-a456-426614174000',
+            date: '2025-12-02',
+            attendance_records: [
+              {
+                student_id: '456e4567-e89b-12d3-a456-426614174001',
+                status: 'PRESENT',
+              },
+              {
+                student_id: '456e4567-e89b-12d3-a456-426614174002',
+                status: 'LATE',
+                notes: 'Traffic delay',
+              },
+              {
+                student_id: '456e4567-e89b-12d3-a456-426614174003',
+                status: 'ABSENT',
+                notes: 'Sick leave',
+              },
+              {
+                student_id: '456e4567-e89b-12d3-a456-426614174004',
+                status: 'PRESENT',
+              },
+              {
+                student_id: '456e4567-e89b-12d3-a456-426614174005',
+                status: 'EXCUSED',
+                notes: 'Medical appointment',
+              },
+            ],
+          },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'Student daily attendance marked successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: { type: 'string', example: ATTENDANCE_MARKED_SUCCESSFULLY },
+          status_code: { type: 'number', example: 200 },
+          data: {
+            type: 'object',
+            properties: {
+              marked: {
+                type: 'number',
+                example: 15,
+                description: 'Number of new attendance records created',
+              },
+              updated: {
+                type: 'number',
+                example: 5,
+                description: 'Number of existing records updated',
+              },
+              total: {
+                type: 'number',
+                example: 20,
+                description: 'Total number of students processed',
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Cannot mark attendance for future dates',
+    }),
+    ApiForbiddenResponse({
+      description: 'Teacher not authorized to mark attendance for this class',
+    }),
+    ApiNotFoundResponse({
+      description: 'Class not found',
+    }),
+  );
+
+/**
+ * Get Class Daily Attendance endpoint
+ */
+export const ApiGetClassDailyAttendance = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get daily attendance for a class on a specific date',
+      description:
+        'Retrieves all daily attendance records for a class on a specific date. ' +
+        'Returns details of student check-in/check-out times and daily status.',
+    }),
+    ApiParam({
+      name: 'classId',
+      description: 'Class ID',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiQuery({
+      name: 'date',
+      required: true,
+      type: String,
+      description: 'Attendance date (YYYY-MM-DD)',
+      example: '2025-12-02',
+    }),
+    ApiOkResponse({
+      description: 'Daily attendance records retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: ATTENDANCE_RECORDS_RETRIEVED,
+          },
+          status_code: { type: 'number', example: 200 },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                class_id: { type: 'string' },
+                student_id: { type: 'string' },
+                session_id: { type: 'string' },
+                date: { type: 'string', format: 'date' },
+                status: {
+                  type: 'string',
+                  enum: ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'HALF_DAY'],
+                },
+                check_in_time: { type: 'string', nullable: true },
+                check_out_time: { type: 'string', nullable: true },
+                marked_by: { type: 'string' },
+                marked_at: { type: 'string', format: 'date-time' },
+                notes: { type: 'string', nullable: true },
+                created_at: { type: 'string', format: 'date-time' },
+                updated_at: { type: 'string', format: 'date-time' },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Class not found',
+    }),
+  );
+
+/**
+ * Get Class Term Attendance endpoint
+ */
+export const ApiGetClassTermAttendance = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get daily attendance summary for a class over a term/period',
+      description:
+        'Retrieves aggregated daily attendance statistics for all students in a class ' +
+        'over a specified date range. Returns counts of present, absent, late, etc. for each student.',
+    }),
+    ApiParam({
+      name: 'classId',
+      description: 'Class ID',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiQuery({
+      name: 'start_date',
+      required: true,
+      type: String,
+      description: 'Start date for range (YYYY-MM-DD)',
+      example: '2025-09-01',
+    }),
+    ApiQuery({
+      name: 'end_date',
+      required: true,
+      type: String,
+      description: 'End date for range (YYYY-MM-DD)',
+      example: '2025-12-31',
+    }),
+    ApiOkResponse({
+      description: 'Class term attendance summary retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: ATTENDANCE_RECORDS_RETRIEVED,
+          },
+          status_code: { type: 'number', example: 200 },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                student_id: { type: 'string' },
+                student_name: { type: 'string' },
+                total_days: { type: 'number' },
+                present: { type: 'number' },
+                absent: { type: 'number' },
+                late: { type: 'number' },
+                excused: { type: 'number' },
+                half_day: { type: 'number' },
+                attendance_percentage: { type: 'number' },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Class not found',
+    }),
+  );
+
+/**
+ * Update Student Daily Attendance endpoint
+ */
+export const ApiUpdateStudentDailyAttendance = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Update a student daily attendance record (Teacher only)',
+      description:
+        'Updates the status or notes of an existing daily attendance record. ' +
+        'Check-in and check-out times are automatically managed by the system.',
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'Daily attendance record ID',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiBody({
+      type: UpdateStudentDailyAttendanceDto,
+      description: 'Update daily attendance payload',
+      examples: {
+        updateStatus: {
+          summary: 'Change status',
+          value: {
+            status: 'HALF_DAY',
+            notes: 'Medical appointment',
+          },
+        },
+        updateNotes: {
+          summary: 'Update notes only',
+          value: {
+            notes: 'Student arrived late due to traffic',
+          },
+        },
+      },
+    }),
+    ApiOkResponse({
+      description: 'Student daily attendance updated successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: ATTENDANCE_UPDATED_SUCCESSFULLY,
+          },
+          status_code: { type: 'number', example: 200 },
+          data: { $ref: '#/components/schemas/AttendanceResponseDto' },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: ATTENDANCE_NOT_FOUND,
+    }),
+  );
+
+/**
+ * Get Student Term Attendance Summary endpoint
+ */
+export const ApiGetStudentTermSummary = () =>
+  applyDecorators(
+    ApiOperation({
+      summary:
+        'Get student term attendance summary (Student for self, Teacher/Admin for any)',
+      description:
+        'Retrieves aggregate attendance statistics for a student over a specific academic term. ' +
+        'Returns total school days (weekdays only), days present (including late), and days absent. ' +
+        'Students can only view their own summary; teachers and admins can view any student.',
+    }),
+    ApiParam({
+      name: 'studentId',
+      description: 'Student ID',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiQuery({
+      name: 'session_id',
+      required: true,
+      type: String,
+      description: 'Academic session ID',
+      example: '123e4567-e89b-12d3-a456-426614174001',
+    }),
+    ApiQuery({
+      name: 'term',
+      required: true,
+      enum: ['First term', 'Second term', 'Third term'],
+      description: 'Term name (First term, Second term, or Third term)',
+      example: 'First term',
+    }),
+    ApiOkResponse({
+      description: 'Student term attendance summary retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Attendance records retrieved successfully',
+          },
+          status_code: { type: 'number', example: 200 },
+          data: {
+            type: 'object',
+            properties: {
+              total_school_days: {
+                type: 'number',
+                example: 120,
+                description:
+                  'Total number of school days (weekdays) in the term',
+              },
+              days_present: {
+                type: 'number',
+                example: 113,
+                description:
+                  'Number of days student was present (includes late)',
+              },
+              days_absent: {
+                type: 'number',
+                example: 7,
+                description: 'Number of days student was absent',
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiNotFoundResponse({
+      description: 'Student or term not found',
+    }),
+    ApiForbiddenResponse({
+      description: 'Students can only view their own attendance summary',
     }),
   );

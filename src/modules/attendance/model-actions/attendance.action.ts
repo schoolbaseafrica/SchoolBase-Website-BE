@@ -3,14 +3,14 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { Attendance } from '../entities';
+import { ScheduleBasedAttendance } from '../entities';
 
 @Injectable()
-export class AttendanceModelAction extends AbstractModelAction<Attendance> {
+export class AttendanceModelAction extends AbstractModelAction<ScheduleBasedAttendance> {
   constructor(
-    @InjectRepository(Attendance)
-    attendanceRepository: Repository<Attendance>,
+    @InjectRepository(ScheduleBasedAttendance)
+    attendanceRepository: Repository<ScheduleBasedAttendance>,
   ) {
-    super(attendanceRepository, Attendance);
+    super(attendanceRepository, ScheduleBasedAttendance);
   }
 }

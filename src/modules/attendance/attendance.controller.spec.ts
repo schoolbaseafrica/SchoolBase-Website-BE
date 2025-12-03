@@ -4,12 +4,12 @@ import { DataSource } from 'typeorm';
 
 import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
 
-import { AttendanceController } from './attendance.controller';
-import { AttendanceService } from './attendance.service';
+import { ScheduleBasedAttendanceController } from './controllers/schedule-based-attendance.controller';
 import { AttendanceModelAction } from './model-actions';
+import { AttendanceService } from './services/attendance.service';
 
-describe('AttendanceController', () => {
-  let controller: AttendanceController;
+describe('ScheduleBasedAttendanceController', () => {
+  let controller: ScheduleBasedAttendanceController;
 
   beforeEach(async () => {
     const mockAttendanceModelAction = {
@@ -26,7 +26,7 @@ describe('AttendanceController', () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [AttendanceController],
+      controllers: [ScheduleBasedAttendanceController],
       providers: [
         AttendanceService,
         {
@@ -56,7 +56,9 @@ describe('AttendanceController', () => {
       ],
     }).compile();
 
-    controller = module.get<AttendanceController>(AttendanceController);
+    controller = module.get<ScheduleBasedAttendanceController>(
+      ScheduleBasedAttendanceController,
+    );
   });
 
   it('should be defined', () => {

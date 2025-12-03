@@ -1,5 +1,5 @@
-import { IsUUID, IsDateString, IsOptional } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsDateString, IsOptional } from 'class-validator';
 
 export class GetClassAttendanceQueryDto {
   @ApiProperty({
