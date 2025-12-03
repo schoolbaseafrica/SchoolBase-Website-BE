@@ -617,7 +617,13 @@ describe('SubjectService', () => {
       expect(managerDeleteMock).toHaveBeenCalledWith(GradeSubmission, {
         subject: { id: 'subject-1' },
       });
-      expect(subjectModelActionMock.delete).toHaveBeenCalled();
+      expect(subjectModelActionMock.delete).toHaveBeenCalledWith({
+        identifierOptions: { id: 'subject-1' },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: managerMock,
+        },
+      });
     });
 
     it('should throw NotFoundException if subject does not exist', async () => {
