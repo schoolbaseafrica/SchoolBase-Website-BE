@@ -27,6 +27,7 @@ import {
   ListParentsDto,
   ParentResponseDto,
   ParentStudentLinkResponseDto,
+  StudentBasicDto,
   UpdateParentDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
@@ -456,5 +457,52 @@ export class ParentService {
       },
       { excludeExtraneousValues: true },
     );
+  }
+
+  // --- GET LINKED STUDENTS (ADMIN VERSION) ---
+  async getLinkedStudents(parentId: string): Promise<StudentBasicDto[]> {
+    // 1. Validate parent exists and is not deleted
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Query students where parent_id = parentId and is_deleted = false
+    const students = await this.studentModelAction.list({
+      filterRecordOptions: {
+        parent: { id: parentId },
+        is_deleted: false,
+      },
+      relations: {
+        user: true,
+      },
+    });
+
+    this.logger.info(sysMsg.PARENT_STUDENTS_FETCHED, {
+      parentId,
+      studentCount: students.payload.length,
+    });
+
+    // 3. Transform to StudentBasicDto
+    return students.payload.map((student) => {
+      const { user } = student;
+      return plainToInstance(
+        StudentBasicDto,
+        {
+          id: student.id,
+          registration_number: student.registration_number,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          middle_name: user.middle_name,
+          full_name: `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`,
+          photo_url: student.photo_url,
+        },
+        { excludeExtraneousValues: true },
+      );
+    });
   }
 }

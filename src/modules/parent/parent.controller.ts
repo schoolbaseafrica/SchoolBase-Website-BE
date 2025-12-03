@@ -29,12 +29,14 @@ import {
   ApiUpdateParent,
   ApiDeleteParent,
   ApiLinkStudents,
+  ApiGetLinkedStudents,
 } from './docs/parent.swagger';
 import {
   CreateParentDto,
   LinkStudentsDto,
   ParentResponseDto,
   ParentStudentLinkResponseDto,
+  StudentBasicDto,
   UpdateParentDto,
 } from './dto';
 import { ParentService } from './parent.service';
@@ -44,7 +46,7 @@ import { ParentService } from './parent.service';
 @ApiParentTags()
 @ApiParentBearerAuth()
 export class ParentController {
-  constructor(private readonly parentService: ParentService) {}
+  constructor(private readonly parentService: ParentService) { }
 
   // --- POST: CREATE PARENT (ADMIN ONLY) ---
   @Post()
@@ -166,6 +168,26 @@ export class ParentController {
     return {
       message: sysMsg.STUDENTS_LINKED_TO_PARENT,
       status_code: HttpStatus.CREATED,
+      data,
+    };
+  }
+
+  // --- GET: GET LINKED STUDENTS FOR PARENT (ADMIN ONLY) ---
+  @Get('admin/:parentId/students')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLinkedStudents()
+  async getLinkedStudents(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentBasicDto[];
+  }> {
+    const data = await this.parentService.getLinkedStudents(parentId);
+    return {
+      message: sysMsg.PARENT_STUDENTS_FETCHED,
+      status_code: HttpStatus.OK,
       data,
     };
   }
