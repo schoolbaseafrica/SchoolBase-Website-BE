@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { AcademicSessionModule } from '../academic-session/academic-session.module';
@@ -14,7 +14,7 @@ import { SubjectService } from './services/subject.service';
   imports: [
     TypeOrmModule.forFeature([Subject, ClassSubject]),
     AcademicSessionModule,
-    ClassModule,
+    forwardRef(() => ClassModule),
   ],
   controllers: [SubjectController],
   providers: [SubjectService, SubjectModelAction],
