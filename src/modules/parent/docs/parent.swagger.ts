@@ -9,7 +9,7 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-import { CreateParentDto, ParentResponseDto, UpdateParentDto } from '../dto';
+import { CreateParentDto, LinkStudentsDto, ParentResponseDto, ParentStudentLinkResponseDto, UpdateParentDto } from '../dto';
 
 /**
  * Swagger decorators for Parent endpoints
@@ -181,4 +181,33 @@ export const ApiDeleteParent = () =>
       },
     }),
     ApiResponse({ status: 404, description: 'Parent not found' }),
+  );
+
+/**
+ * Swagger decorators for Link Students to Parent endpoint
+ */
+export const ApiLinkStudents = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Link one or more students to a parent (ADMIN only)',
+      description:
+        'Links students to a parent by updating the parent_id field in the student records. This operation is performed in a transaction to ensure data integrity.',
+    }),
+    ApiParam({
+      name: 'parentId',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiBody({ type: LinkStudentsDto }),
+    ApiResponse({
+      status: 201,
+      description: 'Students successfully linked to parent',
+      type: ParentStudentLinkResponseDto,
+    }),
+    ApiResponse({ status: 404, description: 'Parent or student not found' }),
+    ApiResponse({
+      status: 400,
+      description: 'Invalid student IDs provided',
+    }),
   );
