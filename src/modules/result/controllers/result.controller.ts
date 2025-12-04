@@ -7,7 +7,12 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -17,6 +22,7 @@ import { GenerateResultDto, ResultResponseDto } from '../dto';
 import { ResultService } from '../services/result.service';
 
 @ApiTags('Results')
+@ApiBearerAuth()
 @Controller('results')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ResultController {
