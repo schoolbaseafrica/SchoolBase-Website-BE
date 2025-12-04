@@ -10,6 +10,7 @@ import {
 } from '@nestjs/swagger';
 
 import { DeactivateFeeDto } from '../dto/deactivate-fee.dto';
+import { FeeStudentResponseDto } from '../dto/fee-students-response.dto';
 import {
   CreateFeeResponseDto,
   FeesListResponseDto,
@@ -198,6 +199,41 @@ export function swaggerActivateFee() {
     ApiResponse({
       status: 400,
       description: 'Bad request - Fee component is already active',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Not found - Fee component not found',
+    }),
+  );
+}
+
+export function swaggerGetFeeStudents() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Get students assigned to a fee',
+      description:
+        'Retrieve a list of students assigned to a specific fee component, either through class assignment or direct assignment.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'id',
+      description: 'The ID of the fee component',
+      example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Students retrieved successfully',
+      type: FeeStudentResponseDto,
+      isArray: true,
     }),
     ApiResponse({
       status: 401,

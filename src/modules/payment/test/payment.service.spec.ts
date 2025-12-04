@@ -1,14 +1,23 @@
+import { PaginationMeta } from '@hng-sdk/orm';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
 
+import { FetchPaymentsDto } from '../dto/get-all-payments.dto';
 import { RecordPaymentDto } from '../dto/payment.dto';
 import { Payment } from '../entities/payment.entity';
 import { PaymentMethod, PaymentStatus } from '../enums/payment.enums';
 import { PaymentModelAction } from '../model-action/payment.model-action';
 import { PaymentValidationService } from '../services/payment-validation.service';
 import { PaymentService } from '../services/payment.service';
+
+interface ISearchPaymentsSignature {
+  (dto: FetchPaymentsDto): Promise<{
+    payload: Payment[];
+    paginationMeta: Partial<PaginationMeta>;
+  }>;
+}
 
 describe('PaymentService', () => {
   let service: PaymentService;
@@ -67,14 +76,50 @@ describe('PaymentService', () => {
     },
   } as unknown as Payment;
 
+  const mockPaymentEntityList = [
+    { ...mockPaymentEntity, id: 'payment-id-1' },
+    { ...mockPaymentEntity, id: 'payment-id-2' },
+  ] as unknown as Payment[];
+
+  const mockQueryBuilderResult = {
+    payload: mockPaymentEntityList,
+    paginationMeta: {
+      total: 2,
+      page: 1,
+      limit: 10,
+      total_pages: 1,
+    },
+  };
+
+  const mockFetchPaymentsDto: FetchPaymentsDto = {
+    page: 1,
+    limit: 10,
+    term_id: mockTermId,
+  };
+
   const mockPaymentModelActionValue = {
     create: jest.fn(),
     get: jest.fn(),
+    // Mock the internal repository access property for searchPaymentsWithQueryBuilder
+    repository: {
+      createQueryBuilder: jest.fn().mockReturnThis(),
+      leftJoinAndSelect: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(2), // Total count for tests
+      take: jest.fn().mockReturnThis(),
+      skip: jest.fn().mockReturnThis(),
+      getMany: jest.fn().mockResolvedValue(mockPaymentEntityList),
+    },
   };
 
   const mockPaymentValidationServiceValue = {
     validatePayment: jest.fn(),
   };
+
+  // Spy function to mock the behavior of the private helper method
+  const mockSearchPaymentsWithQueryBuilder: jest.MockedFn<ISearchPaymentsSignature> =
+    jest.fn();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -98,6 +143,15 @@ describe('PaymentService', () => {
     service = module.get<PaymentService>(PaymentService);
     paymentModelAction = module.get(PaymentModelAction);
     paymentValidationService = module.get(PaymentValidationService);
+
+    (
+      service as unknown as {
+        searchPaymentsWithQueryBuilder: ISearchPaymentsSignature;
+      }
+    ).searchPaymentsWithQueryBuilder =
+      mockSearchPaymentsWithQueryBuilder.mockResolvedValue(
+        mockQueryBuilderResult,
+      );
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -174,6 +228,42 @@ describe('PaymentService', () => {
       await expect(
         service.recordPayment(recordPaymentDto, mockUserId),
       ).rejects.toThrow(dbError);
+    });
+  });
+
+  describe('fetchAllPayments', () => {
+    it('should fetch all payments and return correct payload and total', async () => {
+      const result = await service.fetchAllPayments(mockFetchPaymentsDto);
+
+      const spy = (
+        service as unknown as {
+          searchPaymentsWithQueryBuilder: ISearchPaymentsSignature;
+        }
+      ).searchPaymentsWithQueryBuilder as jest.Mock;
+
+      expect(spy).toHaveBeenCalledWith(mockFetchPaymentsDto);
+
+      expect(result.payments).toEqual(mockPaymentEntityList);
+      expect(result.total).toEqual(mockQueryBuilderResult.paginationMeta.total);
+      expect(result.payments.length).toEqual(2);
+    });
+
+    it('should propagate error if query builder fails', async () => {
+      const dbError = new Error('Query execution failed');
+
+      const spy = (
+        service as unknown as {
+          searchPaymentsWithQueryBuilder: ISearchPaymentsSignature;
+        }
+      ).searchPaymentsWithQueryBuilder as jest.Mock;
+
+      spy.mockRejectedValue(dbError);
+
+      await expect(
+        service.fetchAllPayments(mockFetchPaymentsDto),
+      ).rejects.toThrow(dbError);
+
+      spy.mockResolvedValue(mockQueryBuilderResult);
     });
   });
 });

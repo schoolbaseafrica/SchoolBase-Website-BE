@@ -76,6 +76,7 @@ describe('FeesController', () => {
     term_id: mockTerm.id,
     term: mockTerm,
     classes: [],
+    direct_assignments: [],
     status: FeeStatus.ACTIVE,
     created_by: 'user-123',
     createdAt: new Date(),
@@ -94,6 +95,7 @@ describe('FeesController', () => {
             update: jest.fn(),
             deactivate: jest.fn(),
             activate: jest.fn(),
+            getStudentsForFee: jest.fn(),
           },
         },
       ],
@@ -646,6 +648,37 @@ describe('FeesController', () => {
     it('should require ADMIN role for activateFee', () => {
       const roles = Reflect.getMetadata('roles', controller.activateFee);
       expect(roles).toContain(UserRole.ADMIN);
+    });
+  });
+
+  describe('getFeeStudents', () => {
+    it('should return students for a fee', async () => {
+      const mockStudents = [
+        {
+          id: 'student-1',
+          name: 'John Doe',
+          class: 'Class 1',
+          session: '2023/2024',
+          registration_number: 'REG001',
+        },
+      ];
+
+      service.getStudentsForFee.mockResolvedValue(mockStudents);
+
+      const result = await controller.getFeeStudents('fee-123');
+
+      expect(service.getStudentsForFee).toHaveBeenCalledWith('fee-123');
+      expect(result).toEqual({
+        message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
+        data: mockStudents,
+      });
+    });
+
+    it('should propagate service errors', async () => {
+      const error = new NotFoundException(sysMsg.FEE_NOT_FOUND);
+      service.getStudentsForFee.mockRejectedValue(error);
+
+      await expect(controller.getFeeStudents('fee-123')).rejects.toThrow(error);
     });
   });
 });
