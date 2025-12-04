@@ -9,6 +9,7 @@ import { ClassSubjectModelAction } from '../class/model-actions/class-subject.ac
 import { FileModule } from '../shared/file/file.module';
 import { Student } from '../student/entities/student.entity';
 import { StudentModelAction } from '../student/model-actions/student-actions';
+import { StudentModule } from '../student/student.module';
 import { UserModule } from '../user/user.module';
 
 import { Parent } from './entities/parent.entity';
@@ -21,6 +22,7 @@ import { ParentService } from './parent.service';
     TypeOrmModule.forFeature([Parent, Student, ClassStudent, ClassSubject]),
     FileModule,
     UserModule,
+    StudentModule,
   ],
   controllers: [ParentController],
   providers: [

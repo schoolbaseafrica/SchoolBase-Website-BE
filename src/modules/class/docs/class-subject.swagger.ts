@@ -35,7 +35,7 @@ export const ClassSubjectSwagger = {
       operation: {
         summary: 'Get subjects assigned to a class',
         description:
-          'Returns a list of subjects assigned to a specific class ID.',
+          'Gets all Class Subjects, Only gets class subjects assigned to the authenticated teacher if authenticated user is a teacher',
       },
       responses: {
         ok: {
