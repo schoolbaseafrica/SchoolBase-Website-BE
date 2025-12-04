@@ -61,9 +61,10 @@ export class ClassStudentValidationService {
   }
 
   /**
-   * Validates all rules for batch student assignment
+   * Validates all rules for batch student assignment.
+   *
    * @param classId - The class ID
-   * @param studentIds - Array of student IDs
+   * @param studentIds - Array of unique student IDs (should be deduplicated by caller)
    * @param sessionId - The academic session ID
    * @param manager - Optional transaction manager for atomic validation
    */
@@ -76,17 +77,8 @@ export class ClassStudentValidationService {
     // 1. Validate class exists and is not deleted
     await this.validateClassExists(classId);
 
-    // 2. Remove duplicates
-    const uniqueStudentIds = [...new Set(studentIds)];
-    if (uniqueStudentIds.length !== studentIds.length) {
-      this.logger.warn(
-        `Duplicate student IDs detected. Original: ${studentIds.length}, Unique: ${uniqueStudentIds.length}`,
-        { classId, studentIds },
-      );
-    }
-
-    // 3. Validate all students exist and are not deleted
-    for (const studentId of uniqueStudentIds) {
+    // 2. Validate all students exist and are not deleted
+    for (const studentId of studentIds) {
       try {
         await this.validateStudentExists(studentId);
       } catch (error) {
@@ -104,8 +96,8 @@ export class ClassStudentValidationService {
       }
     }
 
-    // 4. Validate no student is in another class (same session)
-    for (const studentId of uniqueStudentIds) {
+    // 3. Validate no student is in another class (same session)
+    for (const studentId of studentIds) {
       try {
         await this.validateStudentNotInAnotherClass(
           studentId,
