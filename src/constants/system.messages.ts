@@ -127,6 +127,8 @@ export const PAYMENT_DECLINED = 'payment declined';
 export const INSUFFICIENT_FUNDS = 'insufficient funds';
 export const SUBSCRIPTION_EXPIRED = 'subscription expired';
 export const SUBSCRIPTION_ACTIVE = 'subscription active';
+export const PAYMENTS_FETCHED_SUCCESSFULLY =
+  'Fee payments retrieved successfully.';
 
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
@@ -420,6 +422,3 @@ export const SUPERADMIN_CONFLICT_GENERAL_MSG =
 export const SUPERADMIN_ALREADY_EXISTS =
   'a superadmin account already exists. Only one is allowed.';
 export const SUPERADMIN_ACCOUNT_UPDATED = 'superadmin account updated';
-//payment messages
-export const PAYMENTS_FETCHED_SUCCESSFULLY =
-  'Fee payments retrieved successfully.';
