@@ -17,13 +17,17 @@ import {
   generateStrongPassword,
   hashPassword,
 } from '../shared/utils/password.util';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 import { User } from '../user/entities/user.entity';
 import { UserModelAction } from '../user/model-actions/user-actions';
 
 import {
   CreateParentDto,
+  LinkStudentsDto,
   ListParentsDto,
   ParentResponseDto,
+  ParentStudentLinkResponseDto,
+  StudentBasicDto,
   UpdateParentDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
@@ -35,6 +39,7 @@ export class ParentService {
   constructor(
     private readonly parentModelAction: ParentModelAction,
     private readonly userModelAction: UserModelAction,
+    private readonly studentModelAction: StudentModelAction,
     private readonly dataSource: DataSource,
     private readonly fileService: FileService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
@@ -387,5 +392,117 @@ export class ParentService {
     };
 
     return { payload, paginationMeta };
+  }
+
+  // --- LINK STUDENTS TO PARENT ---
+  async linkStudentsToParent(
+    parentId: string,
+    linkDto: LinkStudentsDto,
+  ): Promise<ParentStudentLinkResponseDto> {
+    // 1. Validate parent exists and is not deleted
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Validate all students exist and are not deleted
+    const students = await Promise.all(
+      linkDto.student_ids.map(async (studentId) => {
+        const student = await this.studentModelAction.get({
+          identifierOptions: { id: studentId },
+        });
+
+        if (!student || student.is_deleted) {
+          this.logger.warn(`Student not found with ID: ${studentId}`);
+          throw new NotFoundException(`Student with ID ${studentId} not found`);
+        }
+
+        return student;
+      }),
+    );
+
+    // 3. Link students to parent in a transaction
+    await this.dataSource.transaction(async (manager) => {
+      for (const student of students) {
+        await this.studentModelAction.update({
+          identifierOptions: { id: student.id },
+          updatePayload: {
+            parent: { id: parentId },
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+      }
+    });
+
+    this.logger.info(sysMsg.STUDENTS_LINKED_TO_PARENT, {
+      parentId,
+      studentIds: linkDto.student_ids,
+      totalLinked: linkDto.student_ids.length,
+    });
+
+    // 4. Return response
+    return plainToInstance(
+      ParentStudentLinkResponseDto,
+      {
+        parent_id: parentId,
+        linked_students: linkDto.student_ids,
+        total_linked: linkDto.student_ids.length,
+      },
+      { excludeExtraneousValues: true },
+    );
+  }
+
+  // --- GET LINKED STUDENTS (ADMIN VERSION) ---
+  async getLinkedStudents(parentId: string): Promise<StudentBasicDto[]> {
+    // 1. Validate parent exists and is not deleted
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Query students where parent_id = parentId and is_deleted = false
+    const students = await this.studentModelAction.list({
+      filterRecordOptions: {
+        parent: { id: parentId },
+        is_deleted: false,
+      },
+      relations: {
+        user: true,
+      },
+    });
+
+    this.logger.info(sysMsg.PARENT_STUDENTS_FETCHED, {
+      parentId,
+      studentCount: students.payload.length,
+    });
+
+    // 3. Transform to StudentBasicDto
+    return students.payload.map((student) => {
+      const { user } = student;
+      return plainToInstance(
+        StudentBasicDto,
+        {
+          id: student.id,
+          registration_number: student.registration_number,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          middle_name: user.middle_name,
+          full_name: `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`,
+          photo_url: student.photo_url,
+        },
+        { excludeExtraneousValues: true },
+      );
+    });
   }
 }

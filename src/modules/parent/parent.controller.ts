@@ -28,8 +28,17 @@ import {
   ApiListParents,
   ApiUpdateParent,
   ApiDeleteParent,
+  ApiLinkStudents,
+  ApiGetLinkedStudents,
 } from './docs/parent.swagger';
-import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
+import {
+  CreateParentDto,
+  LinkStudentsDto,
+  ParentResponseDto,
+  ParentStudentLinkResponseDto,
+  StudentBasicDto,
+  UpdateParentDto,
+} from './dto';
 import { ParentService } from './parent.service';
 
 @Controller('parents')
@@ -136,6 +145,50 @@ export class ParentController {
     return {
       message: sysMsg.PARENT_DELETED,
       status_code: HttpStatus.OK,
+    };
+  }
+
+  // --- POST: LINK STUDENTS TO PARENT (ADMIN ONLY) ---
+  @Post(':parentId/link-students')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiLinkStudents()
+  async linkStudents(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Body() linkDto: LinkStudentsDto,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentStudentLinkResponseDto;
+  }> {
+    const data = await this.parentService.linkStudentsToParent(
+      parentId,
+      linkDto,
+    );
+    return {
+      message: sysMsg.STUDENTS_LINKED_TO_PARENT,
+      status_code: HttpStatus.CREATED,
+      data,
+    };
+  }
+
+  // --- GET: GET LINKED STUDENTS FOR PARENT (ADMIN ONLY) ---
+  @Get('admin/:parentId/students')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLinkedStudents()
+  async getLinkedStudents(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentBasicDto[];
+  }> {
+    const data = await this.parentService.getLinkedStudents(parentId);
+    return {
+      message: sysMsg.PARENT_STUDENTS_FETCHED,
+      status_code: HttpStatus.OK,
+      data,
     };
   }
 }
