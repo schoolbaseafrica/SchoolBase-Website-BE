@@ -5,7 +5,6 @@ import {
   Inject,
   ForbiddenException,
   ConflictException,
-  HttpStatus,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
@@ -106,7 +105,6 @@ export class AttendanceService {
     dto: MarkAttendanceDto,
   ): Promise<{
     message: string;
-    status_code: number;
     marked: number;
     updated: number;
     total: number;
@@ -236,7 +234,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_MARKED_SUCCESSFULLY,
-      status_code: HttpStatus.OK,
       marked: markedCount,
       updated: updatedCount,
       total: attendance_records.length,
@@ -251,7 +248,6 @@ export class AttendanceService {
     date: string,
   ): Promise<{
     message: string;
-    status_code: number;
     data: AttendanceResponseDto[];
   }> {
     const attendanceDate = new Date(date);
@@ -266,7 +262,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: HttpStatus.OK,
       data: records.map((record) => this.mapToResponseDto(record)),
     };
   }
@@ -279,7 +274,6 @@ export class AttendanceService {
     dto: UpdateAttendanceDto,
   ): Promise<{
     message: string;
-    status_code: number;
     data: AttendanceResponseDto;
   }> {
     const attendance = await this.attendanceModelAction.get({
@@ -314,7 +308,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_UPDATED_SUCCESSFULLY,
-      status_code: HttpStatus.OK,
       data: this.mapToResponseDto(updated),
     };
   }
@@ -327,7 +320,6 @@ export class AttendanceService {
     dto: UpdateAttendanceDto,
   ): Promise<{
     message: string;
-    status_code: number;
   }> {
     const attendance = await this.studentDailyAttendanceModelAction.get({
       identifierOptions: { id: attendanceId },
@@ -365,7 +357,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_UPDATED_SUCCESSFULLY,
-      status_code: HttpStatus.OK,
     };
   }
 
@@ -377,7 +368,6 @@ export class AttendanceService {
     query: GetScheduleAttendanceQueryDto,
   ): Promise<{
     message: string;
-    status_code: number;
     data: AttendanceResponseDto[];
     meta: Partial<IPaginationMeta>;
   }> {
@@ -413,7 +403,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: HttpStatus.OK,
       data: filteredRecords.map((record) => this.mapToResponseDto(record)),
       meta: paginationMeta,
     };
@@ -424,7 +413,6 @@ export class AttendanceService {
    */
   async getAttendanceRecords(query: GetScheduleAttendanceQueryDto): Promise<{
     message: string;
-    status_code: number;
     data: AttendanceResponseDto[];
     meta: Partial<IPaginationMeta>;
   }> {
@@ -467,7 +455,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: HttpStatus.OK,
       data: filteredRecords.map((record) => this.mapToResponseDto(record)),
       meta: paginationMeta,
     };
@@ -504,7 +491,6 @@ export class AttendanceService {
     dto: MarkAttendanceDto,
   ): Promise<{
     message: string;
-    status_code: number;
     marked: number;
     updated: number;
     total: number;
@@ -603,7 +589,6 @@ export class AttendanceService {
 
     return {
       message: 'Student daily attendance marked successfully',
-      status_code: HttpStatus.OK,
       marked: markedCount,
       updated: updatedCount,
       total: attendance_records.length,
@@ -620,7 +605,6 @@ export class AttendanceService {
     termName: TermName,
   ): Promise<{
     message: string;
-    status_code: number;
     total_school_days: number;
     days_present: number;
     days_absent: number;
@@ -691,7 +675,6 @@ export class AttendanceService {
 
     return {
       message: ATTENDANCE_RECORDS_RETRIEVED,
-      status_code: HttpStatus.OK,
       total_school_days: totalSchoolDays,
       days_present: daysPresent,
       days_absent: daysAbsent,
@@ -711,7 +694,6 @@ export class AttendanceService {
     date: string,
   ): Promise<{
     message: string;
-    status_code: number;
     class_id: string;
     date: string;
     students: Array<{
@@ -802,7 +784,6 @@ export class AttendanceService {
 
     return {
       message: 'Class daily attendance retrieved successfully',
-      status_code: HttpStatus.OK,
       class_id: classId,
       date,
       students,
@@ -828,7 +809,6 @@ export class AttendanceService {
     term: TermName,
   ): Promise<{
     message: string;
-    status_code: number;
     class_id: string;
     session_id: string;
     term: string;
@@ -967,7 +947,6 @@ export class AttendanceService {
 
     return {
       message: 'Class term attendance retrieved successfully',
-      status_code: HttpStatus.OK,
       class_id: classId,
       session_id: sessionId,
       term: term,
