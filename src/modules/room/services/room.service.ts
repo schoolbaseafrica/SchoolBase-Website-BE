@@ -3,13 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  DataSource,
-  FindOptionsOrder,
-  FindOptionsWhere,
-  IsNull,
-  Not,
-} from 'typeorm';
+import { DataSource, FindOptionsOrder, FindOptionsWhere } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { CreateRoomDTO } from '../dto/create-room-dto';
@@ -26,7 +20,7 @@ export class RoomService {
   ) {}
 
   async create(createRoomDto: CreateRoomDTO) {
-    const data = await this.datasource.transaction(async (manager) => {
+    return this.datasource.transaction(async (manager) => {
       const existingRoom = await this.findByName(
         this.sanitizedField(createRoomDto.name),
       );
@@ -50,8 +44,6 @@ export class RoomService {
 
       return { ...newRoom, message: sysMsg.ROOM_CREATED_SUCCESSFULLY };
     });
-
-    return data;
   }
 
   async findAll(filters: FilterRoomDTO) {
@@ -59,12 +51,6 @@ export class RoomService {
 
     if (filters.type) {
       filterOptions.type = filters.type;
-    }
-
-    if (filters.isOccupied !== undefined) {
-      filterOptions.current_class = filters.isOccupied
-        ? Not(IsNull())
-        : IsNull();
     }
 
     const order: FindOptionsOrder<Room> = {};
@@ -76,7 +62,7 @@ export class RoomService {
     }
 
     const { payload, paginationMeta } = await this.roomModelAction.list({
-      relations: { current_class: true },
+      relations: { schedules: true },
       filterRecordOptions: { ...filterOptions },
       paginationPayload: {
         page: filters.page,
@@ -93,10 +79,9 @@ export class RoomService {
   }
 
   async update(id: string, updateRoomDto: UpdateRoomDTO) {
-    const data = await this.datasource.transaction(async (manager) => {
-      const existingRoom = await this.findOne(id);
-
-      if (!existingRoom) {
+    return this.datasource.transaction(async (manager) => {
+      const roomEntity = await manager.findOne(Room, { where: { id } });
+      if (!roomEntity) {
         throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
       }
 
@@ -107,7 +92,6 @@ export class RoomService {
 
           if (key === 'name') {
             const duplicate = await this.findByName(sanitizedVal);
-
             if (duplicate && duplicate.id !== id) {
               throw new ConflictException(sysMsg.DUPLICATE_ROOM_NAME);
             }
@@ -115,20 +99,17 @@ export class RoomService {
         }
       }
 
-      Object.assign(existingRoom, updateRoomDto);
+      Object.assign(roomEntity, updateRoomDto);
+      const updatedRoom = await manager.save(Room, roomEntity);
 
-      const updatedRoom = await manager.save(Room, existingRoom);
-
-      return updatedRoom;
+      return { ...updatedRoom, message: sysMsg.ROOM_UPDATED_SUCCESSFULLY };
     });
-
-    return { ...data, message: sysMsg.ROOM_UPDATED_SUCCESSFULLY };
   }
 
   async findOne(id: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { id },
-      relations: { current_class: true },
+      relations: { schedules: true },
     });
 
     if (!room) {
@@ -139,14 +120,17 @@ export class RoomService {
   }
 
   async remove(id: string) {
-    const data = await this.datasource.transaction(async (manager) => {
-      const room = await this.findOne(id);
+    return this.datasource.transaction(async (manager) => {
+      const room = await manager.findOne(Room, {
+        where: { id },
+        relations: ['schedules'],
+      });
 
       if (!room) {
         throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
       }
 
-      if (room.current_class) {
+      if (room.schedules && room.schedules.length > 0) {
         throw new ConflictException(sysMsg.CANNOT_DELETE_OCCUPIED_ROOM);
       }
 
@@ -159,15 +143,12 @@ export class RoomService {
         message: sysMsg.ROOM_DELETED_SUCCESSFULLY,
       };
     });
-
-    return data;
   }
 
   private async findByName(name: string) {
     const room = await this.roomModelAction.get({
       identifierOptions: { name },
     });
-
     return room;
   }
 
