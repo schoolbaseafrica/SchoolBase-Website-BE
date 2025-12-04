@@ -356,6 +356,8 @@ export const INVALID_DATE_RANGE_TIMETABLE =
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
 export const TIMETABLE_INTERNAL_OVERLAP =
   'Timetable contains overlapping schedules.';
+export const TIMETABLE_ROOM_DOUBLE_BOOKED =
+  'Room is already booked for another class at this time';
 
 // Fees messages
 export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';

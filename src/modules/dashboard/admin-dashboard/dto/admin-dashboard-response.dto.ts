@@ -33,6 +33,17 @@ export class ActivityClassDto {
   name: string;
 }
 
+export class RoomDto {
+  @ApiProperty({ example: 'uuid-room-123' })
+  id: string;
+
+  @ApiProperty({ example: 'Room 101' })
+  name: string;
+
+  @ApiProperty({ example: 30 })
+  capacity: number;
+}
+
 export class TodayActivityDto {
   @ApiProperty({ example: 'uuid-schedule-123' })
   schedule_id: string;
@@ -52,8 +63,8 @@ export class TodayActivityDto {
   @ApiProperty({ example: '09:30:00', description: 'End time in HH:MM:SS' })
   end_time: string;
 
-  @ApiProperty({ example: 'Room 101', nullable: true })
-  venue: string | null;
+  @ApiProperty({ type: RoomDto, nullable: true })
+  venue: RoomDto | null;
 
   @ApiProperty({ example: 'ACADEMICS', enum: ['ACADEMICS', 'BREAK'] })
   period_type: string;

@@ -57,6 +57,7 @@ export class TimetableService {
     const schedule = await this.scheduleModelAction.create({
       createPayload: {
         ...dto,
+        room: dto.room_id ? { id: dto.room_id } : null,
         timetable: { id: timetable.id },
       },
       transactionOptions: { useTransaction: false },
@@ -95,6 +96,14 @@ export class TimetableService {
           title: teacher.title,
           first_name: teacher.user.first_name,
           last_name: teacher.user.last_name,
+        };
+      }
+
+      if (schedule.room) {
+        mappedSchedule.room = {
+          id: schedule.room.id,
+          name: schedule.room.name,
+          capacity: schedule.room.capacity,
         };
       }
 

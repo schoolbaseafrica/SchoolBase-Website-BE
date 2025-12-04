@@ -91,6 +91,7 @@ describe('TimetableService', () => {
       expect(scheduleModelAction.create).toHaveBeenCalledWith({
         createPayload: {
           ...addScheduleDto,
+          room: null,
           timetable: { id: mockTimetableId },
         },
         transactionOptions: { useTransaction: false },

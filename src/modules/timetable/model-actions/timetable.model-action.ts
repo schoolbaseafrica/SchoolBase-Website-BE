@@ -20,6 +20,7 @@ export class TimetableModelAction extends AbstractModelAction<Timetable> {
       .leftJoinAndSelect('schedule.subject', 'subject')
       .leftJoinAndSelect('schedule.teacher', 'teacher')
       .leftJoinAndSelect('teacher.user', 'user')
+      .leftJoinAndSelect('schedule.room', 'room')
       .where('timetable.class_id = :classId', { classId })
       .select([
         'timetable.class_id',
@@ -28,13 +29,15 @@ export class TimetableModelAction extends AbstractModelAction<Timetable> {
         'schedule.start_time',
         'schedule.end_time',
         'schedule.period_type',
-        'schedule.room',
         'subject.id',
         'subject.name',
         'teacher.id',
         'teacher.title',
         'user.first_name',
         'user.last_name',
+        'room.id',
+        'room.name',
+        'room.capacity',
       ])
       .getOne();
   }
