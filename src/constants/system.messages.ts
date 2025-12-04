@@ -423,6 +423,22 @@ export const SUPERADMIN_ALREADY_EXISTS =
   'a superadmin account already exists. Only one is allowed.';
 export const SUPERADMIN_ACCOUNT_UPDATED = 'superadmin account updated';
 
+// Attendance messages
+export const ATTENDANCE_MARKED_SUCCESSFULLY = 'Attendance marked successfully';
+export const ATTENDANCE_UPDATED_SUCCESSFULLY =
+  'Attendance updated successfully';
+export const ATTENDANCE_RECORDS_RETRIEVED =
+  'Attendance records retrieved successfully';
+export const ATTENDANCE_NOT_FOUND = 'Attendance record not found';
+export const ATTENDANCE_ALREADY_MARKED = 'Attendance already marked';
+export const ATTENDANCE_FUTURE_DATE_NOT_ALLOWED =
+  'Cannot mark attendance for future dates';
+export const TEACHER_NOT_ASSIGNED_TO_SCHEDULE =
+  'You are not assigned to teach this schedule/period';
+export const STUDENT_NOT_ENROLLED_IN_CLASS =
+  'Student is not enrolled in this class';
+export const SCHEDULE_NOT_FOUND = 'Schedule not found';
+export const ATTENDANCE_CHECK_SUCCESS = 'Attendance check completed';
 // Result messages
 export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>

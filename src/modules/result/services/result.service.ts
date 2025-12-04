@@ -1,3 +1,4 @@
+import { PaginationMeta } from '@hng-sdk/orm';
 import {
   BadRequestException,
   Inject,
@@ -16,7 +17,11 @@ import { ClassModelAction } from '../../class/model-actions/class.actions';
 import { GradeSubmissionStatus } from '../../grade/entities';
 import { GradeModelAction } from '../../grade/model-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
-import { ResultResponseDto, PaginatedClassResultsResponseDto } from '../dto';
+import {
+  ResultResponseDto,
+  PaginatedClassResultsResponseDto,
+  ListResultsQueryDto,
+} from '../dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -32,9 +37,9 @@ export class ResultService {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly resultModelAction: ResultModelAction,
+    private readonly studentModelAction: StudentModelAction,
     private readonly resultSubjectLineModelAction: ResultSubjectLineModelAction,
     private readonly gradeModelAction: GradeModelAction,
-    private readonly studentModelAction: StudentModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly classStudentModelAction: ClassStudentModelAction,
     private readonly termModelAction: TermModelAction,
@@ -45,7 +50,60 @@ export class ResultService {
   }
 
   /**
-   * Generate results for all students in a class for a specific term
+   * Get results for a specific student
+   */
+  async getStudentResults(
+    studentId: string,
+    query: ListResultsQueryDto,
+  ): Promise<{ data: ResultResponseDto[]; meta: Partial<PaginationMeta> }> {
+    // Validate student exists
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+    });
+
+    if (!student || student.is_deleted) {
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const filterOptions: Record<string, string> = {
+      student_id: studentId,
+    };
+
+    if (query.term_id) {
+      filterOptions.term_id = query.term_id;
+    }
+
+    if (query.academic_session_id) {
+      filterOptions.academic_session_id = query.academic_session_id;
+    }
+
+    const page = query.page || 1;
+    const limit = query.limit || 10;
+
+    const results = await this.resultModelAction.list({
+      filterRecordOptions: filterOptions,
+      relations: {
+        student: { user: true },
+        class: true,
+        term: true,
+        academicSession: true,
+        subject_lines: { subject: true },
+      },
+      order: { term: { name: 'ASC' }, createdAt: 'DESC' },
+      paginationPayload: { page, limit },
+    });
+
+    const transformedResults = results.payload.map((result) =>
+      this.transformToResponseDto(result),
+    );
+
+    return {
+      data: transformedResults,
+      meta: results.paginationMeta,
+    };
+  }
+
+  /* Generate results for all students in a class for a specific term
    */
   async generateClassResults(
     classId: string,
