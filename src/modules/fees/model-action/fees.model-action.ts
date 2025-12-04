@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 
 import { QueryFeesDto } from '../dto/fees.dto';
 import { Fees } from '../entities/fees.entity';
+import { FeeStatus } from '../enums/fees.enums';
 
 @Injectable()
 export class FeesModelAction extends AbstractModelAction<Fees> {
@@ -122,5 +123,18 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
       limit,
       totalPages,
     };
+}
+  async getTotalExpectedFees(termId?: string): Promise<number> {
+    const query = this.feeRepository
+      .createQueryBuilder('fee')
+      .select('COALESCE(SUM(fee.amount), 0)', 'total')
+      .where('fee.status = :status', { status: FeeStatus.ACTIVE });
+
+    if (termId) {
+      query.andWhere('fee.term_id = :termId', { termId });
+    }
+
+    const result = await query.getRawOne();
+    return parseFloat(result?.total || '0');
   }
 }

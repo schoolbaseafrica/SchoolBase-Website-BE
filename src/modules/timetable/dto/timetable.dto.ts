@@ -52,12 +52,12 @@ export class CreateScheduleDto {
   teacher_id?: string;
 
   @ApiPropertyOptional({
-    description: 'Room name or number',
-    example: 'Room 101',
+    description: 'Room ID',
+    example: '123e4567-e89b-12d3-a456-426614174000',
   })
-  @IsString()
+  @IsUUID()
   @IsOptional()
-  room?: string;
+  room_id?: string;
 }
 
 export class AddScheduleDto extends CreateScheduleDto {
@@ -156,6 +156,17 @@ export class TeacherResponseDto {
   last_name: string;
 }
 
+export class RoomResponseDto {
+  @ApiProperty({ description: 'Room ID', example: 'uuid-string' })
+  id: string;
+
+  @ApiProperty({ description: 'Room Name', example: 'Room 101' })
+  name: string;
+
+  @ApiProperty({ description: 'Room Capacity', example: 30 })
+  capacity: number;
+}
+
 export class ScheduleResponseDto extends CreateScheduleDto {
   @ApiProperty({
     description: 'The unique identifier of the schedule',
@@ -168,6 +179,9 @@ export class ScheduleResponseDto extends CreateScheduleDto {
 
   @ApiPropertyOptional({ type: TeacherResponseDto })
   teacher?: TeacherResponseDto;
+
+  @ApiPropertyOptional({ type: RoomResponseDto })
+  room?: RoomResponseDto;
 }
 
 export class GetTimetableResponseDto {

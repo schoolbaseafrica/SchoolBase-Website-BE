@@ -5,9 +5,11 @@ import * as sysMsg from '../../../constants/system.messages';
 import { FileService } from '../../shared/file/file.service';
 import { UploadService } from '../../upload/upload.service';
 import { PaymentController } from '../controllers/payment.controller';
+import { DashboardAnalyticsQueryDto } from '../dto/dashboard-analytics.dto';
 import { RecordPaymentDto, PaymentResponseDto } from '../dto/payment.dto';
 import { Payment } from '../entities/payment.entity';
 import { PaymentMethod, PaymentStatus } from '../enums/payment.enums';
+import { DashboardAnalyticsService } from '../services/dashboard-analytics.service';
 import { PaymentService } from '../services/payment.service';
 
 describe('PaymentController', () => {
@@ -15,6 +17,7 @@ describe('PaymentController', () => {
   let paymentService: jest.Mocked<PaymentService>;
   let fileService: jest.Mocked<FileService>;
   let uploadService: jest.Mocked<UploadService>;
+  let dashboardAnalyticsService: jest.Mocked<DashboardAnalyticsService>;
 
   const mockUserId = 'user-uuid-123';
   const mockStudentId = 'student-uuid-456';
@@ -89,6 +92,10 @@ describe('PaymentController', () => {
     uploadPicture: jest.fn(),
   };
 
+  const mockDashboardAnalyticsServiceValue = {
+    getDashboardAnalytics: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PaymentController],
@@ -96,6 +103,10 @@ describe('PaymentController', () => {
         { provide: PaymentService, useValue: mockPaymentServiceValue },
         { provide: FileService, useValue: mockFileServiceValue },
         { provide: UploadService, useValue: mockUploadServiceValue },
+        {
+          provide: DashboardAnalyticsService,
+          useValue: mockDashboardAnalyticsServiceValue,
+        },
       ],
     }).compile();
 
@@ -103,6 +114,7 @@ describe('PaymentController', () => {
     paymentService = module.get(PaymentService);
     fileService = module.get(FileService);
     uploadService = module.get(UploadService);
+    dashboardAnalyticsService = module.get(DashboardAnalyticsService);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -249,6 +261,34 @@ describe('PaymentController', () => {
       await expect(controller.fetchAllPayments({})).rejects.toThrow(
         serviceError,
       );
+    });
+  });
+
+  describe('getDashboardAnalytics', () => {
+    it('should return analytics data successfully', async () => {
+      const mockAnalyticsData = {
+        totals: {
+          total_expected_fees: 1000,
+          total_paid: 500,
+          outstanding_balance: 500,
+          transaction_this_month: 10,
+        },
+        monthly_payments: [],
+      };
+
+      mockDashboardAnalyticsServiceValue.getDashboardAnalytics.mockResolvedValue(
+        mockAnalyticsData,
+      );
+
+      const dto: DashboardAnalyticsQueryDto = { year: 2025 };
+
+      const result = await controller.getDashboardAnalytics(dto);
+
+      expect(
+        dashboardAnalyticsService.getDashboardAnalytics,
+      ).toHaveBeenCalledWith(dto);
+      expect(result.message).toEqual(sysMsg.DASHBOARD_ANALYTICS_FETCHED);
+      expect(result.data).toEqual(mockAnalyticsData);
     });
   });
 });

@@ -29,6 +29,16 @@ export class ScheduleModelAction extends AbstractModelAction<Schedule> {
       .getMany();
   }
 
+  async findRoomSchedules(roomId: string, day: DayOfWeek) {
+    return this.scheduleRepository.find({
+      where: {
+        room: { id: roomId },
+        day,
+      },
+      relations: ['timetable'],
+    });
+  }
+
   async findTeacherSchedules(
     teacherId: string,
     day: DayOfWeek,

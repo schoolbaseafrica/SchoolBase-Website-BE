@@ -11,6 +11,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
+import { IRequestWithUser } from 'src/modules/result/utils/grading.util';
+
 import * as sysMsg from '../../../constants/system.messages';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
@@ -23,17 +25,6 @@ import {
 } from '../docs/grade.swagger';
 import { UpdateGradeDto } from '../dto';
 import { GradeService } from '../services/grade.service';
-
-interface IRequestWithUser extends Request {
-  user: {
-    id: string;
-    userId: string;
-    teacher_id?: string;
-    student_id?: string;
-    parent_id?: string;
-    roles: UserRole[];
-  };
-}
 
 @ApiTags(GradeSwagger.tags[0])
 @Controller('grades')

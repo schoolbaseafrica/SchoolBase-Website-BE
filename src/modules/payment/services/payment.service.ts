@@ -9,12 +9,11 @@ import { PaymentModelAction } from '../model-action/payment.model-action';
 
 import { PaymentValidationService } from './payment-validation.service';
 
-// NEW: Define the mapping from clean public keys to internal database paths
 const SORT_MAPPING: Record<PaymentSortBy, string> = {
   [PaymentSortBy.PAYMENT_DATE]: 'payment.payment_date',
   [PaymentSortBy.AMOUNT]: 'payment.amount_paid',
-  [PaymentSortBy.STUDENT_NAME]: 'user.first_name', // Joins on student.user
-  [PaymentSortBy.FEE_NAME]: 'fee_component.component_name', // Joins on fee_component
+  [PaymentSortBy.STUDENT_NAME]: 'user.first_name',
+  [PaymentSortBy.FEE_NAME]: 'fee_component.component_name',
 };
 
 @Injectable()
@@ -73,7 +72,6 @@ export class PaymentService {
     return { payments: result.payload, total: result.paginationMeta.total };
   }
 
-  // --- PRIVATE HELPER METHOD (Using Model Action Repository Access) ---
   protected async searchPaymentsWithQueryBuilder(
     dto: FetchPaymentsDto,
   ): Promise<{
@@ -96,7 +94,6 @@ export class PaymentService {
 
     const skip = (page - 1) * limit;
 
-    // Access the repository via the private index property, matching the parent service pattern
     const repository = this.paymentModelAction['repository'];
 
     const queryBuilder: SelectQueryBuilder<Payment> = repository
@@ -143,7 +140,6 @@ export class PaymentService {
       queryBuilder.andWhere('payment.status = :status', { status });
     }
 
-    // Search (student name, invoice number, or transaction ID)
     if (search) {
       const formattedSearch = `%${search.toLowerCase()}%`;
       queryBuilder.andWhere(
@@ -152,7 +148,6 @@ export class PaymentService {
       );
     }
 
-    // Get Total Count (must be done before limit/offset)
     const total = await queryBuilder.getCount();
 
     const payload = await queryBuilder.skip(skip).take(limit).getMany();

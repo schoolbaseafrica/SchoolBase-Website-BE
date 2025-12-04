@@ -1,5 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 
+import * as sysMessage from '../../../constants/system.messages';
 import { AddScheduleDto, GetTimetableResponseDto } from '../dto/timetable.dto';
 
 export const TimetableSwagger = {
@@ -56,6 +57,27 @@ export const TimetableSwagger = {
         },
         notFound: {
           status: HttpStatus.NOT_FOUND,
+          description: 'Timetable not found.',
+        },
+      },
+    },
+
+    findAll: {
+      operation: {
+        summary: 'Student time table',
+        description:
+          'all timetables, with support for pagination and optional filtering by day.',
+      },
+      responses: {
+        ok: {
+          status: HttpStatus.OK,
+          message: sysMessage.OPERATION_SUCCESSFUL,
+          description: 'Returns a paginated list of all timetables.',
+          type: GetTimetableResponseDto,
+        },
+        notFound: {
+          status: HttpStatus.NOT_FOUND,
+          message: sysMessage.OPERATION_FAILED,
           description: 'Timetable not found.',
         },
       },

@@ -12,9 +12,12 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  Request,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
 
 import * as sysMsg from '../../constants/system.messages';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -28,9 +31,22 @@ import {
   ApiListParents,
   ApiUpdateParent,
   ApiDeleteParent,
+  ApiLinkStudents,
+  ApiGetLinkedStudents,
+  ApiGetStudentSubjects,
+  ApiGetMyStudents,
+  ApiUnlinkStudent,
 } from './docs/parent.swagger';
-import { CreateParentDto, ParentResponseDto, UpdateParentDto } from './dto';
-import { ParentService } from './parent.service';
+import {
+  CreateParentDto,
+  LinkStudentsDto,
+  ParentResponseDto,
+  StudentSubjectResponseDto,
+  UpdateParentDto,
+  ParentStudentLinkResponseDto,
+  StudentBasicDto,
+} from './dto';
+import { ParentService, IUserPayload } from './parent.service';
 
 @Controller('parents')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -53,6 +69,25 @@ export class ParentController {
     return {
       message: sysMsg.PARENT_CREATED,
       status_code: HttpStatus.CREATED,
+      data,
+    };
+  }
+
+  // --- GET: GET MY LINKED STUDENTS (PARENT ONLY) ---
+  @Get('my-students')
+  @Roles(UserRole.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetMyStudents()
+  async getMyStudents(@Request() req): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentBasicDto[];
+  }> {
+    const parentId = req.user.parent_id;
+    const data = await this.parentService.getLinkedStudents(parentId);
+    return {
+      message: sysMsg.PARENT_STUDENTS_FETCHED,
+      status_code: HttpStatus.OK,
       data,
     };
   }
@@ -136,6 +171,89 @@ export class ParentController {
     return {
       message: sysMsg.PARENT_DELETED,
       status_code: HttpStatus.OK,
+    };
+  }
+
+  // --- GET: VIEW CHILD'S SUBJECTS AND TEACHERS (PARENT OR ADMIN) ---
+  @Get('children/:studentId/subjects')
+  @Roles(UserRole.PARENT, UserRole.ADMIN)
+  @ApiOperation({ summary: "View child's subjects and teachers" })
+  @ApiGetStudentSubjects()
+  async getStudentSubjects(
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+    @CurrentUser() user: IUserPayload,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentSubjectResponseDto[];
+  }> {
+    const data = await this.parentService.getStudentSubjects(studentId, user);
+    return {
+      message: sysMsg.SUBJECTS_RETRIEVED,
+      status_code: HttpStatus.OK,
+      data,
+    };
+  }
+  // --- POST: LINK STUDENTS TO PARENT (ADMIN ONLY) ---
+  @Post(':parentId/link-students')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiLinkStudents()
+  async linkStudents(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Body() linkDto: LinkStudentsDto,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: ParentStudentLinkResponseDto;
+  }> {
+    const data = await this.parentService.linkStudentsToParent(
+      parentId,
+      linkDto,
+    );
+    return {
+      message: sysMsg.STUDENTS_LINKED_TO_PARENT,
+      status_code: HttpStatus.CREATED,
+      data,
+    };
+  }
+
+  // --- DELETE: UNLINK STUDENT FROM PARENT (ADMIN ONLY) ---
+  @Delete(':parentId/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUnlinkStudent()
+  async unlinkStudent(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+  }> {
+    await this.parentService.unlinkStudentFromParent(parentId, studentId);
+    return {
+      message: sysMsg.STUDENT_UNLINKED_FROM_PARENT,
+      status_code: HttpStatus.OK,
+    };
+  }
+
+  // --- GET: GET LINKED STUDENTS FOR PARENT (ADMIN ONLY) ---
+  @Get('admin/:parentId/students')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLinkedStudents()
+  async getLinkedStudents(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentBasicDto[];
+  }> {
+    const data = await this.parentService.getLinkedStudents(parentId);
+    return {
+      message: sysMsg.PARENT_STUDENTS_FETCHED,
+      status_code: HttpStatus.OK,
+      data,
     };
   }
 }

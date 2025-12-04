@@ -12,6 +12,7 @@ import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Class } from '../../class/entities/class.entity';
+import { Room } from '../../room/entities/room.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import {
@@ -33,6 +34,8 @@ export class TimetableValidationService {
     private readonly subjectRepository: Repository<Subject>,
     @InjectRepository(Teacher)
     private readonly teacherRepository: Repository<Teacher>,
+    @InjectRepository(Room)
+    private readonly roomRepository: Repository<Room>,
     private readonly scheduleModelAction: ScheduleModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
@@ -64,6 +67,16 @@ export class TimetableValidationService {
     if (dto.teacher_id) {
       await this.validateTeacherDoubleBooking(
         dto.teacher_id,
+        dto.day,
+        dto.start_time,
+        dto.end_time,
+      );
+    }
+
+    // Validate room double-booking (if room is assigned)
+    if (dto.room_id) {
+      await this.validateRoomDoubleBooking(
+        dto.room_id,
         dto.day,
         dto.start_time,
         dto.end_time,
@@ -180,6 +193,17 @@ export class TimetableValidationService {
             excludeTimetableId,
           );
         }
+
+        // Validate room double-booking (if room is assigned)
+        if (schedule.room_id) {
+          await this.validateRoomDoubleBooking(
+            schedule.room_id,
+            schedule.day,
+            schedule.start_time,
+            schedule.end_time,
+            excludeTimetableId,
+          );
+        }
       }
     }
   }
@@ -231,6 +255,18 @@ export class TimetableValidationService {
             teacher_id: schedule.teacher_id,
           });
           throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+        }
+      }
+
+      if (schedule.room_id) {
+        const room = await this.roomRepository.findOne({
+          where: { id: schedule.room_id },
+        });
+        if (!room) {
+          this.logger.warn('Room not found', {
+            room_id: schedule.room_id,
+          });
+          throw new NotFoundException(sysMsg.ROOM_NOT_FOUND);
         }
       }
     }
@@ -345,6 +381,45 @@ export class TimetableValidationService {
           existingEndTime: existing.end_time,
         });
         throw new ConflictException(sysMsg.TIMETABLE_TEACHER_DOUBLE_BOOKED);
+      }
+    }
+  }
+
+  private async validateRoomDoubleBooking(
+    roomId: string,
+    day: DayOfWeek,
+    startTime: string,
+    endTime: string,
+    excludeTimetableId?: string,
+  ): Promise<void> {
+    const existingSchedules = await this.scheduleModelAction.findRoomSchedules(
+      roomId,
+      day,
+    );
+
+    for (const existing of existingSchedules) {
+      if (excludeTimetableId && existing.timetable.id === excludeTimetableId) {
+        continue;
+      }
+
+      if (
+        this.isTimeOverlapping(
+          startTime,
+          endTime,
+          existing.start_time,
+          existing.end_time,
+        )
+      ) {
+        this.logger.warn('Room double-booking detected', {
+          roomId,
+          day,
+          existingScheduleId: existing.id,
+          newStartTime: startTime,
+          newEndTime: endTime,
+          existingStartTime: existing.start_time,
+          existingEndTime: existing.end_time,
+        });
+        throw new ConflictException(sysMsg.TIMETABLE_ROOM_DOUBLE_BOOKED);
       }
     }
   }

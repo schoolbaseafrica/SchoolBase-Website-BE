@@ -1,4 +1,4 @@
-import { applyDecorators } from '@nestjs/common';
+import { applyDecorators, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -9,7 +9,22 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 
-import { CreateParentDto, ParentResponseDto, UpdateParentDto } from '../dto';
+import {
+  CreateParentDto,
+  LinkStudentsDto,
+  ParentResponseDto,
+  ParentStudentLinkResponseDto,
+  UpdateParentDto,
+  StudentSubjectResponseDto,
+} from '../dto';
+
+const GLOBAL_STATUS_CODES = {
+  OK: HttpStatus.OK,
+  CREATED: HttpStatus.CREATED,
+  UNAUTHORIZED: HttpStatus.UNAUTHORIZED,
+  FORBIDDEN: HttpStatus.FORBIDDEN,
+  CONFLICT: HttpStatus.CONFLICT,
+};
 
 /**
  * Swagger decorators for Parent endpoints
@@ -26,12 +41,12 @@ export const ApiCreateParent = () =>
     ApiOperation({ summary: 'Create a new parent (ADMIN only)' }),
     ApiBody({ type: CreateParentDto }),
     ApiResponse({
-      status: 201,
+      status: GLOBAL_STATUS_CODES.CREATED,
       description: 'Parent created successfully',
       type: ParentResponseDto,
     }),
     ApiResponse({
-      status: 409,
+      status: GLOBAL_STATUS_CODES.CONFLICT,
       description: 'Email already exists',
     }),
   );
@@ -49,12 +64,12 @@ export const ApiGetParent = () =>
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parent retrieved successfully',
       type: ParentResponseDto,
     }),
     ApiResponse({
-      status: 404,
+      status: HttpStatus.NOT_FOUND,
       description: 'Parent not found',
     }),
   );
@@ -91,7 +106,7 @@ export const ApiListParents = () =>
       example: 'John',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parents retrieved successfully',
       schema: {
         type: 'object',
@@ -102,7 +117,7 @@ export const ApiListParents = () =>
           },
           status_code: {
             type: 'number',
-            example: 200,
+            example: GLOBAL_STATUS_CODES.OK,
           },
           data: {
             type: 'array',
@@ -136,13 +151,16 @@ export const ApiUpdateParent = () =>
     }),
     ApiBody({ type: UpdateParentDto }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parent updated successfully',
       type: ParentResponseDto,
     }),
-    ApiResponse({ status: 404, description: 'Parent not found' }),
     ApiResponse({
-      status: 409,
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent not found',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.CONFLICT,
       description: 'Email already exists for another user',
     }),
   );
@@ -164,7 +182,7 @@ export const ApiDeleteParent = () =>
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parent deleted successfully',
       schema: {
         type: 'object',
@@ -175,10 +193,233 @@ export const ApiDeleteParent = () =>
           },
           status_code: {
             type: 'number',
+            example: GLOBAL_STATUS_CODES.OK,
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent not found',
+    }),
+  );
+
+/**
+ * Swagger decorators for Link Students to Parent endpoint
+ */
+export const ApiLinkStudents = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Link one or more students to a parent (ADMIN only)',
+      description:
+        'Links students to a parent by updating the parent_id field in the student records. This operation is performed in a transaction to ensure data integrity.',
+    }),
+    ApiParam({
+      name: 'parentId',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiBody({ type: LinkStudentsDto }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.CREATED,
+      description: 'Students successfully linked to parent',
+      type: ParentStudentLinkResponseDto,
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent or student not found',
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
+      description: 'Invalid student IDs provided',
+    }),
+  );
+
+/**
+ * Swagger decorators for Get Linked Students endpoint
+ */
+export const ApiGetLinkedStudents = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get linked students for a parent (ADMIN only)',
+      description:
+        'Retrieves basic information for all students linked to a specific parent. Returns only non-deleted students.',
+    }),
+    ApiParam({
+      name: 'parentId',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.OK,
+      description: 'Linked students retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Parent students fetched successfully',
+          },
+          status_code: {
+            type: 'number',
+            example: GLOBAL_STATUS_CODES.OK,
+          },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                registration_number: { type: 'string' },
+                first_name: { type: 'string' },
+                last_name: { type: 'string' },
+                middle_name: { type: 'string' },
+                full_name: { type: 'string' },
+                photo_url: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent not found',
+    }),
+  );
+
+/**
+ * Swagger decorators for Get Student Subjects endpoint
+ */
+export const ApiGetStudentSubjects = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: "View child's subjects and teachers",
+      description:
+        "Retrieves all subjects and associated teachers for a student. Parents can only view their own children's subjects.",
+    }),
+    ApiParam({
+      name: 'studentId',
+      description: 'Student ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.OK,
+      description: 'Subjects retrieved successfully',
+      type: StudentSubjectResponseDto,
+      isArray: true,
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.UNAUTHORIZED,
+      description: 'Unauthorized',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.FORBIDDEN,
+      description: 'Forbidden - Parent accessing non-child student',
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Student or Parent profile not found',
+    }),
+  );
+
+/**
+ * Swagger decorators for Get My Students endpoint (Parent Portal)
+ */
+export const ApiGetMyStudents = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get my linked students (PARENT only)',
+      description:
+        'Retrieves basic information for all students linked to the authenticated parent. Returns only non-deleted students.',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Linked students retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Parent students fetched successfully',
+          },
+          status_code: {
+            type: 'number',
             example: 200,
+          },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                registration_number: { type: 'string' },
+                first_name: { type: 'string' },
+                last_name: { type: 'string' },
+                middle_name: { type: 'string' },
+                full_name: { type: 'string' },
+                photo_url: { type: 'string' },
+              },
+            },
           },
         },
       },
     }),
     ApiResponse({ status: 404, description: 'Parent not found' }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+  );
+
+/**
+ * Swagger decorators for Unlink Student endpoint
+ */
+export const ApiUnlinkStudent = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Unlink a student from a parent (ADMIN only)',
+      description: 'Removes the link between a student and a parent.',
+    }),
+    ApiParam({
+      name: 'parentId',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiParam({
+      name: 'studentId',
+      description: 'Student ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174001',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Student unlinked successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Student successfully unlinked from parent',
+          },
+          status_code: {
+            type: 'number',
+            example: 200,
+          },
+        },
+      },
+    }),
+    ApiResponse({ status: 404, description: 'Parent or Student not found' }),
+    ApiResponse({
+      status: 400,
+      description: 'Student is not linked to this parent',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
   );

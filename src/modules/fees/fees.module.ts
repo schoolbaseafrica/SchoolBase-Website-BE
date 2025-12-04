@@ -16,6 +16,12 @@ import { FeesModelAction } from './model-action/fees.model-action';
   imports: [TypeOrmModule.forFeature([Fees, Class, Term, FeeAssignment])],
   controllers: [FeesController],
   providers: [FeesService, FeesModelAction, TermModelAction, ClassModelAction],
-  exports: [FeesService, FeesModelAction, TermModelAction, ClassModelAction],
+  exports: [
+    FeesService,
+    FeesModelAction,
+    TermModelAction,
+    ClassModelAction,
+    TypeOrmModule,
+  ],
 })
 export class FeesModule {}
