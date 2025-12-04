@@ -12,6 +12,7 @@ import {
   HttpCode,
   HttpStatus,
   ParseUUIDPipe,
+  Request,
 } from '@nestjs/common';
 
 import * as sysMsg from '../../constants/system.messages';
@@ -30,6 +31,7 @@ import {
   ApiDeleteParent,
   ApiLinkStudents,
   ApiGetLinkedStudents,
+  ApiGetMyStudents,
 } from './docs/parent.swagger';
 import {
   CreateParentDto,
@@ -62,6 +64,25 @@ export class ParentController {
     return {
       message: sysMsg.PARENT_CREATED,
       status_code: HttpStatus.CREATED,
+      data,
+    };
+  }
+
+  // --- GET: GET MY LINKED STUDENTS (PARENT ONLY) ---
+  @Get('my-students')
+  @Roles(UserRole.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetMyStudents()
+  async getMyStudents(@Request() req): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentBasicDto[];
+  }> {
+    const parentId = req.user.parent_id;
+    const data = await this.parentService.getLinkedStudents(parentId);
+    return {
+      message: sysMsg.PARENT_STUDENTS_FETCHED,
+      status_code: HttpStatus.OK,
       data,
     };
   }
