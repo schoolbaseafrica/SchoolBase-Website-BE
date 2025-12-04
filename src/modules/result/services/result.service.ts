@@ -17,7 +17,11 @@ import { ClassModelAction } from '../../class/model-actions/class.actions';
 import { GradeSubmissionStatus } from '../../grade/entities';
 import { GradeModelAction } from '../../grade/model-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
-import { ListResultsQueryDto, ResultResponseDto } from '../dto';
+import {
+  ResultResponseDto,
+  PaginatedClassResultsResponseDto,
+  ListResultsQueryDto,
+} from '../dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -566,6 +570,109 @@ export class ResultService {
       generated_at: result.generated_at,
       created_at: result.createdAt,
       updated_at: result.updatedAt,
+    };
+  }
+
+  /**
+   * Get class results for a specific term
+   */
+  async getClassResults(
+    classId: string,
+    termId: string,
+    academicSessionId?: string,
+    page = 1,
+    limit = 20,
+  ): Promise<PaginatedClassResultsResponseDto> {
+    // Validate class
+    const classEntity = await this.classModelAction.get({
+      identifierOptions: { id: classId },
+      relations: { academicSession: true },
+    });
+
+    if (!classEntity || classEntity.is_deleted) {
+      throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
+    }
+
+    const sessionId = academicSessionId || classEntity.academicSession.id;
+
+    // Validate term
+    const term = await this.termModelAction.get({
+      identifierOptions: { id: termId },
+    });
+
+    if (!term) {
+      throw new NotFoundException(sysMsg.TERM_NOT_FOUND);
+    }
+
+    // Fetch paginated results and statistics in parallel
+    const [results, statsQuery] = await Promise.all([
+      this.resultModelAction.list({
+        filterRecordOptions: {
+          class_id: classId,
+          term_id: termId,
+          academic_session_id: sessionId,
+        },
+        relations: {
+          student: { user: true },
+          class: true,
+          term: true,
+          academicSession: true,
+          subject_lines: { subject: true },
+        },
+        order: { position: 'ASC', average_score: 'DESC' },
+        paginationPayload: { page, limit },
+      }),
+      // Calculate statistics across ALL results, not just current page
+      this.dataSource
+        .getRepository(Result)
+        .createQueryBuilder('result')
+        .select('MAX(result.average_score)', 'highest_score')
+        .addSelect('MIN(result.average_score)', 'lowest_score')
+        .addSelect('AVG(result.average_score)', 'class_average')
+        .addSelect('COUNT(result.id)', 'total_students')
+        .where('result.class_id = :classId', { classId })
+        .andWhere('result.term_id = :termId', { termId })
+        .andWhere('result.academic_session_id = :sessionId', { sessionId })
+        .getRawOne(),
+    ]);
+
+    const transformedResults = results.payload.map((result) =>
+      this.transformToResponseDto(result),
+    );
+
+    // Use aggregated statistics from the entire dataset
+    const classStatistics =
+      statsQuery && statsQuery.total_students > 0
+        ? {
+            highest_score: statsQuery.highest_score
+              ? Number(statsQuery.highest_score)
+              : null,
+            lowest_score: statsQuery.lowest_score
+              ? Number(statsQuery.lowest_score)
+              : null,
+            class_average: statsQuery.class_average
+              ? Number(statsQuery.class_average)
+              : null,
+            total_students: Number(statsQuery.total_students),
+          }
+        : null;
+
+    const paginationMeta = {
+      total: results.paginationMeta?.total ?? 0,
+      page: results.paginationMeta?.page ?? page,
+      limit: results.paginationMeta?.limit ?? limit,
+      total_pages: results.paginationMeta?.total_pages ?? 0,
+      has_next: results.paginationMeta?.has_next ?? false,
+      has_previous: results.paginationMeta?.has_previous ?? false,
+    };
+
+    return {
+      message: sysMsg.RESULTS_RETRIEVED_SUCCESS,
+      data: {
+        results: transformedResults,
+        class_statistics: classStatistics,
+      },
+      pagination: paginationMeta,
     };
   }
 }

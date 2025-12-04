@@ -54,6 +54,14 @@ describe('ResultService', () => {
     },
   };
 
+  const mockQueryBuilder = {
+    select: jest.fn().mockReturnThis(),
+    addSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
+    getRawOne: jest.fn(),
+  };
+
   const mockUser = {
     id: 'user1',
     first_name: 'John',
@@ -235,6 +243,9 @@ describe('ResultService', () => {
           provide: DataSource,
           useValue: {
             createQueryRunner: jest.fn().mockReturnValue(mockQueryRunner),
+            getRepository: jest.fn().mockReturnValue({
+              createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+            }),
           },
         },
       ],
@@ -366,6 +377,278 @@ describe('ResultService', () => {
       await expect(
         service.generateClassResults(classId, termId, sessionId),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('getClassResults', () => {
+    it('should return class results with statistics and pagination', async () => {
+      const classId = 'class-uuid-123';
+      const termId = 'term-uuid-123';
+      const sessionId = 'session-uuid-123';
+
+      const mockClass = {
+        id: classId,
+        is_deleted: false,
+        academicSession: { id: sessionId },
+      };
+
+      const mockTerm = {
+        id: termId,
+        name: 'FIRST',
+      };
+
+      const mockResults = {
+        payload: [
+          {
+            id: 'result-uuid-1',
+            student_id: 'student-uuid-1',
+            class_id: classId,
+            term_id: termId,
+            academic_session_id: sessionId,
+            total_score: 450,
+            average_score: 75,
+            grade_letter: 'B',
+            position: 1,
+            remark: 'Very Good',
+            subject_count: 6,
+            generated_at: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            student: {
+              id: 'student-uuid-1',
+              registration_number: 'STU001',
+              user: {
+                first_name: 'John',
+                last_name: 'Doe',
+              },
+            },
+            class: {
+              id: classId,
+              name: 'SS1',
+              arm: 'A',
+            },
+            term: {
+              id: termId,
+              name: 'FIRST',
+            },
+            academicSession: {
+              id: sessionId,
+              name: '2024/2025',
+              academicYear: '2024/2025',
+            },
+            subject_lines: [],
+          },
+        ],
+        paginationMeta: {
+          total: 1,
+          page: 1,
+          limit: 20,
+          total_pages: 1,
+          has_next: false,
+          has_previous: false,
+        },
+      };
+
+      classModelAction.get.mockResolvedValue(mockClass as unknown as Class);
+      termModelAction.get.mockResolvedValue(
+        mockTerm as unknown as Awaited<ReturnType<typeof termModelAction.get>>,
+      );
+      resultModelAction.list.mockResolvedValue(
+        mockResults as unknown as Awaited<
+          ReturnType<typeof resultModelAction.list>
+        >,
+      );
+
+      // Mock the statistics query
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        highest_score: 75,
+        lowest_score: 75,
+        class_average: 75,
+        total_students: 1,
+      });
+
+      const result = await service.getClassResults(
+        classId,
+        termId,
+        sessionId,
+        1,
+        20,
+      );
+
+      expect(result).toBeDefined();
+      expect(result.message).toBe('Results retrieved successfully');
+      expect(result.data.results).toHaveLength(1);
+      expect(result.data.class_statistics).toBeDefined();
+      expect(result.data.class_statistics.total_students).toBe(1);
+      expect(result.data.class_statistics.highest_score).toBe(75);
+      expect(result.data.class_statistics.lowest_score).toBe(75);
+      expect(result.data.class_statistics.class_average).toBe(75);
+      expect(result.pagination).toBeDefined();
+      expect(result.pagination.total).toBe(1);
+      expect(result.pagination.page).toBe(1);
+      expect(result.pagination.limit).toBe(20);
+      expect(classModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: classId },
+        relations: { academicSession: true },
+      });
+      expect(termModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: termId },
+      });
+      expect(resultModelAction.list).toHaveBeenCalledWith({
+        filterRecordOptions: {
+          class_id: classId,
+          term_id: termId,
+          academic_session_id: sessionId,
+        },
+        relations: {
+          student: { user: true },
+          class: true,
+          term: true,
+          academicSession: true,
+          subject_lines: { subject: true },
+        },
+        order: { position: 'ASC', average_score: 'DESC' },
+        paginationPayload: { page: 1, limit: 20 },
+      });
+    });
+
+    it('should throw NotFoundException when class does not exist', async () => {
+      const classId = 'class-uuid-123';
+      const termId = 'term-uuid-123';
+
+      classModelAction.get.mockResolvedValue(null);
+
+      await expect(service.getClassResults(classId, termId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw NotFoundException when class is deleted', async () => {
+      const classId = 'class-uuid-123';
+      const termId = 'term-uuid-123';
+
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        is_deleted: true,
+        academicSession: { id: 'session-uuid-123' },
+      } as unknown as Class);
+
+      await expect(service.getClassResults(classId, termId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw NotFoundException when term does not exist', async () => {
+      const classId = 'class-uuid-123';
+      const termId = 'term-uuid-123';
+      const sessionId = 'session-uuid-123';
+
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        is_deleted: false,
+        academicSession: { id: sessionId },
+      } as unknown as Class);
+
+      termModelAction.get.mockResolvedValue(null);
+
+      await expect(service.getClassResults(classId, termId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should use class academic session when academicSessionId not provided', async () => {
+      const classId = 'class-uuid-123';
+      const termId = 'term-uuid-123';
+      const sessionId = 'session-uuid-123';
+
+      const mockClass = {
+        id: classId,
+        is_deleted: false,
+        academicSession: { id: sessionId },
+      };
+
+      const mockTerm = {
+        id: termId,
+        name: 'FIRST',
+      };
+
+      classModelAction.get.mockResolvedValue(mockClass as unknown as Class);
+      termModelAction.get.mockResolvedValue(
+        mockTerm as unknown as Awaited<ReturnType<typeof termModelAction.get>>,
+      );
+      resultModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        },
+      } as unknown as Awaited<ReturnType<typeof resultModelAction.list>>);
+
+      // Mock empty statistics query
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        highest_score: null,
+        lowest_score: null,
+        class_average: null,
+        total_students: 0,
+      });
+
+      await service.getClassResults(classId, termId);
+
+      expect(resultModelAction.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterRecordOptions: expect.objectContaining({
+            academic_session_id: sessionId,
+          }),
+          paginationPayload: { page: 1, limit: 20 },
+        }),
+      );
+    });
+
+    it('should return empty results with null statistics when no results found', async () => {
+      const classId = 'class-uuid-123';
+      const termId = 'term-uuid-123';
+      const sessionId = 'session-uuid-123';
+
+      classModelAction.get.mockResolvedValue({
+        id: classId,
+        is_deleted: false,
+        academicSession: { id: sessionId },
+      } as unknown as Class);
+
+      termModelAction.get.mockResolvedValue({
+        id: termId,
+        name: 'FIRST',
+      } as unknown as Awaited<ReturnType<typeof termModelAction.get>>);
+
+      resultModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        },
+      } as unknown as Awaited<ReturnType<typeof resultModelAction.list>>);
+
+      // Mock empty statistics query
+      mockQueryBuilder.getRawOne.mockResolvedValue({
+        highest_score: null,
+        lowest_score: null,
+        class_average: null,
+        total_students: 0,
+      });
+
+      const result = await service.getClassResults(classId, termId, sessionId);
+
+      expect(result.data.results).toHaveLength(0);
+      expect(result.data.class_statistics).toBeNull();
+      expect(result.pagination.total).toBe(0);
     });
   });
 
