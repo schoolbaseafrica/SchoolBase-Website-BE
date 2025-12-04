@@ -38,7 +38,6 @@ export class FetchPaymentsDto {
   @IsOptional()
   limit?: number = 10;
 
-  // The type remains PaymentSortBy, which now uses clean strings
   @IsEnum(PaymentSortBy)
   @IsOptional()
   sort_by?: PaymentSortBy = PaymentSortBy.PAYMENT_DATE;

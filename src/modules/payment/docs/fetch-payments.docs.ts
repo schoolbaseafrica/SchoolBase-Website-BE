@@ -80,7 +80,6 @@ export function fetchAllPaymentsDoc() {
             type: 'string',
             example: 'Fee payments retrieved successfully.',
           },
-          // FIX APPLIED: Flattened the response structure here
           payments: {
             type: 'array',
             items: { $ref: '#/components/schemas/PaymentResponseDto' },

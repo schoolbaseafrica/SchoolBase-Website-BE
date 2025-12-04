@@ -86,7 +86,6 @@ export class PaymentController {
     };
   }
 
-  // --- NEW ENDPOINT FOR TICKET FEE-BE-006 ---
   @Get()
   @Roles(UserRole.ADMIN)
   @fetchAllPaymentsDoc()
@@ -94,7 +93,6 @@ export class PaymentController {
   async fetchAllPayments(@Query() dto: FetchPaymentsDto) {
     const { payments, total } = await this.paymentService.fetchAllPayments(dto);
 
-    // Apply DTO transformation for outgoing response
     const response = payments.map((payment) =>
       plainToInstance(PaymentResponseDto, payment, {
         excludeExtraneousValues: true,

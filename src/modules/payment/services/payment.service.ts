@@ -65,7 +65,6 @@ export class PaymentService {
     return `${prefix}/${random}/${timestamp}`;
   }
 
-  // --- PUBLIC METHOD FOR TICKET FEE-BE-006 ---
   async fetchAllPayments(
     dto: FetchPaymentsDto,
   ): Promise<{ payments: Payment[]; total: number }> {
@@ -158,7 +157,6 @@ export class PaymentService {
 
     const payload = await queryBuilder.skip(skip).take(limit).getMany();
 
-    // FIXED: Changed 'totalPages' to 'total_pages'
     const paginationMeta: Partial<PaginationMeta> = {
       total,
       page,

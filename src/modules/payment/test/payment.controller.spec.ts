@@ -190,7 +190,6 @@ describe('PaymentController', () => {
     });
   });
 
-  // --- NEW TEST SUITE FOR TICKET FEE-BE-006 (FIXED ASSERTIONS) ---
   describe('fetchAllPayments', () => {
     it('should fetch all payments with default pagination and return 200 OK', async () => {
       mockPaymentServiceValue.fetchAllPayments.mockResolvedValue(
@@ -203,7 +202,6 @@ describe('PaymentController', () => {
 
       expect(paymentService.fetchAllPayments).toHaveBeenCalledWith(defaultDto);
 
-      // FIX: Assertions check the flat structure directly
       expect(result.status_code).toEqual(HttpStatus.OK);
       expect(result.message).toEqual(sysMsg.PAYMENTS_FETCHED_SUCCESSFULLY);
       expect(result.total).toEqual(2);
@@ -229,7 +227,6 @@ describe('PaymentController', () => {
       expect(paymentService.fetchAllPayments).toHaveBeenCalledWith(
         expect.objectContaining(filteredDto),
       );
-      // FIX: Assertion checks the flat structure
       expect(result.total).toEqual(1);
     });
 
@@ -241,7 +238,6 @@ describe('PaymentController', () => {
 
       const result = await controller.fetchAllPayments({});
 
-      // FIX: Assertions check the flat structure
       expect(result.total).toEqual(0);
       expect(result.payments.length).toEqual(0);
     });
