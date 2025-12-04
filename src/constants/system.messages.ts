@@ -277,6 +277,10 @@ export const STUDENT_NOT_LINKED_TO_PARENT =
   'Student is not linked to this parent';
 export const STUDENT_ACADEMIC_PROFILE_FETCHED =
   'Student academic profile fetched successfully';
+export const PARENT_PROFILE_NOT_FOUND =
+  'Parent profile not found for this user';
+export const STUDENT_NOT_BELONG_TO_PARENT =
+  'Student not found or does not belong to this parent';
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';

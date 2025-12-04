@@ -1,4 +1,4 @@
-import { applyDecorators } from '@nestjs/common';
+import { applyDecorators, HttpStatus } from '@nestjs/common';
 import {
   ApiTags,
   ApiBearerAuth,
@@ -15,7 +15,16 @@ import {
   ParentResponseDto,
   ParentStudentLinkResponseDto,
   UpdateParentDto,
+  StudentSubjectResponseDto,
 } from '../dto';
+
+const GLOBAL_STATUS_CODES = {
+  OK: HttpStatus.OK,
+  CREATED: HttpStatus.CREATED,
+  UNAUTHORIZED: HttpStatus.UNAUTHORIZED,
+  FORBIDDEN: HttpStatus.FORBIDDEN,
+  CONFLICT: HttpStatus.CONFLICT,
+};
 
 /**
  * Swagger decorators for Parent endpoints
@@ -32,12 +41,12 @@ export const ApiCreateParent = () =>
     ApiOperation({ summary: 'Create a new parent (ADMIN only)' }),
     ApiBody({ type: CreateParentDto }),
     ApiResponse({
-      status: 201,
+      status: GLOBAL_STATUS_CODES.CREATED,
       description: 'Parent created successfully',
       type: ParentResponseDto,
     }),
     ApiResponse({
-      status: 409,
+      status: GLOBAL_STATUS_CODES.CONFLICT,
       description: 'Email already exists',
     }),
   );
@@ -55,12 +64,12 @@ export const ApiGetParent = () =>
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parent retrieved successfully',
       type: ParentResponseDto,
     }),
     ApiResponse({
-      status: 404,
+      status: HttpStatus.NOT_FOUND,
       description: 'Parent not found',
     }),
   );
@@ -97,7 +106,7 @@ export const ApiListParents = () =>
       example: 'John',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parents retrieved successfully',
       schema: {
         type: 'object',
@@ -108,7 +117,7 @@ export const ApiListParents = () =>
           },
           status_code: {
             type: 'number',
-            example: 200,
+            example: GLOBAL_STATUS_CODES.OK,
           },
           data: {
             type: 'array',
@@ -142,13 +151,16 @@ export const ApiUpdateParent = () =>
     }),
     ApiBody({ type: UpdateParentDto }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parent updated successfully',
       type: ParentResponseDto,
     }),
-    ApiResponse({ status: 404, description: 'Parent not found' }),
     ApiResponse({
-      status: 409,
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent not found',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.CONFLICT,
       description: 'Email already exists for another user',
     }),
   );
@@ -170,7 +182,7 @@ export const ApiDeleteParent = () =>
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Parent deleted successfully',
       schema: {
         type: 'object',
@@ -181,12 +193,15 @@ export const ApiDeleteParent = () =>
           },
           status_code: {
             type: 'number',
-            example: 200,
+            example: GLOBAL_STATUS_CODES.OK,
           },
         },
       },
     }),
-    ApiResponse({ status: 404, description: 'Parent not found' }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent not found',
+    }),
   );
 
 /**
@@ -207,13 +222,16 @@ export const ApiLinkStudents = () =>
     }),
     ApiBody({ type: LinkStudentsDto }),
     ApiResponse({
-      status: 201,
+      status: GLOBAL_STATUS_CODES.CREATED,
       description: 'Students successfully linked to parent',
       type: ParentStudentLinkResponseDto,
     }),
-    ApiResponse({ status: 404, description: 'Parent or student not found' }),
     ApiResponse({
-      status: 400,
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent or student not found',
+    }),
+    ApiResponse({
+      status: HttpStatus.BAD_REQUEST,
       description: 'Invalid student IDs provided',
     }),
   );
@@ -235,7 +253,7 @@ export const ApiGetLinkedStudents = () =>
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiResponse({
-      status: 200,
+      status: GLOBAL_STATUS_CODES.OK,
       description: 'Linked students retrieved successfully',
       schema: {
         type: 'object',
@@ -246,7 +264,7 @@ export const ApiGetLinkedStudents = () =>
           },
           status_code: {
             type: 'number',
-            example: 200,
+            example: GLOBAL_STATUS_CODES.OK,
           },
           data: {
             type: 'array',
@@ -266,7 +284,46 @@ export const ApiGetLinkedStudents = () =>
         },
       },
     }),
-    ApiResponse({ status: 404, description: 'Parent not found' }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Parent not found',
+    }),
+  );
+
+/**
+ * Swagger decorators for Get Student Subjects endpoint
+ */
+export const ApiGetStudentSubjects = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: "View child's subjects and teachers",
+      description:
+        "Retrieves all subjects and associated teachers for a student. Parents can only view their own children's subjects.",
+    }),
+    ApiParam({
+      name: 'studentId',
+      description: 'Student ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.OK,
+      description: 'Subjects retrieved successfully',
+      type: StudentSubjectResponseDto,
+      isArray: true,
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.UNAUTHORIZED,
+      description: 'Unauthorized',
+    }),
+    ApiResponse({
+      status: GLOBAL_STATUS_CODES.FORBIDDEN,
+      description: 'Forbidden - Parent accessing non-child student',
+    }),
+    ApiResponse({
+      status: HttpStatus.NOT_FOUND,
+      description: 'Student or Parent profile not found',
+    }),
   );
 
 /**
