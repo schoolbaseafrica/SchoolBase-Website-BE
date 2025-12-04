@@ -6,11 +6,24 @@
  * A (80-100), B (70-79), C (60-69), D (50-59), E (40-49), F (0-39)
  */
 
+import { UserRole } from 'src/modules/shared/enums';
+
 export interface IGradingScale {
   min: number;
   max: number;
   grade: string;
   remark: string;
+}
+
+export interface IRequestWithUser extends Request {
+  user: {
+    id: string;
+    userId: string;
+    teacher_id?: string;
+    student_id?: string;
+    parent_id?: string;
+    roles: UserRole[];
+  };
 }
 
 export const GRADING_SCALE: IGradingScale[] = [
