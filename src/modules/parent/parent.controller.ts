@@ -35,6 +35,7 @@ import {
   ApiGetLinkedStudents,
   ApiGetStudentSubjects,
   ApiGetMyStudents,
+  ApiUnlinkStudent,
 } from './docs/parent.swagger';
 import {
   CreateParentDto,
@@ -52,7 +53,7 @@ import { ParentService, IUserPayload } from './parent.service';
 @ApiParentTags()
 @ApiParentBearerAuth()
 export class ParentController {
-  constructor(private readonly parentService: ParentService) {}
+  constructor(private readonly parentService: ParentService) { }
 
   // --- POST: CREATE PARENT (ADMIN ONLY) ---
   @Post()
@@ -214,6 +215,25 @@ export class ParentController {
       message: sysMsg.STUDENTS_LINKED_TO_PARENT,
       status_code: HttpStatus.CREATED,
       data,
+    };
+  }
+
+  // --- DELETE: UNLINK STUDENT FROM PARENT (ADMIN ONLY) ---
+  @Delete(':parentId/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUnlinkStudent()
+  async unlinkStudent(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+  }> {
+    await this.parentService.unlinkStudentFromParent(parentId, studentId);
+    return {
+      message: sysMsg.STUDENT_UNLINKED_FROM_PARENT,
+      status_code: HttpStatus.OK,
     };
   }
 

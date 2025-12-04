@@ -1,14 +1,16 @@
-import { PaginationMeta } from '@hng-sdk/orm';
+
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
-import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { Logger } from 'winston';
+import { plainToInstance } from 'class-transformer';
+import { IPaginationMeta } from '../../common/types/base-response.interface';
 
 import * as sysMsg from '../../constants/system.messages';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
@@ -149,7 +151,7 @@ export class ParentService {
 
   async findAll(listParentsDto: ListParentsDto): Promise<{
     data: ParentResponseDto[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const { page = 1, limit = 10, search } = listParentsDto;
 
@@ -441,7 +443,7 @@ export class ParentService {
     limit: number = 10,
   ): Promise<{
     payload: Parent[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const skip = (page - 1) * limit;
 
@@ -580,6 +582,57 @@ export class ParentService {
         },
         { excludeExtraneousValues: true },
       );
+    });
+  }
+
+  // --- UNLINK STUDENT FROM PARENT (ADMIN VERSION) ---
+  async unlinkStudentFromParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<void> {
+    // 1. Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Validate student exists
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: { parent: true },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student not found with ID: ${studentId}`);
+      throw new NotFoundException(`Student with ID ${studentId} not found`);
+    }
+
+    // 3. Verify student is linked to this parent
+    if (!student.parent || student.parent.id !== parentId) {
+      this.logger.warn(
+        `Student ${studentId} is not linked to parent ${parentId}`,
+      );
+      throw new BadRequestException(sysMsg.STUDENT_NOT_LINKED_TO_PARENT);
+    }
+
+    // 4. Unlink student (set parent to null)
+    await this.studentModelAction.update({
+      identifierOptions: { id: studentId },
+      updatePayload: {
+        parent: null,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info(sysMsg.STUDENT_UNLINKED_FROM_PARENT, {
+      parentId,
+      studentId,
     });
   }
 }
