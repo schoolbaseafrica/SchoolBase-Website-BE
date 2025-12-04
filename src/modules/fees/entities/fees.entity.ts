@@ -12,6 +12,7 @@ import {
   JoinTable,
   ManyToMany,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 
 import { User } from 'src/modules/user/entities/user.entity';
@@ -20,6 +21,8 @@ import { BaseEntity } from '../../../entities/base-entity';
 import { Term } from '../../academic-term/entities/term.entity';
 import { Class } from '../../class/entities/class.entity';
 import { FeeStatus } from '../enums/fees.enums';
+
+import { FeeAssignment } from './fee-assignment.entity';
 
 @Entity('fees')
 export class Fees extends BaseEntity {
@@ -53,6 +56,9 @@ export class Fees extends BaseEntity {
     inverseJoinColumn: { name: 'class_id', referencedColumnName: 'id' },
   })
   classes: Class[];
+
+  @OneToMany(() => FeeAssignment, (assignment) => assignment.fee)
+  direct_assignments: FeeAssignment[];
 
   @Column({ type: 'enum', enum: FeeStatus, default: FeeStatus.ACTIVE })
   @IsEnum(FeeStatus)

@@ -85,6 +85,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TeacherSubjectModule,
     FeesModule,
     GradeModule,
+    ResultModule,
     SuperadminModule,
     PaymentModule,
     ResultModule,

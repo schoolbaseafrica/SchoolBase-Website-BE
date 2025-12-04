@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import * as sysMsg from '../../../constants/system.messages';
@@ -58,8 +58,27 @@ describe('PaymentController', () => {
     term: { id: 'term-1', name: 'First Term' },
   } as unknown as Payment;
 
+  const mockPaymentEntityList = [
+    mockPaymentEntity,
+    {
+      ...mockPaymentEntity,
+      id: 'payment-id-2',
+      amount_paid: 2000,
+      student: {
+        id: 'student-2',
+        user: { first_name: 'Jane', last_name: 'Doe' },
+      },
+    },
+  ] as unknown as Payment[];
+
+  const mockPaginatedResponse = {
+    payments: mockPaymentEntityList,
+    total: 2,
+  };
+
   const mockPaymentServiceValue = {
     recordPayment: jest.fn(),
+    fetchAllPayments: jest.fn(),
   };
 
   const mockFileServiceValue = {
@@ -119,6 +138,7 @@ describe('PaymentController', () => {
         validatedUrl,
       );
 
+      expect(result.status_code).toEqual(HttpStatus.CREATED);
       expect(result.message).toEqual(sysMsg.PAYMENT_SUCCESS);
       expect(result.response).toBeInstanceOf(PaymentResponseDto);
       expect(result.response.student.first_name).toEqual('John');
@@ -144,6 +164,7 @@ describe('PaymentController', () => {
         undefined,
       );
 
+      expect(result.status_code).toEqual(HttpStatus.CREATED);
       expect(result.message).toEqual(sysMsg.PAYMENT_SUCCESS);
       expect(result.response).toBeInstanceOf(PaymentResponseDto);
     });
@@ -166,6 +187,68 @@ describe('PaymentController', () => {
       await expect(
         controller.recordPayment(mockDto, mockUserId, undefined),
       ).rejects.toThrow(serviceError);
+    });
+  });
+
+  describe('fetchAllPayments', () => {
+    it('should fetch all payments with default pagination and return 200 OK', async () => {
+      mockPaymentServiceValue.fetchAllPayments.mockResolvedValue(
+        mockPaginatedResponse,
+      );
+
+      const defaultDto = { page: 1, limit: 10 };
+
+      const result = await controller.fetchAllPayments(defaultDto);
+
+      expect(paymentService.fetchAllPayments).toHaveBeenCalledWith(defaultDto);
+
+      expect(result.status_code).toEqual(HttpStatus.OK);
+      expect(result.message).toEqual(sysMsg.PAYMENTS_FETCHED_SUCCESSFULLY);
+      expect(result.total).toEqual(2);
+      expect(result.payments.length).toEqual(2);
+      expect(result.payments[0]).toBeInstanceOf(PaymentResponseDto);
+    });
+
+    it('should fetch payments with filters applied', async () => {
+      mockPaymentServiceValue.fetchAllPayments.mockResolvedValue({
+        payments: [mockPaymentEntityList[0]],
+        total: 1,
+      });
+
+      const filteredDto = {
+        page: 1,
+        limit: 10,
+        student_id: mockStudentId,
+        payment_method: PaymentMethod.CASH,
+      };
+
+      const result = await controller.fetchAllPayments(filteredDto);
+
+      expect(paymentService.fetchAllPayments).toHaveBeenCalledWith(
+        expect.objectContaining(filteredDto),
+      );
+      expect(result.total).toEqual(1);
+    });
+
+    it('should handle no results gracefully', async () => {
+      mockPaymentServiceValue.fetchAllPayments.mockResolvedValue({
+        payments: [],
+        total: 0,
+      });
+
+      const result = await controller.fetchAllPayments({});
+
+      expect(result.total).toEqual(0);
+      expect(result.payments.length).toEqual(0);
+    });
+
+    it('should propagate errors from the service layer', async () => {
+      const serviceError = new Error('Database connection error');
+      mockPaymentServiceValue.fetchAllPayments.mockRejectedValue(serviceError);
+
+      await expect(controller.fetchAllPayments({})).rejects.toThrow(
+        serviceError,
+      );
     });
   });
 });

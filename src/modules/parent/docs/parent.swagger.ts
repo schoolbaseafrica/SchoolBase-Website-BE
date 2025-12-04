@@ -268,3 +268,52 @@ export const ApiGetLinkedStudents = () =>
     }),
     ApiResponse({ status: 404, description: 'Parent not found' }),
   );
+
+/**
+ * Swagger decorators for Get My Students endpoint (Parent Portal)
+ */
+export const ApiGetMyStudents = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Get my linked students (PARENT only)',
+      description:
+        'Retrieves basic information for all students linked to the authenticated parent. Returns only non-deleted students.',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Linked students retrieved successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Parent students fetched successfully',
+          },
+          status_code: {
+            type: 'number',
+            example: 200,
+          },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                registration_number: { type: 'string' },
+                first_name: { type: 'string' },
+                last_name: { type: 'string' },
+                middle_name: { type: 'string' },
+                full_name: { type: 'string' },
+                photo_url: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiResponse({ status: 404, description: 'Parent not found' }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+  );

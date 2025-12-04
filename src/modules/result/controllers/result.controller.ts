@@ -1,14 +1,21 @@
 import {
+  Body,
   Controller,
   ForbiddenException,
   Get,
   Param,
   ParseUUIDPipe,
+  Post,
   Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 
 import { StudentModelAction } from 'src/modules/student/model-actions';
 
@@ -16,7 +23,11 @@ import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
-import { ListResultsQueryDto, ResultResponseDto } from '../dto';
+import {
+  GenerateResultDto,
+  ListResultsQueryDto,
+  ResultResponseDto,
+} from '../dto';
 import { ResultService } from '../services/result.service';
 
 interface IRequestWithUser extends Request {
@@ -31,6 +42,7 @@ interface IRequestWithUser extends Request {
 }
 
 @ApiTags('Results')
+@ApiBearerAuth()
 @Controller('results')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ResultController {
@@ -38,6 +50,21 @@ export class ResultController {
     private readonly resultService: ResultService,
     private readonly studentModelAction: StudentModelAction,
   ) {}
+
+  @Post('generate')
+  @ApiOperation({ summary: 'Generate results for students' })
+  @ApiResponse({
+    status: 201,
+    description: 'Results generated successfully',
+  })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async generateResults(@Body() generateDto: GenerateResultDto) {
+    return this.resultService.generateClassResults(
+      generateDto.class_id,
+      generateDto.term_id,
+      generateDto.academic_session_id,
+    );
+  }
 
   @Get('student/:studentId')
   @ApiOperation({ summary: 'Get results for a specific student' })
@@ -69,5 +96,19 @@ export class ResultController {
     }
 
     return this.resultService.getStudentResults(studentId, query);
+  }
+
+  @Get(':resultId')
+  @ApiOperation({ summary: 'Get a specific result by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Result retrieved successfully',
+    type: ResultResponseDto,
+  })
+  @Roles(UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT, UserRole.PARENT)
+  async getResultById(
+    @Param('resultId', ParseUUIDPipe) resultId: string,
+  ): Promise<ResultResponseDto> {
+    return this.resultService.getResultById(resultId);
   }
 }

@@ -4,15 +4,15 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, In } from 'typeorm';
 import { Logger } from 'winston';
 
 import * as sysMsg from '../../constants/system.messages';
 import { TermModelAction } from '../academic-term/model-actions';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
+import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
@@ -27,8 +27,6 @@ export class FeesService {
     private readonly termModelAction: TermModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly dataSource: DataSource,
-    @InjectRepository(Fees)
-    private readonly feesRepository: Repository<Fees>,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: FeesService.name });
@@ -95,76 +93,16 @@ export class FeesService {
     limit: number;
     totalPages: number;
   }> {
-    const {
-      status,
-      class_id,
-      term_id,
-      search,
-      page = 1,
-      limit = 20,
-    } = queryDto;
-
-    const skip = (page - 1) * limit;
-
-    // Use query builder for complex filtering, especially for many-to-many class relationship
-    const queryBuilder = this.feesRepository
-      .createQueryBuilder('fee')
-      .leftJoinAndSelect('fee.term', 'term')
-      .leftJoinAndSelect('fee.classes', 'classes')
-      .leftJoin('fee.createdBy', 'createdBy')
-      .addSelect([
-        'createdBy.id',
-        'createdBy.first_name',
-        'createdBy.last_name',
-        'createdBy.middle_name',
-      ])
-      .orderBy('fee.createdAt', 'DESC');
-
-    // Only filter by status if explicitly provided
-    if (status) {
-      queryBuilder.andWhere('fee.status = :status', { status });
-    }
-
-    // Filter by term_id
-    if (term_id) {
-      queryBuilder.andWhere('fee.term_id = :term_id', { term_id });
-    }
-
-    // Filter by class_id (many-to-many relationship)
-    if (class_id) {
-      queryBuilder.andWhere('classes.id = :class_id', { class_id });
-    }
-
-    // Search filter for component_name or description
-    if (search && search.trim()) {
-      queryBuilder.andWhere(
-        '(fee.component_name ILIKE :search OR fee.description ILIKE :search)',
-        { search: `%${search}%` },
-      );
-    }
-
-    // Get total count before pagination
-    const total = await queryBuilder.getCount();
-
-    // Apply pagination
-    const fees = await queryBuilder.skip(skip).take(limit).getMany();
-
-    const totalPages = Math.ceil(total / limit);
+    const result = await this.feesModelAction.findAllFees(queryDto);
 
     this.logger.info('Fetched fee components', {
-      total,
-      page,
-      limit,
-      filters: { status, class_id, term_id, search },
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      filters: queryDto,
     });
 
-    return {
-      fees,
-      total,
-      page,
-      limit,
-      totalPages,
-    };
+    return result;
   }
 
   async update(id: string, updateFeesDto: UpdateFeesDto): Promise<Fees> {
@@ -356,5 +294,58 @@ export class FeesService {
     });
 
     return updatedFee;
+  }
+
+  async getStudentsForFee(feeId: string): Promise<FeeStudentResponseDto[]> {
+    const fee = await this.feesModelAction.getFeeWithStudentAssignments(feeId);
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    const studentMap = new Map<string, FeeStudentResponseDto>();
+
+    if (fee.classes) {
+      for (const cls of fee.classes) {
+        if (cls.student_assignments) {
+          for (const assignment of cls.student_assignments) {
+            if (assignment.student && assignment.student.user) {
+              const student = assignment.student;
+              studentMap.set(student.id, {
+                id: student.id,
+                name: `${student.user.first_name} ${student.user.last_name}`,
+                class: cls.name,
+                session:
+                  cls.academicSession?.academicYear ||
+                  cls.academicSession?.name ||
+                  '',
+                registration_number: student.registration_number,
+                photo_url: student.photo_url,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    if (fee.direct_assignments) {
+      for (const assignment of fee.direct_assignments) {
+        if (assignment.student && assignment.student.user) {
+          const student = assignment.student;
+          if (!studentMap.has(student.id)) {
+            studentMap.set(student.id, {
+              id: student.id,
+              name: `${student.user.first_name} ${student.user.last_name}`,
+              class: 'N/A',
+              session: '',
+              registration_number: student.registration_number,
+              photo_url: student.photo_url,
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(studentMap.values());
   }
 }
