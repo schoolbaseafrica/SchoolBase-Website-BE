@@ -117,6 +117,7 @@ describe('FeesService', () => {
     get: jest.fn(),
     getFeeWithStudentAssignments: jest.fn(),
     findAllFees: jest.fn(),
+    getActiveFeeComponents: jest.fn(),
   };
 
   const mockTermModelActionValue = { get: jest.fn() };
@@ -728,6 +729,100 @@ describe('FeesService', () => {
       await expect(service.getStudentsForFee('fee-123')).rejects.toThrow(
         new NotFoundException(mockSysMsg.fee_not_found),
       );
+    });
+  });
+
+  // ================= GET ACTIVE FEE COMPONENTS =================
+  // ================= GET ACTIVE FEE COMPONENTS =================
+  describe('getActiveFeeComponents', () => {
+    it('should return active fee components mapped to DTO with pagination', async () => {
+      const mockActiveFees = [
+        {
+          ...mockFee,
+          id: 'fee-1',
+          component_name: 'Tuition',
+          amount: 50000,
+          term: {
+            name: 'First Term',
+            academicSession: { academicYear: '2023/2024' },
+          },
+        },
+        {
+          ...mockFee,
+          id: 'fee-2',
+          component_name: 'Library',
+          amount: 5000,
+          term: {
+            name: 'Second Term',
+            academicSession: { name: '2023/2024' },
+          },
+        },
+      ];
+
+      (feesModelAction.getActiveFeeComponents as jest.Mock).mockResolvedValue({
+        fees: mockActiveFees,
+        total: 2,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
+
+      const result = await service.getActiveFeeComponents({
+        page: 1,
+        limit: 20,
+      });
+
+      expect(feesModelAction.getActiveFeeComponents).toHaveBeenCalledWith(
+        1,
+        20,
+      );
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(20);
+      expect(result.totalPages).toBe(1);
+      expect(result.data[0]).toEqual({
+        id: 'fee-1',
+        name: 'Tuition',
+        amount: 50000,
+        session: '2023/2024',
+        term: 'First Term',
+        frequency: 'Per Term',
+      });
+    });
+
+    it('should handle missing term or session info gracefully', async () => {
+      const mockActiveFees = [
+        {
+          ...mockFee,
+          id: 'fee-3',
+          component_name: 'Misc',
+          amount: 1000,
+          term: null,
+        },
+      ];
+
+      (feesModelAction.getActiveFeeComponents as jest.Mock).mockResolvedValue({
+        fees: mockActiveFees,
+        total: 1,
+        page: 1,
+        limit: 20,
+        totalPages: 1,
+      });
+
+      const result = await service.getActiveFeeComponents({
+        page: 1,
+        limit: 20,
+      });
+
+      expect(result.data[0]).toEqual({
+        id: 'fee-3',
+        name: 'Misc',
+        amount: 1000,
+        session: '',
+        term: '',
+        frequency: 'Per Term',
+      });
     });
   });
 });

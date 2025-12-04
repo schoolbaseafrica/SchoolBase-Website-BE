@@ -249,3 +249,30 @@ export function swaggerGetFeeStudents() {
     }),
   );
 }
+
+export function swaggerGetActiveFeeComponents() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Get active fee components',
+      description:
+        'Retrieve a list of all active fee components. This is useful for populating dropdowns or lists where only active fees should be selectable.',
+    }),
+    ApiBearerAuth(),
+    ApiQuery({ name: 'page', required: false, type: Number }),
+    ApiQuery({ name: 'limit', required: false, type: Number }),
+    ApiResponse({
+      status: 200,
+      description: 'Active fee components retrieved successfully',
+      type: FeesListResponseDto, // Reusing list response DTO or create a specific one if needed
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+  );
+}

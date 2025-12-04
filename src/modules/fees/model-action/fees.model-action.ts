@@ -91,4 +91,36 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
       totalPages,
     };
   }
+
+  async getActiveFeeComponents(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{
+    fees: Fees[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.feeRepository
+      .createQueryBuilder('fee')
+      .leftJoinAndSelect('fee.term', 'term')
+      .leftJoinAndSelect('term.academicSession', 'session')
+      .where('fee.status = :status', { status: 'ACTIVE' })
+      .orderBy('fee.createdAt', 'DESC');
+
+    const total = await queryBuilder.getCount();
+    const fees = await queryBuilder.skip(skip).take(limit).getMany();
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      fees,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
 }

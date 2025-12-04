@@ -12,8 +12,10 @@ import * as sysMsg from '../../constants/system.messages';
 import { TermModelAction } from '../academic-term/model-actions';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
+import { FeeComponentResponseDto } from './dto/fee-component-response.dto';
 import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import { GetActiveFeesDto } from './dto/get-active-fees.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesModelAction } from './model-action/fees.model-action';
@@ -347,5 +349,42 @@ export class FeesService {
     }
 
     return Array.from(studentMap.values());
+  }
+
+  async getActiveFeeComponents(query: GetActiveFeesDto): Promise<{
+    data: FeeComponentResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const { page, limit } = query;
+    const {
+      fees,
+      total,
+      page: currentPage,
+      limit: currentLimit,
+      totalPages,
+    } = await this.feesModelAction.getActiveFeeComponents(page, limit);
+
+    const data = fees.map((fee) => ({
+      id: fee.id,
+      name: fee.component_name,
+      amount: Number(fee.amount),
+      session:
+        fee.term?.academicSession?.academicYear ||
+        fee.term?.academicSession?.name ||
+        '',
+      term: fee.term?.name || '',
+      frequency: 'Per Term',
+    }));
+
+    return {
+      data,
+      total,
+      page: currentPage,
+      limit: currentLimit,
+      totalPages,
+    };
   }
 }
