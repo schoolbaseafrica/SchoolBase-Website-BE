@@ -33,10 +33,13 @@ describe('TimetableService', () => {
 
     validationService = {
       validateNewSchedule: jest.fn(),
+      validateUpdateSchedule: jest.fn(),
     } as unknown as jest.Mocked<TimetableValidationService>;
 
     scheduleModelAction = {
       create: jest.fn(),
+      get: jest.fn(),
+      update: jest.fn(),
     } as unknown as jest.Mocked<ScheduleModelAction>;
 
     classModelAction = {
@@ -242,4 +245,72 @@ describe('TimetableService', () => {
     });
   });
   // ------------------- NEW TESTS FOR view time table END -------------------
+
+  describe('unassignRoom', () => {
+    it('should successfully unassign room from schedule', async () => {
+      const mockSchedule = {
+        id: mockScheduleId,
+        day: DayOfWeek.MONDAY,
+        start_time: '09:00:00',
+        end_time: '10:00:00',
+        period_type: PeriodType.ACADEMICS,
+        room_id: 'room-123',
+        timetable: { id: mockTimetableId },
+      } as unknown as Schedule;
+
+      const updatedSchedule = {
+        ...mockSchedule,
+        room_id: null,
+      };
+
+      scheduleModelAction.get.mockResolvedValue(mockSchedule);
+      scheduleModelAction.update.mockResolvedValue(updatedSchedule);
+
+      const result = await service.unassignRoom(mockScheduleId);
+
+      expect(scheduleModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: mockScheduleId },
+      });
+      expect(scheduleModelAction.update).toHaveBeenCalledWith({
+        updatePayload: { room_id: null },
+        identifierOptions: { id: mockScheduleId },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result.message).toBeDefined();
+      expect(result.room_id).toBeNull();
+      expect(result.timetable).toBeUndefined();
+    });
+
+    it('should throw BadRequestException if schedule does not exist', async () => {
+      scheduleModelAction.get.mockResolvedValue(null);
+
+      await expect(service.unassignRoom(mockScheduleId)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('should handle schedule without existing room assignment', async () => {
+      const mockSchedule = {
+        id: mockScheduleId,
+        day: DayOfWeek.MONDAY,
+        start_time: '09:00:00',
+        end_time: '10:00:00',
+        period_type: PeriodType.ACADEMICS,
+        room_id: null,
+        timetable: { id: mockTimetableId },
+      } as unknown as Schedule;
+
+      scheduleModelAction.get.mockResolvedValue(mockSchedule);
+      scheduleModelAction.update.mockResolvedValue(mockSchedule);
+
+      const result = await service.unassignRoom(mockScheduleId);
+
+      expect(scheduleModelAction.update).toHaveBeenCalledWith({
+        updatePayload: { room_id: null },
+        identifierOptions: { id: mockScheduleId },
+        transactionOptions: { useTransaction: false },
+      });
+      expect(result.room_id).toBeNull();
+    });
+  });
 });

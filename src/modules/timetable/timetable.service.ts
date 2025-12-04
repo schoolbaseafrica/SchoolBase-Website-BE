@@ -146,6 +146,31 @@ export class TimetableService {
     return updatedSchedule;
   }
 
+  async unassignRoom(scheduleId: string) {
+    // Check if schedule exists
+    const schedule = await this.scheduleModelAction.get({
+      identifierOptions: { id: scheduleId },
+    });
+
+    if (!schedule) {
+      throw new BadRequestException(sysMsg.SCHEDULE_NOT_FOUND);
+    }
+
+    // Update the schedule to remove room assignment
+    const updatedSchedule = await this.scheduleModelAction.update({
+      updatePayload: { room_id: null },
+      identifierOptions: { id: scheduleId },
+      transactionOptions: { useTransaction: false },
+    });
+
+    // Remove timetable relation from response
+    delete updatedSchedule.timetable;
+    return {
+      message: sysMsg.ROOM_UNASSIGNED_SUCCESSFULLY,
+      ...updatedSchedule,
+    };
+  }
+
   async archive() {
     return 'returns archive response';
   }
