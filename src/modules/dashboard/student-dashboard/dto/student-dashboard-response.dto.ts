@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export class RoomDto {
+  @ApiProperty({ example: 'uuid-room-123' })
+  id: string;
+
+  @ApiProperty({ example: 'Room 101' })
+  name: string;
+
+  @ApiProperty({ example: 30 })
+  capacity: number;
+}
+
 export class TimetableItemDto {
   @ApiProperty({ example: 'uuid-123' })
   id: string;
@@ -10,8 +21,8 @@ export class TimetableItemDto {
   @ApiProperty({ example: 'Mr. John Doe', nullable: true })
   teacher_name: string | null;
 
-  @ApiProperty({ example: 'Room 101', nullable: true })
-  room: string | null;
+  @ApiProperty({ type: RoomDto, nullable: true })
+  room: RoomDto | null;
 
   @ApiProperty({ example: '08:00:00' })
   start_time: string;

@@ -1,24 +1,18 @@
 import { applyDecorators } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiBearerAuth,
-  ApiOperation,
-  ApiBody,
-  ApiOkResponse,
-  ApiQuery,
-  ApiParam,
-  ApiNotFoundResponse,
-  ApiForbiddenResponse,
   ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiTags,
 } from '@nestjs/swagger';
 
-import {
-  ATTENDANCE_MARKED_SUCCESSFULLY,
-  ATTENDANCE_RECORDS_RETRIEVED,
-  ATTENDANCE_NOT_FOUND,
-  ATTENDANCE_UPDATED_SUCCESSFULLY,
-} from 'src/constants/system.messages';
-
+import * as sysMsg from '../../../constants/system.messages';
 import {
   MarkAttendanceDto,
   UpdateAttendanceDto,
@@ -85,7 +79,10 @@ export const ApiBulkMarkAttendance = () =>
       schema: {
         type: 'object',
         properties: {
-          message: { type: 'string', example: ATTENDANCE_MARKED_SUCCESSFULLY },
+          message: {
+            type: 'string',
+            example: sysMsg.ATTENDANCE_MARKED_SUCCESSFULLY,
+          },
           status_code: { type: 'number', example: 200 },
           data: {
             type: 'object',
@@ -229,7 +226,7 @@ export const ApiUpdateAttendance = () =>
         properties: {
           message: {
             type: 'string',
-            example: ATTENDANCE_UPDATED_SUCCESSFULLY,
+            example: sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY,
           },
           status_code: { type: 'number', example: 200 },
           data: { $ref: '#/components/schemas/AttendanceResponseDto' },
@@ -237,7 +234,7 @@ export const ApiUpdateAttendance = () =>
       },
     }),
     ApiNotFoundResponse({
-      description: ATTENDANCE_NOT_FOUND,
+      description: sysMsg.ATTENDANCE_NOT_FOUND,
     }),
   );
 
@@ -293,7 +290,7 @@ export const ApiGetStudentAttendance = () =>
         properties: {
           message: {
             type: 'string',
-            example: ATTENDANCE_RECORDS_RETRIEVED,
+            example: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
           },
           status_code: { type: 'number', example: 200 },
           data: {
@@ -380,7 +377,7 @@ export const ApiGetAttendanceRecords = () =>
         properties: {
           message: {
             type: 'string',
-            example: ATTENDANCE_RECORDS_RETRIEVED,
+            example: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
           },
           status_code: { type: 'number', example: 200 },
           data: {
@@ -504,7 +501,10 @@ export const ApiMarkStudentDailyAttendance = () =>
       schema: {
         type: 'object',
         properties: {
-          message: { type: 'string', example: ATTENDANCE_MARKED_SUCCESSFULLY },
+          message: {
+            type: 'string',
+            example: sysMsg.ATTENDANCE_MARKED_SUCCESSFULLY,
+          },
           status_code: { type: 'number', example: 200 },
           data: {
             type: 'object',
@@ -673,7 +673,7 @@ export const ApiGetClassTermAttendance = () =>
         properties: {
           message: {
             type: 'string',
-            example: ATTENDANCE_RECORDS_RETRIEVED,
+            example: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
           },
           status_code: { type: 'number', example: 200 },
           data: {
@@ -791,7 +791,7 @@ export const ApiUpdateStudentDailyAttendance = () =>
         properties: {
           message: {
             type: 'string',
-            example: ATTENDANCE_UPDATED_SUCCESSFULLY,
+            example: sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY,
           },
           status_code: { type: 'number', example: 200 },
           data: { $ref: '#/components/schemas/AttendanceResponseDto' },
@@ -799,7 +799,7 @@ export const ApiUpdateStudentDailyAttendance = () =>
       },
     }),
     ApiNotFoundResponse({
-      description: ATTENDANCE_NOT_FOUND,
+      description: sysMsg.ATTENDANCE_NOT_FOUND,
     }),
   );
 
@@ -876,5 +876,130 @@ export const ApiGetStudentTermSummary = () =>
     }),
     ApiForbiddenResponse({
       description: 'Students can only view their own attendance summary',
+    }),
+  );
+
+// Get Student Monthly Attendance endpoint
+export const ApiGetStudentMonthlyAttendance = () =>
+  applyDecorators(
+    ApiOperation({
+      summary:
+        'Get student monthly attendance for current month (Student for self, Teacher/Admin for any)',
+      description:
+        'Retrieves detailed daily attendance records for a student for the current month. ' +
+        'Returns total days in month, statistics breakdown (present, absent, late, excused, half-day), ' +
+        'and detailed records with check-in/check-out times. ' +
+        'Students can only view their own attendance; teachers and admins can view any student.',
+    }),
+    ApiParam({
+      name: 'studentId',
+      description: 'Student ID',
+      type: 'string',
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiOkResponse({
+      description: sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED,
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED,
+          },
+          status_code: { type: 'number', example: 200 },
+          data: {
+            type: 'object',
+            properties: {
+              month: {
+                type: 'string',
+                example: 'December',
+                description: 'Current month name',
+              },
+              year: {
+                type: 'number',
+                example: 2025,
+                description: 'Current year',
+              },
+              student_id: { type: 'string' },
+              total_days_in_month: {
+                type: 'number',
+                example: 31,
+                description: 'Total number of days in the current month',
+              },
+              days_present: {
+                type: 'number',
+                example: 18,
+                description:
+                  'Number of days student was present (includes late)',
+              },
+              days_absent: {
+                type: 'number',
+                example: 2,
+                description: 'Number of days student was absent',
+              },
+              days_late: {
+                type: 'number',
+                example: 3,
+                description: 'Number of days student arrived late',
+              },
+              days_excused: {
+                type: 'number',
+                example: 1,
+                description: 'Number of days student was excused',
+              },
+              days_half_day: {
+                type: 'number',
+                example: 1,
+                description: 'Number of half-day attendances',
+              },
+              attendance_details: {
+                type: 'array',
+                description: 'Detailed daily attendance records for the month',
+                items: {
+                  type: 'object',
+                  properties: {
+                    date: {
+                      type: 'string',
+                      format: 'date',
+                      example: '2025-12-01',
+                    },
+                    status: {
+                      type: 'string',
+                      enum: [
+                        'PRESENT',
+                        'ABSENT',
+                        'LATE',
+                        'EXCUSED',
+                        'HALF_DAY',
+                      ],
+                      example: 'PRESENT',
+                    },
+                    check_in_time: {
+                      type: 'string',
+                      format: 'date-time',
+                      nullable: true,
+                      example: '2025-12-01T08:15:00.000Z',
+                    },
+                    check_out_time: {
+                      type: 'string',
+                      format: 'date-time',
+                      nullable: true,
+                      example: '2025-12-01T15:30:00.000Z',
+                    },
+                    notes: {
+                      type: 'string',
+                      nullable: true,
+                      example: 'Traffic delay',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+    ApiForbiddenResponse({
+      description: sysMsg.STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE,
     }),
   );

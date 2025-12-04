@@ -9,6 +9,7 @@ import { UploadModule } from '../upload/upload.module';
 import { PaymentController } from './controllers/payment.controller';
 import { Payment } from './entities/payment.entity';
 import { PaymentModelAction } from './model-action/payment.model-action';
+import { DashboardAnalyticsService } from './services/dashboard-analytics.service';
 import { PaymentValidationService } from './services/payment-validation.service';
 import { PaymentService } from './services/payment.service';
 
@@ -21,7 +22,12 @@ import { PaymentService } from './services/payment.service';
     StudentModule,
   ],
   controllers: [PaymentController],
-  providers: [PaymentModelAction, PaymentService, PaymentValidationService],
-  exports: [PaymentModelAction, PaymentService],
+  providers: [
+    PaymentModelAction,
+    PaymentService,
+    PaymentValidationService,
+    DashboardAnalyticsService,
+  ],
+  exports: [PaymentModelAction, PaymentService, DashboardAnalyticsService],
 })
 export class PaymentModule {}

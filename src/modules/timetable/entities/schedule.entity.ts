@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
+import { Room } from '../../room/entities/room.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { DayOfWeek, PeriodType } from '../enums/timetable.enums';
@@ -28,8 +29,12 @@ export class Schedule extends BaseEntity {
   })
   period_type: PeriodType;
 
-  @Column({ nullable: true })
-  room: string;
+  @ManyToOne(() => Room, { nullable: true })
+  @JoinColumn({ name: 'room_id' })
+  room: Room;
+
+  @Column({ name: 'room_id', nullable: true })
+  room_id: string;
 
   @ManyToOne(() => Timetable, (timetable) => timetable.schedules, {
     onDelete: 'CASCADE',

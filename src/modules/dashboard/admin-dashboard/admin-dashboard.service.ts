@@ -37,6 +37,7 @@ export class AdminDashboardService {
         schedules: {
           teacher: { user: true },
           subject: true,
+          room: true,
         },
         class: true,
       },
@@ -79,7 +80,13 @@ export class AdminDashboardService {
           },
           start_time: schedule.start_time,
           end_time: schedule.end_time,
-          venue: schedule.room || null,
+          venue: schedule.room
+            ? {
+                id: schedule.room.id,
+                name: schedule.room.name,
+                capacity: schedule.room.capacity,
+              }
+            : null,
           period_type: schedule.period_type,
           progress_status: this.calculateProgressStatus(
             schedule.start_time,

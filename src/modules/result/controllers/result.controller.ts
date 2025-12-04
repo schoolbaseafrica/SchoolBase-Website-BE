@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   ForbiddenException,
   Get,
   Param,
+  ParseIntPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -19,10 +21,12 @@ import {
 
 import { StudentModelAction } from 'src/modules/student/model-actions';
 
+import { SkipWrap } from '../../../common/decorators/skip-wrap.decorator';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
+import { DocsGetClassResults } from '../docs/result.decorator';
 import {
   GenerateResultDto,
   ListResultsQueryDto,
@@ -63,6 +67,27 @@ export class ResultController {
       generateDto.class_id,
       generateDto.term_id,
       generateDto.academic_session_id,
+    );
+  }
+
+  @Get('class/:classId')
+  @DocsGetClassResults()
+  @SkipWrap()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async getClassResults(
+    @Param('classId', ParseUUIDPipe) classId: string,
+    @Query('term_id', ParseUUIDPipe) termId: string,
+    @Query('academic_session_id', new ParseUUIDPipe({ optional: true }))
+    academicSessionId?: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number = 20,
+  ) {
+    return this.resultService.getClassResults(
+      classId,
+      termId,
+      academicSessionId,
+      page,
+      limit,
     );
   }
 

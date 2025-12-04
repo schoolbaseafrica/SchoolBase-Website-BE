@@ -28,6 +28,7 @@ describe('TimetableService', () => {
       get: jest.fn(),
       create: jest.fn(),
       findTimetableByClassId: jest.fn(),
+      findAllTimetables: jest.fn(), // ✅ NEW: mock for getAll
     } as unknown as jest.Mocked<TimetableModelAction>;
 
     validationService = {
@@ -91,6 +92,7 @@ describe('TimetableService', () => {
       expect(scheduleModelAction.create).toHaveBeenCalledWith({
         createPayload: {
           ...addScheduleDto,
+          room: null,
           timetable: { id: mockTimetableId },
         },
         transactionOptions: { useTransaction: false },
@@ -171,4 +173,73 @@ describe('TimetableService', () => {
       });
     });
   });
+
+  // ------------------- NEW TESTS FOR view time table START -------------------
+  describe('getAll', () => {
+    it('should return paginated timetables with schedules', async () => {
+      const mockTimetables = [
+        {
+          class_id: mockClassId,
+          class: { name: 'SS1' },
+          schedules: [
+            {
+              id: mockScheduleId,
+              day: DayOfWeek.MONDAY,
+              start_time: '09:00:00',
+              end_time: '10:00:00',
+              period_type: PeriodType.ACADEMICS,
+              room: 'Room 1',
+              subject: { id: 'subject-123', name: 'Math' },
+              teacher: {
+                id: 'teacher-123',
+                title: 'Mr',
+                user: { first_name: 'John', last_name: 'Doe' },
+              },
+            },
+          ],
+        } as unknown as Timetable,
+      ];
+
+      timetableModelAction.findAllTimetables.mockResolvedValue(mockTimetables);
+
+      const result = await service.getAll(1, 20);
+
+      expect(timetableModelAction.findAllTimetables).toHaveBeenCalled();
+      expect(result.data.length).toBe(1);
+      expect(result.pagination.total).toBe(1);
+      // expect(result.data[0].name).toBe('A');
+      expect(result.data[0].schedules[0].teacher?.first_name).toBe('John');
+    });
+
+    it('should filter schedules by day if provided', async () => {
+      const mockTimetables = [
+        {
+          class_id: mockClassId,
+          class: { name: 'SS1', arm: 'B' },
+          schedules: [
+            { id: 's1', day: DayOfWeek.MONDAY },
+            { id: 's2', day: DayOfWeek.TUESDAY },
+          ],
+        } as unknown as Timetable,
+      ];
+
+      timetableModelAction.findAllTimetables.mockResolvedValue(mockTimetables);
+
+      const result = await service.getAll(1, 20, DayOfWeek.MONDAY);
+
+      expect(result.data[0].schedules.length).toBe(1);
+      expect(result.data[0].schedules[0].day).toBe(DayOfWeek.MONDAY);
+    });
+
+    it('should return empty data and pagination if no timetables found', async () => {
+      timetableModelAction.findAllTimetables.mockResolvedValue([]);
+
+      const result = await service.getAll(1, 20);
+
+      expect(result.data).toEqual([]);
+      expect(result.pagination.total).toBe(0);
+      expect(result.pagination.total_pages).toBe(0);
+    });
+  });
+  // ------------------- NEW TESTS FOR view time table END -------------------
 });

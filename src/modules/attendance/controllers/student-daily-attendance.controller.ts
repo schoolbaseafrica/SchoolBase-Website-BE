@@ -1,35 +1,37 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Patch,
+  BadRequestException,
   Body,
-  Param,
-  Query,
-  UseGuards,
+  Controller,
+  ForbiddenException,
+  Get,
   HttpCode,
   HttpStatus,
+  Param,
   ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
   Req,
-  ForbiddenException,
-  BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 
 import { IRequestWithUser } from 'src/common/types/request.interface';
 
+import * as sysMsg from '../../../constants/system.messages';
 import { TermName } from '../../academic-term/entities/term.entity';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import {
-  ApiAttendanceTags,
   ApiAttendanceBearerAuth,
-  ApiMarkStudentDailyAttendance,
+  ApiAttendanceTags,
   ApiGetClassDailyAttendance,
   ApiGetClassTermAttendance,
-  ApiUpdateStudentDailyAttendance,
+  ApiGetStudentMonthlyAttendance,
   ApiGetStudentTermSummary,
+  ApiMarkStudentDailyAttendance,
+  ApiUpdateStudentDailyAttendance,
 } from '../docs';
 import {
   MarkStudentDailyAttendanceDto,
@@ -87,9 +89,7 @@ export class StudentDailyAttendanceController {
     const term = TermName[termKey as keyof typeof TermName];
 
     if (!term) {
-      throw new BadRequestException(
-        `Invalid term. Must be one of: FIRST, SECOND, THIRD`,
-      );
+      throw new BadRequestException(sysMsg.INVALID_TERM);
     }
 
     return this.attendanceService.getClassTermAttendance(
@@ -97,6 +97,25 @@ export class StudentDailyAttendanceController {
       sessionId,
       term,
     );
+  }
+
+  // STUDENT MONTHLY ATTENDANCE (STUDENT/TEACHER/ADMIN) ---
+  @Get(':studentId/monthly')
+  @Roles(UserRole.STUDENT, UserRole.TEACHER, UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetStudentMonthlyAttendance()
+  async getStudentMonthlyAttendance(
+    @Req() req: IRequestWithUser,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ) {
+    // Students can only view their own attendance
+    if (req.user.role === UserRole.STUDENT && req.user.userId !== studentId) {
+      throw new ForbiddenException(
+        sysMsg.STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE,
+      );
+    }
+
+    return this.attendanceService.getStudentMonthlyAttendance(studentId);
   }
 
   // --- GET: STUDENT TERM ATTENDANCE SUMMARY (STUDENT/TEACHER/ADMIN) ---
@@ -113,7 +132,7 @@ export class StudentDailyAttendanceController {
     // Students can only view their own attendance summary
     if (req.user.role === UserRole.STUDENT && req.user.userId !== studentId) {
       throw new ForbiddenException(
-        'Students can only view their own attendance summary',
+        sysMsg.STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE,
       );
     }
 

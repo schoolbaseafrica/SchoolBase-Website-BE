@@ -32,7 +32,7 @@ export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
 export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
-export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
+export const USER_UPDATED_SUCCESSFULLY = 'user updated successfully';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -277,6 +277,10 @@ export const STUDENT_NOT_LINKED_TO_PARENT =
   'Student is not linked to this parent';
 export const STUDENT_ACADEMIC_PROFILE_FETCHED =
   'Student academic profile fetched successfully';
+export const PARENT_PROFILE_NOT_FOUND =
+  'Parent profile not found for this user';
+export const STUDENT_NOT_BELONG_TO_PARENT =
+  'Student not found or does not belong to this parent';
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
@@ -316,6 +320,8 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Academic Term messages
 export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
+export const INVALID_TERM =
+  'Invalid term. Must be one of: FIRST, SECOND, THIRD';
 export const TERM_UPDATED = 'Term updated successfully';
 export const TERM_NOT_FOUND = 'Term not found';
 export const NO_ACTIVE_TERM = 'No active term found';
@@ -332,9 +338,12 @@ export const TERM_ID_INVALID = 'Invalid term ID.';
 export const DASHBOARD_RESOLVED = 'Dashboard resolved successfully';
 export const TODAYS_CLASSES_FETCHED = "Today's classes retrieved successfully";
 export const NO_CLASSES_TODAY = 'No classes scheduled for today';
+export const DASHBOARD_ANALYTICS_FETCHED =
+  'Dashboard analytics fetched successfully';
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_TEACHER_AGE = (minAge: number) =>
   `Teacher must be at least ${minAge} years old`;
 
@@ -350,12 +359,13 @@ export const TIMETABLE_OVERLAP_STREAM =
   'Timetable period overlaps with another period for the same stream on the same day';
 export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
   'Teacher is already scheduled for another class at this time';
-export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
 export const TIMETABLE_INTERNAL_OVERLAP =
   'Timetable contains overlapping schedules.';
+export const TIMETABLE_ROOM_DOUBLE_BOOKED =
+  'Room is already booked for another class at this time';
 
 // Fees messages
 export const FEE_CREATED_SUCCESSFULLY = 'Fee component created successfully';
@@ -408,6 +418,7 @@ export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
 export const FEE_DEACTIVATED_SUCCESSFULLY =
   'Fee component deactivated successfully';
 export const FEE_ALREADY_INACTIVE = 'Fee component is already inactive';
+
 // Superadmin messages
 export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
 export const SUPERADMIN_PASSWORDS_REQUIRED =
@@ -439,10 +450,16 @@ export const STUDENT_NOT_ENROLLED_IN_CLASS =
   'Student is not enrolled in this class';
 export const SCHEDULE_NOT_FOUND = 'Schedule not found';
 export const ATTENDANCE_CHECK_SUCCESS = 'Attendance check completed';
+export const STUDENT_MONTHLY_ATTENDANCE_RETRIEVED =
+  'Student monthly attendance retrieved successfully';
+export const STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE =
+  'Students can only view their own attendance';
+
 // Result messages
 export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>
   `Successfully generated ${count} result(s)`;
+export const RESULTS_RETRIEVED_SUCCESS = 'Results retrieved successfully';
 
 export const ACADEMIC_SESSION_NOT_FOUND = 'Academic session not found';
 export const TERM_NOT_IN_SESSION =

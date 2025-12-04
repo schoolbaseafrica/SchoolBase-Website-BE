@@ -48,6 +48,7 @@ describe('ResultController', () => {
           useValue: {
             get: jest.fn(),
             getResultById: jest.fn(),
+            getClassResults: jest.fn(),
           },
         },
       ],
@@ -188,6 +189,126 @@ describe('ResultController', () => {
         expect(result).toEqual(expectedResult);
         expect(resultService.getResultById).toHaveBeenCalledWith(resultId);
       });
+    });
+  });
+
+  describe('getClassResults', () => {
+    it('should return class results with statistics', async () => {
+      const expectedResult = {
+        message: 'Results retrieved successfully',
+        data: {
+          results: [
+            {
+              id: 'result-uuid-1',
+              student: {
+                id: mockStudentId,
+                registration_number: 'STU001',
+                name: 'John Doe',
+              },
+              class: {
+                id: mockClassId,
+                name: 'SS1',
+                arm: 'A',
+              },
+              term: {
+                id: mockTermId,
+                name: 'FIRST',
+              },
+              academicSession: {
+                id: 'session-uuid-123',
+                name: '2024/2025',
+                academicYear: '2024/2025',
+              },
+              total_score: 450,
+              average_score: 75,
+              grade_letter: 'B',
+              position: 1,
+              remark: 'Very Good',
+              subject_count: 6,
+              subject_lines: [],
+              generated_at: new Date(),
+              created_at: new Date(),
+              updated_at: new Date(),
+            },
+          ],
+          class_statistics: {
+            highest_score: 85,
+            lowest_score: 65,
+            class_average: 75,
+            total_students: 10,
+          },
+        },
+        pagination: {
+          total: 10,
+          page: 1,
+          limit: 20,
+          total_pages: 1,
+          has_next: false,
+          has_previous: false,
+        },
+      };
+
+      resultService.getClassResults.mockResolvedValue(expectedResult);
+
+      const result = await controller.getClassResults(
+        mockClassId,
+        mockTermId,
+        undefined,
+        1,
+        20,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(resultService.getClassResults).toHaveBeenCalledWith(
+        mockClassId,
+        mockTermId,
+        undefined,
+        1,
+        20,
+      );
+    });
+
+    it('should pass academic_session_id when provided', async () => {
+      const sessionId = 'session-uuid-456';
+      const expectedResult = {
+        message: 'Results retrieved successfully',
+        data: {
+          results: [],
+          class_statistics: {
+            highest_score: null,
+            lowest_score: null,
+            class_average: null,
+            total_students: 0,
+          },
+        },
+        pagination: {
+          total: 0,
+          page: 1,
+          limit: 20,
+          total_pages: 0,
+          has_next: false,
+          has_previous: false,
+        },
+      };
+
+      resultService.getClassResults.mockResolvedValue(expectedResult);
+
+      const result = await controller.getClassResults(
+        mockClassId,
+        mockTermId,
+        sessionId,
+        undefined,
+        undefined,
+      );
+
+      expect(result).toEqual(expectedResult);
+      expect(resultService.getClassResults).toHaveBeenCalledWith(
+        mockClassId,
+        mockTermId,
+        sessionId,
+        1,
+        20,
+      );
     });
   });
 });

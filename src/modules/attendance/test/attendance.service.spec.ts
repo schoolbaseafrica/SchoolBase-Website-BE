@@ -3,11 +3,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, EntityManager, SelectQueryBuilder } from 'typeorm';
 
-import {
-  ATTENDANCE_RECORDS_RETRIEVED,
-  ATTENDANCE_UPDATED_SUCCESSFULLY,
-} from 'src/constants/system.messages';
-
+import * as sysMsg from '../../../constants/system.messages';
+import { AcademicSessionService } from '../../academic-session/academic-session.service';
 import {
   AcademicSession,
   SessionStatus,
@@ -28,7 +25,7 @@ describe('AttendanceService', () => {
   let module: TestingModule;
   let attendanceModelAction: jest.Mocked<AttendanceModelAction>;
   let studentDailyAttendanceModelAction: jest.Mocked<StudentDailyAttendanceModelAction>;
-  let academicSessionModelAction: jest.Mocked<AcademicSessionModelAction>;
+  let academicSessionService: jest.Mocked<AcademicSessionService>;
 
   const mockCreate = jest.fn();
   const mockSave = jest.fn();
@@ -76,6 +73,10 @@ describe('AttendanceService', () => {
       get: jest.fn(),
     };
 
+    const mockAcademicSessionService = {
+      activeSessions: jest.fn(),
+    };
+
     const mockTermModelAction = {
       get: jest.fn(),
       list: jest.fn(),
@@ -113,6 +114,10 @@ describe('AttendanceService', () => {
           useValue: mockAcademicSessionModelAction,
         },
         {
+          provide: AcademicSessionService,
+          useValue: mockAcademicSessionService,
+        },
+        {
           provide: TermModelAction,
           useValue: mockTermModelAction,
         },
@@ -132,7 +137,7 @@ describe('AttendanceService', () => {
     studentDailyAttendanceModelAction = module.get(
       StudentDailyAttendanceModelAction,
     );
-    academicSessionModelAction = module.get(AcademicSessionModelAction);
+    academicSessionService = module.get(AcademicSessionService);
   });
 
   afterEach(async () => {
@@ -176,7 +181,7 @@ describe('AttendanceService', () => {
 
       expect(result.data).toHaveLength(1);
       expect(result.data[0].schedule_id).toBe(scheduleId);
-      expect(result.message).toBe(ATTENDANCE_RECORDS_RETRIEVED);
+      expect(result.message).toBe(sysMsg.ATTENDANCE_RECORDS_RETRIEVED);
     });
   });
 
@@ -214,7 +219,7 @@ describe('AttendanceService', () => {
       const result = await service.updateAttendance(attendanceId, updateDto);
 
       expect(result.data.status).toBe(AttendanceStatus.PRESENT);
-      expect(result.message).toBe(ATTENDANCE_UPDATED_SUCCESSFULLY);
+      expect(result.message).toBe(sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY);
     });
 
     it('should throw NotFoundException when attendance record does not exist', async () => {
@@ -279,10 +284,9 @@ describe('AttendanceService', () => {
 
     it('should throw NotFoundException when no active session exists', async () => {
       mockFindOne.mockResolvedValue({ id: 'teacher-123' });
-      academicSessionModelAction.list.mockResolvedValue({
-        payload: [],
-        paginationMeta: null,
-      });
+      academicSessionService.activeSessions.mockRejectedValue(
+        new NotFoundException('No active session'),
+      );
 
       await expect(
         service.markAttendance('teacher-123', {
@@ -326,10 +330,9 @@ describe('AttendanceService', () => {
         updatedAt: new Date(),
       } as AcademicSession;
 
-      academicSessionModelAction.list.mockResolvedValue({
-        payload: [mockSession],
-        paginationMeta: null,
-      });
+      academicSessionService.activeSessions.mockResolvedValue({
+        data: mockSession,
+      } as never);
 
       // Mock transaction to handle enrollment checks within transaction
       mockFindOne.mockResolvedValue({ id: 'enrollment-1', is_active: true });
@@ -388,7 +391,7 @@ describe('AttendanceService', () => {
         updateDto,
       );
 
-      expect(result.message).toBe(ATTENDANCE_UPDATED_SUCCESSFULLY);
+      expect(result.message).toBe(sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY);
       expect(studentDailyAttendanceModelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: attendanceId },
       });
@@ -517,6 +520,139 @@ describe('AttendanceService', () => {
       expect(result).toHaveProperty('session_id');
       expect(result).toHaveProperty('term');
       expect(Array.isArray(result.students)).toBe(true);
+    });
+  });
+
+  describe('getStudentMonthlyAttendance', () => {
+    it('should retrieve monthly attendance for a student for current month', async () => {
+      const studentId = 'student-123';
+      const sessionId = 'session-123';
+
+      const mockSession = {
+        id: sessionId,
+        name: '2025/2026',
+        is_active: true,
+        status: SessionStatus.ACTIVE,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2026-08-31'),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as AcademicSession;
+
+      // Mock active session
+      academicSessionService.activeSessions.mockResolvedValue({
+        data: mockSession,
+      } as never);
+
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+
+      // Create mock attendance records for current month
+      const mockAttendanceRecords: Partial<StudentDailyAttendance>[] = [
+        {
+          id: 'attendance-1',
+          student_id: studentId,
+          session_id: sessionId,
+          date: new Date(currentYear, currentMonth, 1),
+          status: DailyAttendanceStatus.PRESENT,
+          check_in_time: new Date('2025-12-01T08:00:00'),
+          notes: null,
+        },
+        {
+          id: 'attendance-2',
+          student_id: studentId,
+          session_id: sessionId,
+          date: new Date(currentYear, currentMonth, 2),
+          status: DailyAttendanceStatus.LATE,
+          check_in_time: new Date('2025-12-02T09:15:00'),
+          notes: 'Traffic delay',
+        },
+        {
+          id: 'attendance-3',
+          student_id: studentId,
+          session_id: sessionId,
+          date: new Date(currentYear, currentMonth, 3),
+          status: DailyAttendanceStatus.ABSENT,
+          check_in_time: null,
+          notes: 'Sick leave',
+        },
+        {
+          id: 'attendance-4',
+          student_id: studentId,
+          session_id: sessionId,
+          date: new Date(currentYear, currentMonth, 4),
+          status: DailyAttendanceStatus.EXCUSED,
+          check_in_time: null,
+          notes: 'Medical appointment',
+        },
+      ];
+
+      studentDailyAttendanceModelAction.list.mockResolvedValue({
+        payload: mockAttendanceRecords as StudentDailyAttendance[],
+        paginationMeta: null,
+      });
+
+      const result = await service.getStudentMonthlyAttendance(studentId);
+
+      expect(result.message).toBe(sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED);
+      expect(result.student_id).toBe(studentId);
+      expect(result.year).toBe(currentYear);
+      expect(result).toHaveProperty('month');
+      expect(result).toHaveProperty('total_days_in_month');
+      expect(result).toHaveProperty('days_present');
+      expect(result).toHaveProperty('days_absent');
+      expect(result).toHaveProperty('days_late');
+      expect(result).toHaveProperty('days_excused');
+      expect(result).toHaveProperty('days_half_day');
+      expect(Array.isArray(result.attendance_details)).toBe(true);
+      expect(result.attendance_details.length).toBe(4);
+
+      // Verify statistics
+      expect(result.days_present).toBe(2); // 1 PRESENT + 1 LATE
+      expect(result.days_absent).toBe(1);
+      expect(result.days_late).toBe(1);
+      expect(result.days_excused).toBe(1);
+      expect(result.days_half_day).toBe(0);
+
+      // Verify academicSessionService was called
+      expect(academicSessionService.activeSessions).toHaveBeenCalled();
+    });
+
+    it('should return empty attendance details when no records exist for current month', async () => {
+      const studentId = 'student-123';
+      const sessionId = 'session-123';
+
+      const mockSession = {
+        id: sessionId,
+        name: '2025/2026',
+        is_active: true,
+        status: SessionStatus.ACTIVE,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2026-08-31'),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as AcademicSession;
+
+      academicSessionService.activeSessions.mockResolvedValue({
+        data: mockSession,
+      } as never);
+
+      studentDailyAttendanceModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: null,
+      });
+
+      const result = await service.getStudentMonthlyAttendance(studentId);
+
+      expect(result.message).toBe(sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED);
+      expect(result.student_id).toBe(studentId);
+      expect(result.days_present).toBe(0);
+      expect(result.days_absent).toBe(0);
+      expect(result.days_late).toBe(0);
+      expect(result.days_excused).toBe(0);
+      expect(result.days_half_day).toBe(0);
+      expect(result.attendance_details).toEqual([]);
     });
   });
 });

@@ -40,6 +40,7 @@ export class TeacherDashboardService {
       relations: {
         timetable: { class: true },
         subject: true,
+        room: true,
       },
     });
 
@@ -88,7 +89,13 @@ export class TeacherDashboardService {
         subject_id: schedule.subject?.id || '',
         start_time: schedule.start_time,
         end_time: schedule.end_time,
-        room: schedule.room || null,
+        room: schedule.room
+          ? {
+              id: schedule.room.id,
+              name: schedule.room.name,
+              capacity: schedule.room.capacity,
+            }
+          : null,
       };
 
       todaysClasses.push(classDto);

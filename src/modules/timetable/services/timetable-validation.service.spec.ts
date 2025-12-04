@@ -11,6 +11,7 @@ import { Logger } from 'winston';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Class } from '../../class/entities/class.entity';
+import { Room } from '../../room/entities/room.entity';
 import { Subject } from '../../subject/entities/subject.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { AddScheduleDto, CreateTimetableDto } from '../dto/timetable.dto';
@@ -25,6 +26,7 @@ describe('TimetableValidationService', () => {
   let classRepository: jest.Mocked<Repository<Class>>;
   let subjectRepository: jest.Mocked<Repository<Subject>>;
   let teacherRepository: jest.Mocked<Repository<Teacher>>;
+  let roomRepository: jest.Mocked<Repository<Room>>;
   let mockScheduleModelAction: jest.Mocked<ScheduleModelAction>;
 
   const mockClassId = 'stream-123';
@@ -64,9 +66,14 @@ describe('TimetableValidationService', () => {
       findOne: jest.fn(),
     } as unknown as jest.Mocked<Repository<Teacher>>;
 
+    roomRepository = {
+      findOne: jest.fn(),
+    } as unknown as jest.Mocked<Repository<Room>>;
+
     mockScheduleModelAction = {
       findClassSchedules: jest.fn(),
       findTeacherSchedules: jest.fn(),
+      findRoomSchedules: jest.fn(),
     } as unknown as jest.Mocked<ScheduleModelAction>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -85,6 +92,10 @@ describe('TimetableValidationService', () => {
           useValue: teacherRepository,
         },
         {
+          provide: getRepositoryToken(Room),
+          useValue: roomRepository,
+        },
+        {
           provide: ScheduleModelAction,
           useValue: mockScheduleModelAction,
         },
@@ -101,6 +112,7 @@ describe('TimetableValidationService', () => {
     classRepository = module.get(getRepositoryToken(Class));
     subjectRepository = module.get(getRepositoryToken(Subject));
     teacherRepository = module.get(getRepositoryToken(Teacher));
+    roomRepository = module.get(getRepositoryToken(Room));
   });
 
   afterEach(() => {
@@ -350,6 +362,56 @@ describe('TimetableValidationService', () => {
       );
       await expect(service.validateTimetableRules(dto)).rejects.toThrow(
         sysMsg.TIMETABLE_TEACHER_DOUBLE_BOOKED,
+      );
+    });
+  });
+
+  describe('Room Double-Booking Validation', () => {
+    const mockRoomId = 'room-123';
+
+    it('should throw ConflictException when room is double-booked', async () => {
+      classRepository.findOne.mockResolvedValue({
+        id: mockClassId,
+      } as Class);
+      roomRepository.findOne.mockResolvedValue({
+        id: mockRoomId,
+      } as Room);
+
+      const existingSchedule: Schedule = {
+        id: 'existing-id',
+        room_id: mockRoomId,
+        day: DayOfWeek.MONDAY,
+        start_time: '09:00:00',
+        end_time: '10:00:00',
+        timetable: {
+          class_id: 'different-class',
+          is_active: true,
+        },
+      } as unknown as Schedule;
+
+      mockScheduleModelAction.findClassSchedules.mockResolvedValue([]);
+      mockScheduleModelAction.findTeacherSchedules.mockResolvedValue([]);
+      mockScheduleModelAction.findRoomSchedules.mockResolvedValue([
+        existingSchedule,
+      ]);
+
+      const dto: CreateTimetableDto = {
+        ...baseDto,
+        schedules: [
+          {
+            ...baseDto.schedules[0],
+            room_id: mockRoomId,
+            start_time: '09:30:00',
+            end_time: '10:30:00',
+          },
+        ],
+      };
+
+      await expect(service.validateTimetableRules(dto)).rejects.toThrow(
+        ConflictException,
+      );
+      await expect(service.validateTimetableRules(dto)).rejects.toThrow(
+        sysMsg.TIMETABLE_ROOM_DOUBLE_BOOKED,
       );
     });
   });

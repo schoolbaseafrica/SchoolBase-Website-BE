@@ -1,33 +1,17 @@
 import {
+  BadRequestException,
+  ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
-  BadRequestException,
-  Inject,
-  ForbiddenException,
-  ConflictException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
-import { IPaginationMeta } from 'src/common/types/base-response.interface';
-import {
-  ATTENDANCE_MARKED_SUCCESSFULLY,
-  ATTENDANCE_UPDATED_SUCCESSFULLY,
-  ATTENDANCE_RECORDS_RETRIEVED,
-  ATTENDANCE_NOT_FOUND,
-  ATTENDANCE_FUTURE_DATE_NOT_ALLOWED,
-  TEACHER_NOT_ASSIGNED_TO_SCHEDULE,
-  SCHEDULE_NOT_FOUND,
-  NO_ACTIVE_SESSION,
-  CLASS_NOT_FOUND,
-} from 'src/constants/system.messages';
-
-import {
-  SessionStatus,
-  AcademicSession,
-} from '../../academic-session/entities/academic-session.entity';
-import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { IPaginationMeta } from '../../../common/types/base-response.interface';
+import * as sysMsg from '../../../constants/system.messages';
+import { AcademicSessionService } from '../../academic-session/academic-session.service';
 import { TermName } from '../../academic-term/entities/term.entity';
 import { TermModelAction } from '../../academic-term/model-actions';
 import { ClassStudent } from '../../class/entities/class-student.entity';
@@ -35,10 +19,10 @@ import { Teacher } from '../../teacher/entities/teacher.entity';
 import { Schedule } from '../../timetable/entities/schedule.entity';
 import { DayOfWeek } from '../../timetable/enums/timetable.enums';
 import {
+  AttendanceResponseDto,
+  GetScheduleAttendanceQueryDto,
   MarkAttendanceDto,
   UpdateAttendanceDto,
-  GetScheduleAttendanceQueryDto,
-  AttendanceResponseDto,
 } from '../dto';
 import { ScheduleBasedAttendance } from '../entities';
 import { StudentDailyAttendance } from '../entities/student-daily-attendance.entity';
@@ -54,29 +38,30 @@ import {
 @Injectable()
 export class AttendanceService {
   private readonly logger: Logger;
+  protected monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
 
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly attendanceModelAction: AttendanceModelAction,
     private readonly studentDailyAttendanceModelAction: StudentDailyAttendanceModelAction,
-    private readonly academicSessionModelAction: AcademicSessionModelAction,
+    private readonly academicSessionService: AcademicSessionService,
     private readonly termModelAction: TermModelAction,
     private readonly dataSource: DataSource,
   ) {
     this.logger = baseLogger.child({ context: AttendanceService.name });
-  }
-
-  /**
-   * Get the currently active academic session
-   */
-  private async getActiveSession(): Promise<AcademicSession> {
-    const { payload } = await this.academicSessionModelAction.list({
-      filterRecordOptions: { status: SessionStatus.ACTIVE },
-    });
-    if (!payload.length) throw new NotFoundException(NO_ACTIVE_SESSION);
-    if (payload.length > 1)
-      throw new ConflictException('Multiple active sessions found');
-    return payload[0];
   }
 
   /**
@@ -117,7 +102,7 @@ export class AttendanceService {
     today.setHours(23, 59, 59, 999);
 
     if (attendanceDate > today) {
-      throw new BadRequestException(ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
+      throw new BadRequestException(sysMsg.ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
     }
 
     // Get teacher ID from user ID
@@ -126,13 +111,15 @@ export class AttendanceService {
     });
 
     if (!teacher) {
-      throw new NotFoundException('Teacher profile not found');
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
     }
 
     const teacherId = teacher.id;
 
     // Get active session
-    const activeSession = await this.getActiveSession();
+    const activeSession = await this.academicSessionService
+      .activeSessions()
+      .then((s) => s.data);
 
     let markedCount = 0;
     let updatedCount = 0;
@@ -145,16 +132,16 @@ export class AttendanceService {
       });
 
       if (!schedule) {
-        throw new NotFoundException(SCHEDULE_NOT_FOUND);
+        throw new NotFoundException(sysMsg.SCHEDULE_NOT_FOUND);
       }
 
       if (schedule.teacher_id !== teacherId) {
-        throw new ForbiddenException(TEACHER_NOT_ASSIGNED_TO_SCHEDULE);
+        throw new ForbiddenException(sysMsg.TEACHER_NOT_ASSIGNED_TO_SCHEDULE);
       }
 
       const classId = schedule.timetable?.class?.id;
       if (!classId) {
-        throw new NotFoundException(CLASS_NOT_FOUND);
+        throw new NotFoundException(sysMsg.CLASS_NOT_FOUND);
       }
 
       for (const record of attendance_records) {
@@ -233,7 +220,7 @@ export class AttendanceService {
     );
 
     return {
-      message: ATTENDANCE_MARKED_SUCCESSFULLY,
+      message: sysMsg.ATTENDANCE_MARKED_SUCCESSFULLY,
       marked: markedCount,
       updated: updatedCount,
       total: attendance_records.length,
@@ -261,7 +248,7 @@ export class AttendanceService {
     });
 
     return {
-      message: ATTENDANCE_RECORDS_RETRIEVED,
+      message: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
       data: records.map((record) => this.mapToResponseDto(record)),
     };
   }
@@ -281,7 +268,7 @@ export class AttendanceService {
     });
 
     if (!attendance) {
-      throw new NotFoundException(ATTENDANCE_NOT_FOUND);
+      throw new NotFoundException(sysMsg.ATTENDANCE_NOT_FOUND);
     }
 
     // Build update payload with proper type handling
@@ -307,7 +294,7 @@ export class AttendanceService {
     this.logger.info(`Attendance record ${attendanceId} updated`);
 
     return {
-      message: ATTENDANCE_UPDATED_SUCCESSFULLY,
+      message: sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY,
       data: this.mapToResponseDto(updated),
     };
   }
@@ -326,7 +313,7 @@ export class AttendanceService {
     });
 
     if (!attendance) {
-      throw new NotFoundException(ATTENDANCE_NOT_FOUND);
+      throw new NotFoundException(sysMsg.ATTENDANCE_NOT_FOUND);
     }
 
     // Build update payload
@@ -356,7 +343,7 @@ export class AttendanceService {
     this.logger.info(`Student daily attendance record ${attendanceId} updated`);
 
     return {
-      message: ATTENDANCE_UPDATED_SUCCESSFULLY,
+      message: sysMsg.ATTENDANCE_UPDATED_SUCCESSFULLY,
     };
   }
 
@@ -402,7 +389,7 @@ export class AttendanceService {
     }
 
     return {
-      message: ATTENDANCE_RECORDS_RETRIEVED,
+      message: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
       data: filteredRecords.map((record) => this.mapToResponseDto(record)),
       meta: paginationMeta,
     };
@@ -454,7 +441,7 @@ export class AttendanceService {
     }
 
     return {
-      message: ATTENDANCE_RECORDS_RETRIEVED,
+      message: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
       data: filteredRecords.map((record) => this.mapToResponseDto(record)),
       meta: paginationMeta,
     };
@@ -503,11 +490,13 @@ export class AttendanceService {
     today.setHours(23, 59, 59, 999);
 
     if (attendanceDate > today) {
-      throw new BadRequestException(ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
+      throw new BadRequestException(sysMsg.ATTENDANCE_FUTURE_DATE_NOT_ALLOWED);
     }
 
     // Get active session
-    const activeSession = await this.getActiveSession();
+    const activeSession = await this.academicSessionService
+      .activeSessions()
+      .then((s) => s.data);
 
     let markedCount = 0;
     let updatedCount = 0;
@@ -595,6 +584,122 @@ export class AttendanceService {
     };
   }
 
+  // Get a single student's monthly attendance for current month
+
+  async getStudentMonthlyAttendance(studentId: string): Promise<{
+    message: string;
+    month: string;
+    year: number;
+    student_id: string;
+    total_days_in_month: number;
+    days_present: number;
+    days_absent: number;
+    days_late: number;
+    days_excused: number;
+    days_half_day: number;
+    attendance_details: Array<{
+      date: string;
+      status: string;
+      check_in_time?: string;
+      check_out_time?: string;
+      notes?: string;
+    }>;
+  }> {
+    // Get current month start and end dates
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    // First day of current month
+    const startDate = new Date(year, month, 1);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    // Last day of current month
+    const endDate = new Date(year, month + 1, 0);
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    // Get all daily attendance records for this student in the current month
+    const { payload: attendanceRecords } =
+      await this.studentDailyAttendanceModelAction.list({
+        filterRecordOptions: {
+          session_id: await this.academicSessionService
+            .activeSessions()
+            .then((s) => s.data.id),
+          student_id: studentId,
+        },
+      });
+
+    // Filter by current month date range
+    const filteredRecords = attendanceRecords.filter((record) => {
+      const recordDateStr =
+        typeof record.date === 'string'
+          ? record.date
+          : record.date.toISOString().split('T')[0];
+      return recordDateStr >= startDateStr && recordDateStr <= endDateStr;
+    });
+
+    // Calculate total days in current month
+    const totalDaysInMonth = endDate.getDate();
+
+    // Calculate attendance statistics
+    let daysPresent = 0;
+    let daysAbsent = 0;
+    let daysLate = 0;
+    let daysExcused = 0;
+    let daysHalfDay = 0;
+
+    const attendanceDetails = filteredRecords.map((record) => {
+      // Count by status
+      switch (record.status) {
+        case DailyAttendanceStatus.PRESENT:
+          daysPresent++;
+          break;
+        case DailyAttendanceStatus.ABSENT:
+          daysAbsent++;
+          break;
+        case DailyAttendanceStatus.LATE:
+          daysLate++;
+          daysPresent++; // Late still counts as present
+          break;
+        case DailyAttendanceStatus.EXCUSED:
+          daysExcused++;
+          break;
+        case DailyAttendanceStatus.HALF_DAY:
+          daysHalfDay++;
+          break;
+      }
+
+      return {
+        date:
+          typeof record.date === 'string'
+            ? record.date
+            : record.date.toISOString().split('T')[0],
+        status: record.status,
+        check_in_time: record.check_in_time
+          ? record.check_in_time.toISOString()
+          : undefined,
+        check_out_time: record.check_out_time
+          ? record.check_out_time.toISOString()
+          : undefined,
+        notes: record.notes,
+      };
+    });
+
+    return {
+      message: sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED,
+      month: this.monthNames[month],
+      year,
+      student_id: studentId,
+      total_days_in_month: totalDaysInMonth,
+      days_present: daysPresent,
+      days_absent: daysAbsent,
+      days_late: daysLate,
+      days_excused: daysExcused,
+      days_half_day: daysHalfDay,
+      attendance_details: attendanceDetails,
+    };
+  }
+
   /**
    * Get a single student's term attendance summary
    * Shows aggregate attendance data for the entire term/date range
@@ -674,7 +779,7 @@ export class AttendanceService {
     });
 
     return {
-      message: ATTENDANCE_RECORDS_RETRIEVED,
+      message: sysMsg.ATTENDANCE_RECORDS_RETRIEVED,
       total_school_days: totalSchoolDays,
       days_present: daysPresent,
       days_absent: daysAbsent,

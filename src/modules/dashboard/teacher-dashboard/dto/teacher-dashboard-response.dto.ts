@@ -1,5 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export class RoomDto {
+  @ApiProperty({ example: 'uuid-room-123' })
+  id: string;
+
+  @ApiProperty({ example: 'Room 101' })
+  name: string;
+
+  @ApiProperty({ example: 30 })
+  capacity: number;
+}
+
 export class TodaysClassDto {
   @ApiProperty({ example: 'uuid-schedule-123' })
   schedule_id: string;
@@ -22,8 +33,8 @@ export class TodaysClassDto {
   @ApiProperty({ example: '09:30:00', description: 'End time in HH:MM:SS' })
   end_time: string;
 
-  @ApiProperty({ example: 'Room 101', nullable: true })
-  room: string | null;
+  @ApiProperty({ type: RoomDto, nullable: true })
+  room: RoomDto | null;
 }
 
 export class TodaysClassesResponseDto {
