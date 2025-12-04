@@ -546,10 +546,11 @@ export const ApiMarkStudentDailyAttendance = () =>
 export const ApiGetClassDailyAttendance = () =>
   applyDecorators(
     ApiOperation({
-      summary: 'Get daily attendance for a class on a specific date',
+      summary: 'Get total daily attendance for a class on a specific date',
       description:
         'Retrieves all daily attendance records for a class on a specific date. ' +
-        'Returns details of student check-in/check-out times and daily status.',
+        'Returns details of student check-in/check-out times and daily status. ' +
+        'If no date is provided, defaults to today.',
     }),
     ApiParam({
       name: 'classId',
@@ -559,9 +560,10 @@ export const ApiGetClassDailyAttendance = () =>
     }),
     ApiQuery({
       name: 'date',
-      required: true,
+      required: false,
       type: String,
-      description: 'Attendance date (YYYY-MM-DD)',
+      description:
+        'Attendance date (YYYY-MM-DD). Defaults to today if not provided.',
       example: '2025-12-02',
     }),
     ApiOkResponse({
@@ -571,30 +573,57 @@ export const ApiGetClassDailyAttendance = () =>
         properties: {
           message: {
             type: 'string',
-            example: ATTENDANCE_RECORDS_RETRIEVED,
+            example: 'Class daily attendance retrieved successfully',
           },
           status_code: { type: 'number', example: 200 },
           data: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                class_id: { type: 'string' },
-                student_id: { type: 'string' },
-                session_id: { type: 'string' },
-                date: { type: 'string', format: 'date' },
-                status: {
-                  type: 'string',
-                  enum: ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED', 'HALF_DAY'],
+            type: 'object',
+            properties: {
+              class_id: { type: 'string' },
+              date: { type: 'string', format: 'date', example: '2025-12-02' },
+              students: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    student_id: { type: 'string' },
+                    first_name: { type: 'string' },
+                    middle_name: { type: 'string', nullable: true },
+                    last_name: { type: 'string' },
+                    attendance_id: {
+                      type: 'string',
+                      nullable: true,
+                      description:
+                        'Attendance record ID - use this for PATCH updates',
+                    },
+                    status: {
+                      type: 'string',
+                      enum: [
+                        'PRESENT',
+                        'ABSENT',
+                        'LATE',
+                        'EXCUSED',
+                        'HALF_DAY',
+                      ],
+                      nullable: true,
+                    },
+                    check_in_time: { type: 'string', nullable: true },
+                    check_out_time: { type: 'string', nullable: true },
+                    notes: { type: 'string', nullable: true },
+                  },
                 },
-                check_in_time: { type: 'string', nullable: true },
-                check_out_time: { type: 'string', nullable: true },
-                marked_by: { type: 'string' },
-                marked_at: { type: 'string', format: 'date-time' },
-                notes: { type: 'string', nullable: true },
-                created_at: { type: 'string', format: 'date-time' },
-                updated_at: { type: 'string', format: 'date-time' },
+              },
+              summary: {
+                type: 'object',
+                properties: {
+                  total_students: { type: 'number' },
+                  present_count: { type: 'number' },
+                  absent_count: { type: 'number' },
+                  late_count: { type: 'number' },
+                  excused_count: { type: 'number' },
+                  half_day_count: { type: 'number' },
+                  not_marked_count: { type: 'number' },
+                },
               },
             },
           },
@@ -612,10 +641,10 @@ export const ApiGetClassDailyAttendance = () =>
 export const ApiGetClassTermAttendance = () =>
   applyDecorators(
     ApiOperation({
-      summary: 'Get daily attendance summary for a class over a term/period',
+      summary: 'Get daily attendance summary for a class over a term',
       description:
         'Retrieves aggregated daily attendance statistics for all students in a class ' +
-        'over a specified date range. Returns counts of present, absent, late, etc. for each student.',
+        'over a specified academic term. Returns counts of days present, absent, late, etc. for each student.',
     }),
     ApiParam({
       name: 'classId',
@@ -624,18 +653,18 @@ export const ApiGetClassTermAttendance = () =>
       example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiQuery({
-      name: 'start_date',
+      name: 'session_id',
       required: true,
       type: String,
-      description: 'Start date for range (YYYY-MM-DD)',
-      example: '2025-09-01',
+      description: 'Academic session ID',
+      example: '123e4567-e89b-12d3-a456-426614174000',
     }),
     ApiQuery({
-      name: 'end_date',
+      name: 'term',
       required: true,
-      type: String,
-      description: 'End date for range (YYYY-MM-DD)',
-      example: '2025-12-31',
+      enum: ['FIRST', 'SECOND', 'THIRD'],
+      description: 'Academic term',
+      example: 'FIRST',
     }),
     ApiOkResponse({
       description: 'Class term attendance summary retrieved successfully',
@@ -648,19 +677,66 @@ export const ApiGetClassTermAttendance = () =>
           },
           status_code: { type: 'number', example: 200 },
           data: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                student_id: { type: 'string' },
-                student_name: { type: 'string' },
-                total_days: { type: 'number' },
-                present: { type: 'number' },
-                absent: { type: 'number' },
-                late: { type: 'number' },
-                excused: { type: 'number' },
-                half_day: { type: 'number' },
-                attendance_percentage: { type: 'number' },
+            type: 'object',
+            properties: {
+              class_id: { type: 'string' },
+              session_id: { type: 'string' },
+              term: { type: 'string', enum: ['FIRST', 'SECOND', 'THIRD'] },
+              start_date: { type: 'string', example: '2025-09-01' },
+              end_date: { type: 'string', example: '2025-12-31' },
+              students: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    student_id: { type: 'string' },
+                    first_name: { type: 'string' },
+                    middle_name: { type: 'string' },
+                    last_name: { type: 'string' },
+                    total_school_days: { type: 'number' },
+                    days_present: {
+                      type: 'number',
+                      description:
+                        'Total days student attended school (includes both on-time and late)',
+                    },
+                    days_absent: {
+                      type: 'number',
+                      description: 'Number of days student was absent',
+                    },
+                    days_excused: {
+                      type: 'number',
+                      description:
+                        'Number of days student was absent but excused',
+                    },
+                    attendance_details: {
+                      type: 'array',
+                      description: 'Detailed attendance records for each day',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          date: { type: 'string', example: '2025-09-01' },
+                          status: {
+                            type: 'string',
+                            enum: ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'],
+                            example: 'PRESENT',
+                          },
+                          was_late: {
+                            type: 'boolean',
+                            description:
+                              'True if student was late (status = LATE)',
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              summary: {
+                type: 'object',
+                properties: {
+                  total_students: { type: 'number' },
+                  total_school_days: { type: 'number' },
+                },
               },
             },
           },
@@ -668,7 +744,7 @@ export const ApiGetClassTermAttendance = () =>
       },
     }),
     ApiNotFoundResponse({
-      description: 'Class not found',
+      description: 'Class or term not found',
     }),
   );
 

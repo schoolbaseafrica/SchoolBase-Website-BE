@@ -12,6 +12,7 @@ import {
   ParseUUIDPipe,
   Req,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 
 import { IRequestWithUser } from 'src/common/types/request.interface';
@@ -65,9 +66,11 @@ export class StudentDailyAttendanceController {
   @ApiGetClassDailyAttendance()
   async getClassDailyAttendance(
     @Param('classId', ParseUUIDPipe) classId: string,
-    @Query('date') date: string,
+    @Query('date') date?: string,
   ) {
-    return this.attendanceService.getClassDailyAttendance(classId, date);
+    // Default to today if no date provided
+    const targetDate = date || new Date().toISOString().split('T')[0];
+    return this.attendanceService.getClassDailyAttendance(classId, targetDate);
   }
 
   // --- GET: CLASS TERM ATTENDANCE SUMMARY (TEACHER/ADMIN) ---
@@ -77,13 +80,22 @@ export class StudentDailyAttendanceController {
   @ApiGetClassTermAttendance()
   async getClassTermAttendance(
     @Param('classId', ParseUUIDPipe) classId: string,
-    @Query('start_date') startDate?: string,
-    @Query('end_date') endDate?: string,
+    @Query('session_id') sessionId: string,
+    @Query('term') termKey: string,
   ) {
+    // Convert enum key (e.g., "SECOND") to enum value (e.g., "Second term")
+    const term = TermName[termKey as keyof typeof TermName];
+
+    if (!term) {
+      throw new BadRequestException(
+        `Invalid term. Must be one of: FIRST, SECOND, THIRD`,
+      );
+    }
+
     return this.attendanceService.getClassTermAttendance(
       classId,
-      startDate,
-      endDate,
+      sessionId,
+      term,
     );
   }
 

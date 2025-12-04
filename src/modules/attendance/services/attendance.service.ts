@@ -7,7 +7,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
 import { IPaginationMeta } from 'src/common/types/base-response.interface';
@@ -33,6 +33,7 @@ import { TermModelAction } from '../../academic-term/model-actions';
 import { ClassStudent } from '../../class/entities/class-student.entity';
 import { Teacher } from '../../teacher/entities/teacher.entity';
 import { Schedule } from '../../timetable/entities/schedule.entity';
+import { DayOfWeek } from '../../timetable/enums/timetable.enums';
 import {
   MarkAttendanceDto,
   UpdateAttendanceDto,
@@ -76,6 +77,23 @@ export class AttendanceService {
     if (payload.length > 1)
       throw new ConflictException('Multiple active sessions found');
     return payload[0];
+  }
+
+  /**
+   * Convert JavaScript day number (0-6) to DayOfWeek enum
+   * JavaScript: 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+   */
+  private getDayOfWeekEnum(dayNumber: number): DayOfWeek {
+    const dayMap = [
+      DayOfWeek.SUNDAY,
+      DayOfWeek.MONDAY,
+      DayOfWeek.TUESDAY,
+      DayOfWeek.WEDNESDAY,
+      DayOfWeek.THURSDAY,
+      DayOfWeek.FRIDAY,
+      DayOfWeek.SATURDAY,
+    ];
+    return dayMap[dayNumber];
   }
 
   /**
@@ -695,6 +713,10 @@ export class AttendanceService {
    * Get daily attendance summary for an entire class
    * Shows each student's attendance across all periods for a specific date
    */
+  /**
+   * Get total daily attendance for a class on a specific date
+   * Returns student daily attendance records (check-in/check-out based)
+   */
   async getClassDailyAttendance(
     classId: string,
     date: string,
@@ -709,22 +731,23 @@ export class AttendanceService {
         first_name: string;
         middle_name?: string;
         last_name: string;
-        total_periods: number;
+        attendance_id?: string;
+        status?: string;
+        check_in_time?: string;
+        check_out_time?: string;
+        notes?: string;
+      }>;
+      summary: {
+        total_students: number;
         present_count: number;
         absent_count: number;
         late_count: number;
         excused_count: number;
-        attendance_percentage: number;
-      }>;
-      summary: {
-        total_students: number;
-        total_periods: number;
-        average_attendance_percentage: number;
+        half_day_count: number;
+        not_marked_count: number;
       };
     };
   }> {
-    const attendanceDate = new Date(date);
-
     // Get all students enrolled in the class
     const enrolledStudents = await this.dataSource.manager.find(ClassStudent, {
       where: {
@@ -738,99 +761,57 @@ export class AttendanceService {
       throw new NotFoundException('No students enrolled in this class');
     }
 
-    // Get all schedules for this class on this date
-    const schedules = await this.dataSource.manager
-      .createQueryBuilder(Schedule, 'schedule')
-      .innerJoin('schedule.timetable', 'timetable')
-      .where('timetable.class_id = :classId', { classId })
-      .andWhere('schedule.day = :dayOfWeek', {
-        dayOfWeek: attendanceDate.getDay(),
-      })
+    // Get all daily attendance records for this class on this date
+    // Use date string directly for date-only comparison
+    const attendanceRecords = await this.dataSource.manager
+      .createQueryBuilder(StudentDailyAttendance, 'attendance')
+      .where('attendance.class_id = :classId', { classId })
+      .andWhere('attendance.date = :date', { date })
       .getMany();
 
-    const scheduleIds = schedules.map((s) => s.id);
-
-    if (scheduleIds.length === 0) {
-      return {
-        message: 'No schedules found for this class on the given date',
-        status_code: 200,
-        data: {
-          class_id: classId,
-          date,
-          students: enrolledStudents.map((enrollment) => ({
-            student_id: enrollment.student.id,
-            first_name: enrollment.student.user.first_name,
-            middle_name: enrollment.student.user.middle_name,
-            last_name: enrollment.student.user.last_name,
-            total_periods: 0,
-            present_count: 0,
-            absent_count: 0,
-            late_count: 0,
-            excused_count: 0,
-            attendance_percentage: 0,
-          })),
-          summary: {
-            total_students: enrolledStudents.length,
-            total_periods: 0,
-            average_attendance_percentage: 0,
-          },
-        },
-      };
-    }
-
-    // Get all attendance records for these schedules on this date
-    const attendanceRecords = await this.dataSource.manager.find(
-      ScheduleBasedAttendance,
-      {
-        where: {
-          schedule_id: In(scheduleIds),
-          date: attendanceDate,
-        },
-      },
+    // Create a map of student attendance for quick lookup
+    const attendanceMap = new Map(
+      attendanceRecords.map((record) => [record.student_id, record]),
     );
 
-    // Build student summaries
-    const studentSummaries = enrolledStudents.map((enrollment) => {
-      const studentRecords = attendanceRecords.filter(
-        (r) => r.student_id === enrollment.student.id,
-      );
-
-      const presentCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.PRESENT,
-      ).length;
-      const absentCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.ABSENT,
-      ).length;
-      const lateCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.LATE,
-      ).length;
-      const excusedCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.EXCUSED,
-      ).length;
-
-      const totalPeriods = scheduleIds.length;
-      const attendancePercentage =
-        totalPeriods > 0
-          ? ((presentCount + lateCount) / totalPeriods) * 100
-          : 0;
+    // Build student data with attendance information
+    const students = enrolledStudents.map((enrollment) => {
+      const attendance = attendanceMap.get(enrollment.student.id);
 
       return {
         student_id: enrollment.student.id,
         first_name: enrollment.student.user.first_name,
         middle_name: enrollment.student.user.middle_name,
         last_name: enrollment.student.user.last_name,
-        total_periods: totalPeriods,
-        present_count: presentCount,
-        absent_count: absentCount,
-        late_count: lateCount,
-        excused_count: excusedCount,
-        attendance_percentage: Math.round(attendancePercentage * 100) / 100,
+        attendance_id: attendance?.id,
+        status: attendance?.status,
+        check_in_time: attendance?.check_in_time
+          ? attendance.check_in_time.toString()
+          : undefined,
+        check_out_time: attendance?.check_out_time
+          ? attendance.check_out_time.toString()
+          : undefined,
+        notes: attendance?.notes,
       };
     });
 
-    const averageAttendance =
-      studentSummaries.reduce((sum, s) => sum + s.attendance_percentage, 0) /
-      studentSummaries.length;
+    // Calculate summary statistics
+    const presentCount = attendanceRecords.filter(
+      (r) => r.status === DailyAttendanceStatus.PRESENT,
+    ).length;
+    const absentCount = attendanceRecords.filter(
+      (r) => r.status === DailyAttendanceStatus.ABSENT,
+    ).length;
+    const lateCount = attendanceRecords.filter(
+      (r) => r.status === DailyAttendanceStatus.LATE,
+    ).length;
+    const excusedCount = attendanceRecords.filter(
+      (r) => r.status === DailyAttendanceStatus.EXCUSED,
+    ).length;
+    const halfDayCount = attendanceRecords.filter(
+      (r) => r.status === DailyAttendanceStatus.HALF_DAY,
+    ).length;
+    const notMarkedCount = enrolledStudents.length - attendanceRecords.length;
 
     return {
       message: 'Class daily attendance retrieved successfully',
@@ -838,12 +819,15 @@ export class AttendanceService {
       data: {
         class_id: classId,
         date,
-        students: studentSummaries,
+        students,
         summary: {
           total_students: enrolledStudents.length,
-          total_periods: scheduleIds.length,
-          average_attendance_percentage:
-            Math.round(averageAttendance * 100) / 100,
+          present_count: presentCount,
+          absent_count: absentCount,
+          late_count: lateCount,
+          excused_count: excusedCount,
+          half_day_count: halfDayCount,
+          not_marked_count: notMarkedCount,
         },
       },
     };
@@ -851,17 +835,19 @@ export class AttendanceService {
 
   /**
    * Get term attendance summary for an entire class
-   * Shows each student's total attendance across the term/date range
+   * Shows each student's total daily attendance across the term
    */
   async getClassTermAttendance(
     classId: string,
-    startDate?: string,
-    endDate?: string,
+    sessionId: string,
+    term: TermName,
   ): Promise<{
     message: string;
     status_code: number;
     data: {
       class_id: string;
+      session_id: string;
+      term: string;
       start_date: string;
       end_date: string;
       students: Array<{
@@ -869,22 +855,46 @@ export class AttendanceService {
         first_name: string;
         middle_name?: string;
         last_name: string;
-        total_periods: number;
-        present_count: number;
-        absent_count: number;
-        late_count: number;
-        excused_count: number;
-        attendance_percentage: number;
+        total_school_days: number;
+        days_present: number;
+        days_absent: number;
+        days_excused: number;
+        attendance_details: Array<{
+          date: string;
+          status: string;
+          was_late: boolean;
+        }>;
       }>;
       summary: {
         total_students: number;
         total_school_days: number;
-        average_attendance_percentage: number;
       };
     };
   }> {
-    const start = startDate ? new Date(startDate) : new Date();
-    const end = endDate ? new Date(endDate) : new Date();
+    // Get the term by session_id and term name
+    const { payload: terms } = await this.termModelAction.list({
+      filterRecordOptions: {
+        sessionId: sessionId,
+        name: term,
+      },
+    });
+
+    if (!terms || terms.length === 0) {
+      throw new NotFoundException(
+        `Term '${term}' not found for the specified session`,
+      );
+    }
+
+    const termData = terms[0];
+    // startDate and endDate are already strings from the database
+    const startDate =
+      typeof termData.startDate === 'string'
+        ? termData.startDate
+        : termData.startDate.toISOString().split('T')[0];
+    const endDate =
+      typeof termData.endDate === 'string'
+        ? termData.endDate
+        : termData.endDate.toISOString().split('T')[0];
 
     // Get all students enrolled in the class
     const enrolledStudents = await this.dataSource.manager.find(ClassStudent, {
@@ -899,56 +909,23 @@ export class AttendanceService {
       throw new NotFoundException('No students enrolled in this class');
     }
 
-    // Get all schedules for this class
-    const schedules = await this.dataSource.manager
-      .createQueryBuilder(Schedule, 'schedule')
-      .innerJoin('schedule.timetable', 'timetable')
-      .where('timetable.class_id = :classId', { classId })
-      .getMany();
-
-    const scheduleIds = schedules.map((s) => s.id);
-
-    if (scheduleIds.length === 0) {
-      return {
-        message: 'No schedules found for this class',
-        status_code: 200,
-        data: {
-          class_id: classId,
-          start_date: start.toISOString().split('T')[0],
-          end_date: end.toISOString().split('T')[0],
-          students: enrolledStudents.map((enrollment) => ({
-            student_id: enrollment.student.id,
-            first_name: enrollment.student.user.first_name,
-            middle_name: enrollment.student.user.middle_name,
-            last_name: enrollment.student.user.last_name,
-            total_periods: 0,
-            present_count: 0,
-            absent_count: 0,
-            late_count: 0,
-            excused_count: 0,
-            attendance_percentage: 0,
-          })),
-          summary: {
-            total_students: enrolledStudents.length,
-            total_school_days: 0,
-            average_attendance_percentage: 0,
-          },
-        },
-      };
-    }
-
-    // Get all attendance records for the date range
+    // Get all daily attendance records for this class in the term
     const attendanceRecords = await this.dataSource.manager
-      .createQueryBuilder(ScheduleBasedAttendance, 'attendance')
-      .where('attendance.schedule_id IN (:...scheduleIds)', { scheduleIds })
-      .andWhere('attendance.date >= :startDate', { startDate: start })
-      .andWhere('attendance.date <= :endDate', { endDate: end })
+      .createQueryBuilder(StudentDailyAttendance, 'attendance')
+      .where('attendance.class_id = :classId', { classId })
+      .andWhere('attendance.date >= :startDate', { startDate })
+      .andWhere('attendance.date <= :endDate', { endDate })
       .getMany();
 
     // Get unique dates to calculate total school days
+    // Handle both string and Date types for the date field
     const uniqueDates = [
       ...new Set(
-        attendanceRecords.map((r) => r.date.toISOString().split('T')[0]),
+        attendanceRecords.map((r) =>
+          typeof r.date === 'string'
+            ? r.date
+            : r.date.toISOString().split('T')[0],
+        ),
       ),
     ];
     const totalSchoolDays = uniqueDates.length;
@@ -959,60 +936,65 @@ export class AttendanceService {
         (r) => r.student_id === enrollment.student.id,
       );
 
-      const presentCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.PRESENT,
-      ).length;
-      const absentCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.ABSENT,
-      ).length;
-      const lateCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.LATE,
-      ).length;
-      const excusedCount = studentRecords.filter(
-        (r) => r.status === AttendanceStatus.EXCUSED,
+      // PRESENT = student was on time
+      const daysOnTime = studentRecords.filter(
+        (r) => r.status === DailyAttendanceStatus.PRESENT,
       ).length;
 
-      const totalPeriods = studentRecords.length;
-      const attendancePercentage =
-        totalPeriods > 0
-          ? ((presentCount + lateCount) / totalPeriods) * 100
-          : 0;
+      // LATE = student was present but came late (NOT absent)
+      const daysPresentButLate = studentRecords.filter(
+        (r) => r.status === DailyAttendanceStatus.LATE,
+      ).length;
+
+      // Total days present = on time + late (both mean student attended)
+      const daysPresent = daysOnTime + daysPresentButLate;
+
+      // ABSENT = student did not attend
+      const daysAbsent = studentRecords.filter(
+        (r) => r.status === DailyAttendanceStatus.ABSENT,
+      ).length;
+
+      // EXCUSED = student was absent but excused
+      const daysExcused = studentRecords.filter(
+        (r) => r.status === DailyAttendanceStatus.EXCUSED,
+      ).length;
+
+      // Build detailed attendance records array
+      const attendanceDetails = studentRecords.map((record) => ({
+        date:
+          typeof record.date === 'string'
+            ? record.date
+            : record.date.toISOString().split('T')[0],
+        status: record.status,
+        was_late: record.status === DailyAttendanceStatus.LATE,
+      }));
 
       return {
         student_id: enrollment.student.id,
         first_name: enrollment.student.user.first_name,
         middle_name: enrollment.student.user.middle_name,
         last_name: enrollment.student.user.last_name,
-        total_periods: totalPeriods,
-        present_count: presentCount,
-        absent_count: absentCount,
-        late_count: lateCount,
-        excused_count: excusedCount,
-        attendance_percentage: Math.round(attendancePercentage * 100) / 100,
+        total_school_days: totalSchoolDays,
+        days_present: daysPresent,
+        days_absent: daysAbsent,
+        days_excused: daysExcused,
+        attendance_details: attendanceDetails,
       };
     });
-
-    const averageAttendance =
-      studentSummaries.length > 0
-        ? studentSummaries.reduce(
-            (sum, s) => sum + s.attendance_percentage,
-            0,
-          ) / studentSummaries.length
-        : 0;
 
     return {
       message: 'Class term attendance retrieved successfully',
       status_code: 200,
       data: {
         class_id: classId,
-        start_date: start.toISOString().split('T')[0],
-        end_date: end.toISOString().split('T')[0],
+        session_id: sessionId,
+        term: term,
+        start_date: startDate,
+        end_date: endDate,
         students: studentSummaries,
         summary: {
           total_students: enrolledStudents.length,
           total_school_days: totalSchoolDays,
-          average_attendance_percentage:
-            Math.round(averageAttendance * 100) / 100,
         },
       },
     };

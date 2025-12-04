@@ -13,6 +13,7 @@ import {
   SessionStatus,
 } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { TermName } from '../../academic-term/entities/term.entity';
 import { TermModelAction } from '../../academic-term/model-actions';
 import { ScheduleBasedAttendance, StudentDailyAttendance } from '../entities';
 import { AttendanceStatus, DailyAttendanceStatus } from '../enums';
@@ -447,8 +448,23 @@ describe('AttendanceService', () => {
   describe('getClassTermAttendance', () => {
     it('should retrieve aggregated attendance summary for a class', async () => {
       const classId = 'class-123';
-      const startDate = '2025-09-01';
-      const endDate = '2025-12-31';
+      const sessionId = 'session-123';
+      const term = TermName.FIRST;
+
+      // Mock term data
+      const mockTerm = {
+        id: 'term-123',
+        name: TermName.FIRST,
+        sessionId: sessionId,
+        startDate: new Date('2025-09-01'),
+        endDate: new Date('2025-12-31'),
+      };
+
+      // Mock termModelAction.list
+      jest.spyOn(service['termModelAction'], 'list').mockResolvedValue({
+        payload: [mockTerm],
+        paginationMeta: {},
+      } as never);
 
       mockFind.mockResolvedValue([
         {
@@ -467,29 +483,22 @@ describe('AttendanceService', () => {
         },
       ]);
 
-      // Mock createQueryBuilder to return schedules and attendance records
-      let callCount = 0;
+      // Mock createQueryBuilder for daily attendance records
       const mockQueryBuilder: Partial<SelectQueryBuilder<unknown>> = {
-        innerJoin: jest.fn().mockReturnThis(),
-        leftJoinAndSelect: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn(() => {
-          callCount++;
-          if (callCount === 1) {
-            // First call returns schedules
-            return Promise.resolve([
-              { id: 'schedule-1', period_order: 1 },
-              { id: 'schedule-2', period_order: 2 },
-            ]);
-          }
-          // Second call returns attendance records with dates
-          return Promise.resolve([
-            { id: 'att-1', date: new Date('2025-09-01'), status: 'PRESENT' },
-            { id: 'att-2', date: new Date('2025-09-02'), status: 'PRESENT' },
-          ]);
-        }),
-        getRawMany: jest.fn().mockResolvedValue([]),
+        getMany: jest.fn().mockResolvedValue([
+          {
+            student_id: 'student-001',
+            date: new Date('2025-09-01'),
+            status: 'PRESENT',
+          },
+          {
+            student_id: 'student-002',
+            date: new Date('2025-09-01'),
+            status: 'LATE',
+          },
+        ]),
       };
 
       jest
@@ -498,14 +507,16 @@ describe('AttendanceService', () => {
 
       const result = await service.getClassTermAttendance(
         classId,
-        startDate,
-        endDate,
+        sessionId,
+        term,
       );
 
       expect(result.message).toBe(
         'Class term attendance retrieved successfully',
       );
       expect(result.data).toHaveProperty('students');
+      expect(result.data).toHaveProperty('session_id');
+      expect(result.data).toHaveProperty('term');
       expect(Array.isArray(result.data.students)).toBe(true);
     });
   });
