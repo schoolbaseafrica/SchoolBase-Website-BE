@@ -119,7 +119,13 @@ export class StudentDashboardService {
           : null,
         start_time: schedule.start_time,
         end_time: schedule.end_time,
-        room: schedule.room || null,
+        room: schedule.room
+          ? {
+              id: schedule.room.id,
+              name: schedule.room.name,
+              capacity: schedule.room.capacity,
+            }
+          : null,
         period_type: schedule.period_type,
       }));
 
