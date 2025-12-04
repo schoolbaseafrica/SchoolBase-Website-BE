@@ -283,6 +283,8 @@ export const STUDENT_NOT_BELONG_TO_PARENT =
   'Student not found or does not belong to this parent';
 export const STUDENT_UNLINKED_FROM_PARENT =
   'Student successfully unlinked from parent';
+export const PARENT_STUDENT_PROFILE_FETCHED =
+  "Student's profiles fetched successfully";
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';

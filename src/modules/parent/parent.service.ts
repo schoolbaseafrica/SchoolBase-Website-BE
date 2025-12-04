@@ -33,6 +33,7 @@ import {
   StudentBasicDto,
   UpdateParentDto,
   StudentSubjectResponseDto,
+  StudentProfileDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
@@ -633,5 +634,89 @@ export class ParentService {
       parentId,
       studentId,
     });
+  }
+
+  // -- GET LINKED STUDENTS (PARENT VERSION) --
+  async getLinkedStudentProfileForParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<StudentProfileDto> {
+    // Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // Validate student exists and it belongs to the parent
+    const student = await this.studentModelAction.get({
+      identifierOptions: {
+        id: studentId,
+        parent: { id: parentId },
+        is_deleted: false,
+      },
+      relations: {
+        user: true,
+        stream: {
+          class: {
+            academicSession: true,
+            classSubjects: { subject: true, teacher: { user: true } },
+            timetable: true,
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      this.logger.warn(`Either student does not
+          belog to parent or is deleted`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const { user, stream } = student;
+
+    if (!user) {
+      throw new Error('User relation not loaded for student');
+    }
+
+    return plainToInstance(
+      StudentProfileDto,
+      {
+        id: student.id,
+        registration_number: student.registration_number,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        middle_name: user.middle_name,
+        full_name: `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`,
+        photo_url: student.photo_url,
+        class_subjects:
+          stream?.class?.classSubjects?.map((cs) => ({
+            id: cs.id,
+            subject_id: cs.subject.id,
+            subject_name: cs.subject.name,
+            teacher_id: cs.teacher?.id || null,
+            teacher_name: cs.teacher?.user
+              ? `${cs.teacher.user.first_name} ${cs.teacher.user.last_name}`
+              : null,
+            teacher_assignment_date: cs.teacher_assignment_date || null,
+          })) || null,
+        timetable: stream?.class?.timetable
+          ? { id: stream.class.timetable.id }
+          : null,
+        class_details: stream?.class
+          ? { id: stream.class.id, name: stream.class.name }
+          : null,
+        academic_details: stream?.class?.academicSession
+          ? {
+              id: stream.class.academicSession.id,
+              session: stream.class.academicSession.name,
+            }
+          : null,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 }

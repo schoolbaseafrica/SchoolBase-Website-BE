@@ -7,6 +7,9 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiOkResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 
 import {
@@ -16,6 +19,7 @@ import {
   ParentStudentLinkResponseDto,
   UpdateParentDto,
   StudentSubjectResponseDto,
+  StudentProfileDto,
 } from '../dto';
 
 const GLOBAL_STATUS_CODES = {
@@ -423,3 +427,24 @@ export const ApiUnlinkStudent = () =>
       description: 'Unauthorized - Invalid or missing token',
     }),
   );
+
+export const ApiGetLinkedStudentProfileForParent = () => {
+  return applyDecorators(
+    ApiOperation({
+      summary: "Get a linked student's profile (for Parents)",
+      description:
+        'Allows a logged-in parent to retrieve the detailed profile of one of their linked students.',
+    }),
+    ApiParam({ name: 'studentId', type: 'string', format: 'uuid' }),
+    ApiOkResponse({
+      description: "Successfully retrieved student's profile.",
+      type: StudentProfileDto,
+    }),
+    ApiForbiddenResponse({
+      description: 'Forbidden. You are not authorized to view this profile.',
+    }),
+    ApiNotFoundResponse({
+      description: 'Parent or Student not found.',
+    }),
+  );
+};
