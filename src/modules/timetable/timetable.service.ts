@@ -9,7 +9,7 @@ import {
   ScheduleResponseDto,
   UpdateScheduleDto,
 } from './dto/timetable.dto';
-import { PeriodType } from './enums/timetable.enums';
+import { PeriodType, DayOfWeek } from './enums/timetable.enums';
 import { ScheduleModelAction } from './model-actions/schedule.model-action';
 import { TimetableModelAction } from './model-actions/timetable.model-action';
 import { TimetableValidationService } from './services/timetable-validation.service';
@@ -143,5 +143,78 @@ export class TimetableService {
 
   async archive() {
     return 'returns archive response';
+  }
+
+  async getAll(
+    page = 1,
+    limit = 20,
+    day?: DayOfWeek,
+  ): Promise<{
+    data: GetTimetableResponseDto[];
+    pagination: {
+      total: number;
+      limit: number;
+      page: number;
+      total_pages: number;
+      has_next: boolean;
+      has_previous: boolean;
+    };
+  }> {
+    const timetables = await this.timetableModelAction.findAllTimetables();
+
+    if (day && !Object.values(DayOfWeek).includes(day)) {
+      throw new BadRequestException(
+        `Invalid day '${day}'. Allowed values are: ${Object.values(DayOfWeek).join(', ')}`,
+      );
+    }
+
+    // Filter schedules by day if provided
+    let filteredTimetables = timetables;
+    if (day) {
+      filteredTimetables = timetables.map((timetable) => ({
+        ...timetable,
+        schedules: timetable.schedules.filter(
+          (schedule) => schedule.day.toUpperCase() === day.toUpperCase(),
+        ),
+      }));
+    }
+
+    const total = filteredTimetables.length;
+    const total_pages = Math.ceil(total / limit);
+    const start = (page - 1) * limit;
+    const end = start + limit;
+    const paginatedTimetables = filteredTimetables.slice(start, end);
+
+    const data = paginatedTimetables.map((timetable) => ({
+      class_id: timetable.class_id,
+      name: timetable.class.name,
+      arm: timetable.class.arm,
+      schedules: timetable.schedules.map((schedule) => {
+        const { teacher, ...baseSchedule } = schedule;
+        return {
+          ...baseSchedule,
+          teacher: teacher?.user
+            ? {
+                id: teacher.id,
+                title: teacher.title,
+                first_name: teacher.user.first_name,
+                last_name: teacher.user.last_name,
+              }
+            : undefined,
+        };
+      }),
+    }));
+
+    return {
+      data,
+      pagination: {
+        total,
+        limit,
+        page,
+        total_pages,
+        has_next: page < total_pages,
+        has_previous: page > 1,
+      },
+    };
   }
 }
