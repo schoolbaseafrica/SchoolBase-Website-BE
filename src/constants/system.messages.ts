@@ -268,6 +268,14 @@ export const PARENT_UPDATED = 'Parent updated successfully';
 export const PARENT_NOT_FOUND = 'Parent not found';
 export const PARENTS_FETCHED = 'Parents fetched successfully';
 export const PARENT_DELETED = 'Parent deleted successfully';
+export const STUDENTS_LINKED_TO_PARENT =
+  'Students successfully linked to parent';
+export const PARENT_STUDENTS_FETCHED = 'Parent students fetched successfully';
+export const STUDENT_NOT_LINKED_TO_PARENT =
+  'Student is not linked to this parent';
+export const STUDENT_ACADEMIC_PROFILE_FETCHED =
+  'Student academic profile fetched successfully';
+
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
 export const CONTACT_MESSAGE_FAILED = 'Failed to send contact message';
