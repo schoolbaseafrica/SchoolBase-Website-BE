@@ -2,15 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 
-import { AcademicSessionModelAction } from '../academic-session/model-actions/academic-session-actions';
-import { TermModelAction } from '../academic-term/model-actions';
-
-import { ScheduleBasedAttendanceController } from './controllers/schedule-based-attendance.controller';
+import { AcademicSessionService } from '../../academic-session/academic-session.service';
+import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
+import { TermModelAction } from '../../academic-term/model-actions';
+import { ScheduleBasedAttendanceController } from '../controllers/schedule-based-attendance.controller';
 import {
   AttendanceModelAction,
   StudentDailyAttendanceModelAction,
-} from './model-actions';
-import { AttendanceService } from './services/attendance.service';
+} from '../model-actions';
+import { AttendanceService } from '../services/attendance.service';
 
 describe('ScheduleBasedAttendanceController', () => {
   let controller: ScheduleBasedAttendanceController;
@@ -37,6 +37,10 @@ describe('ScheduleBasedAttendanceController', () => {
       get: jest.fn(),
     };
 
+    const mockAcademicSessionService = {
+      activeSessions: jest.fn(),
+    };
+
     const mockTermModelAction = {
       get: jest.fn(),
       list: jest.fn(),
@@ -57,6 +61,10 @@ describe('ScheduleBasedAttendanceController', () => {
         {
           provide: AcademicSessionModelAction,
           useValue: mockAcademicSessionModelAction,
+        },
+        {
+          provide: AcademicSessionService,
+          useValue: mockAcademicSessionService,
         },
         {
           provide: TermModelAction,
