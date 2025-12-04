@@ -408,12 +408,12 @@ export class InviteService {
             status: InviteStatus.PENDING,
             accepted: false,
           },
-          transactionOptions: { useTransaction: true, transaction: manager }, // ✅ Changed: use transaction manager
+          transactionOptions: { useTransaction: true, transaction: manager },
         });
 
         await this.inviteModelAction.save({
           entity: invite,
-          transactionOptions: { useTransaction: true, transaction: manager }, // ✅ Changed: use transaction manager
+          transactionOptions: { useTransaction: true, transaction: manager },
         });
 
         const inviteLink = `${frontendUrl}/reset-password?token=${rawToken}`;
