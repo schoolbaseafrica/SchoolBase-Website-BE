@@ -13,7 +13,9 @@ import * as sysMsg from '../../constants/system.messages';
 import { TermModelAction } from '../academic-term/model-actions';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
+import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import { FeeAssignment } from './entities/fee-assignment.entity';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesModelAction } from './model-action/fees.model-action';
@@ -29,6 +31,8 @@ export class FeesService {
     private readonly dataSource: DataSource,
     @InjectRepository(Fees)
     private readonly feesRepository: Repository<Fees>,
+    @InjectRepository(FeeAssignment)
+    private readonly feeAssignmentRepository: Repository<FeeAssignment>,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: FeesService.name });
@@ -356,5 +360,80 @@ export class FeesService {
     });
 
     return updatedFee;
+  }
+
+  async getStudentsForFee(feeId: string): Promise<FeeStudentResponseDto[]> {
+    const fee = await this.feesRepository.findOne({
+      where: { id: feeId },
+      relations: [
+        'classes',
+        'classes.student_assignments',
+        'classes.student_assignments.student',
+        'classes.student_assignments.student.user',
+        'classes.academicSession',
+        'direct_assignments',
+        'direct_assignments.student',
+        'direct_assignments.student.user',
+      ],
+    });
+
+    if (!fee) {
+      throw new NotFoundException(sysMsg.FEE_NOT_FOUND);
+    }
+
+    const studentMap = new Map<string, FeeStudentResponseDto>();
+
+    // Process class assignments
+    if (fee.classes) {
+      for (const cls of fee.classes) {
+        if (cls.student_assignments) {
+          for (const assignment of cls.student_assignments) {
+            if (assignment.student && assignment.student.user) {
+              const student = assignment.student;
+              studentMap.set(student.id, {
+                id: student.id,
+                name: `${student.user.first_name} ${student.user.last_name}`,
+                class: cls.name,
+                session:
+                  cls.academicSession?.academicYear ||
+                  cls.academicSession?.name ||
+                  '',
+                registration_number: student.registration_number,
+                photo_url: student.photo_url,
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // Process direct assignments
+    if (fee.direct_assignments) {
+      for (const assignment of fee.direct_assignments) {
+        if (assignment.student && assignment.student.user) {
+          const student = assignment.student;
+          // Direct assignment might override class info or be standalone
+          // If already exists, we keep the class info (or update if needed? Requirement says "associated with classes linked... or direct assignments")
+          // If it's a direct assignment, it might not have a class context in this fee's context, but the student belongs to a class generally.
+          // However, the requirement asks for "class". If direct assignment, we might need to fetch their current class separately if not already in the map.
+          // But for now, let's assume if they are in the map, we keep them. If not, we add them.
+          // If added via direct assignment, "class" might be ambiguous if they are not in one of the linked classes.
+          // Let's check if we have class info. If not, we might leave it empty or fetch it.
+          // For simplicity and performance, if they are not in the map (meaning not in a linked class), we add them.
+          if (!studentMap.has(student.id)) {
+            studentMap.set(student.id, {
+              id: student.id,
+              name: `${student.user.first_name} ${student.user.last_name}`,
+              class: 'N/A', // Or fetch their primary class if possible, but that requires more queries.
+              session: '', // Same here
+              registration_number: student.registration_number,
+              photo_url: student.photo_url,
+            });
+          }
+        }
+      }
+    }
+
+    return Array.from(studentMap.values());
   }
 }

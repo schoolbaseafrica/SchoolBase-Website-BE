@@ -22,6 +22,7 @@ import { Class } from '../class/entities/class.entity'; // Added Class entity
 import { ClassModelAction } from '../class/model-actions/class.actions';
 
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import { FeeAssignment } from './entities/fee-assignment.entity';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesService } from './fees.service';
@@ -62,7 +63,9 @@ describe('FeesService', () => {
   let classModelAction: jest.Mocked<ClassModelAction>;
   let logger: Partial<Logger>;
   let mockQueryBuilder: MockQueryBuilder;
+
   let mockFeesRepository: jest.Mocked<Repository<Fees>>;
+  let mockFeeAssignmentRepository: jest.Mocked<Repository<FeeAssignment>>;
 
   const mockLogger: Partial<Logger> = {
     child: jest.fn().mockReturnThis(),
@@ -158,7 +161,12 @@ describe('FeesService', () => {
       createQueryBuilder: jest.fn(
         () => mockQueryBuilder as unknown as SelectQueryBuilder<Fees>,
       ),
+      findOne: jest.fn(),
     } as unknown as jest.Mocked<Repository<Fees>>;
+
+    mockFeeAssignmentRepository = {
+      find: jest.fn(),
+    } as unknown as jest.Mocked<Repository<FeeAssignment>>;
 
     mockDataSourceValue.transaction = jest
       .fn()
@@ -178,6 +186,10 @@ describe('FeesService', () => {
         { provide: ClassModelAction, useValue: mockClassModelActionValue },
         { provide: DataSource, useValue: mockDataSourceValue },
         { provide: getRepositoryToken(Fees), useValue: mockFeesRepository },
+        {
+          provide: getRepositoryToken(FeeAssignment),
+          useValue: mockFeeAssignmentRepository,
+        },
         { provide: WINSTON_MODULE_PROVIDER, useValue: mockLogger },
       ],
     }).compile();
@@ -636,6 +648,104 @@ describe('FeesService', () => {
       );
 
       expect(feesModelAction.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ================= GET STUDENTS FOR FEE =================
+  describe('getStudentsForFee', () => {
+    it('should return students from linked classes and direct assignments', async () => {
+      const mockStudent1 = {
+        id: 'student-1',
+        registration_number: 'REG001',
+        photo_url: 'photo1.jpg',
+        user: { first_name: 'John', last_name: 'Doe' },
+      };
+      const mockStudent2 = {
+        id: 'student-2',
+        registration_number: 'REG002',
+        photo_url: 'photo2.jpg',
+        user: { first_name: 'Jane', last_name: 'Smith' },
+      };
+
+      const mockFeeWithStudents = {
+        ...mockFee,
+        classes: [
+          {
+            name: 'Class 1',
+            academicSession: { academicYear: '2023/2024' },
+            student_assignments: [{ student: mockStudent1 }],
+          },
+        ],
+        direct_assignments: [{ student: mockStudent2 }],
+      };
+
+      (mockFeesRepository.findOne as jest.Mock).mockResolvedValue(
+        mockFeeWithStudents,
+      );
+
+      const result = await service.getStudentsForFee('fee-123');
+
+      expect(result).toHaveLength(2);
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'student-1',
+            name: 'John Doe',
+            class: 'Class 1',
+            session: '2023/2024',
+          }),
+          expect.objectContaining({
+            id: 'student-2',
+            name: 'Jane Smith',
+            class: 'N/A',
+            session: '',
+          }),
+        ]),
+      );
+    });
+
+    it('should deduplicate students present in both class and direct assignments', async () => {
+      const mockStudent1 = {
+        id: 'student-1',
+        registration_number: 'REG001',
+        photo_url: 'photo1.jpg',
+        user: { first_name: 'John', last_name: 'Doe' },
+      };
+
+      const mockFeeWithDuplicates = {
+        ...mockFee,
+        classes: [
+          {
+            name: 'Class 1',
+            academicSession: { academicYear: '2023/2024' },
+            student_assignments: [{ student: mockStudent1 }],
+          },
+        ],
+        direct_assignments: [{ student: mockStudent1 }],
+      };
+
+      (mockFeesRepository.findOne as jest.Mock).mockResolvedValue(
+        mockFeeWithDuplicates,
+      );
+
+      const result = await service.getStudentsForFee('fee-123');
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          id: 'student-1',
+          name: 'John Doe',
+          class: 'Class 1', // Should prefer class info
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if fee not found', async () => {
+      (mockFeesRepository.findOne as jest.Mock).mockResolvedValue(null);
+
+      await expect(service.getStudentsForFee('fee-123')).rejects.toThrow(
+        new NotFoundException(mockSysMsg.fee_not_found),
+      );
     });
   });
 });
