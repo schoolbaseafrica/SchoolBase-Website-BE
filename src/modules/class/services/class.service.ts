@@ -37,6 +37,8 @@ import {
   IGetClassByIdResponse,
 } from '../types/base-response.interface';
 
+import { ClassStudentValidationService } from './class-student-validation.service';
+
 @Injectable()
 export class ClassService {
   private readonly logger: Logger;
@@ -48,6 +50,7 @@ export class ClassService {
     private readonly studentModelAction: StudentModelAction,
     private readonly academicSessionModelAction: AcademicSessionModelAction,
     private readonly dataSource: DataSource,
+    private readonly classStudentValidationService: ClassStudentValidationService,
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
   ) {
     this.logger = baseLogger.child({ context: ClassService.name });
@@ -394,6 +397,112 @@ export class ClassService {
   }
 
   /**
+   * Assigns a single student to a class.
+   * Uses the class's academic session automatically.
+   */
+  async assignStudentToClass(
+    classId: string,
+    studentId: string,
+  ): Promise<{
+    message: string;
+    assigned: boolean;
+    reactivated: boolean;
+    classId: string;
+    studentId: string;
+  }> {
+    // Get class and session (validates class exists and is not deleted)
+    const classEntity =
+      await this.classStudentValidationService.validateClassExists(classId);
+    const sessionId = classEntity.academicSession.id;
+
+    // Validate assignment rules (outside transaction for early failure)
+    await this.classStudentValidationService.validateStudentAssignment(
+      classId,
+      studentId,
+      sessionId,
+    );
+
+    // Perform assignment in transaction
+    let assigned = false;
+    let reactivated = false;
+
+    await this.dataSource.transaction(async (manager) => {
+      // Re-validate inside transaction (for race conditions)
+      await this.classStudentValidationService.validateStudentAssignment(
+        classId,
+        studentId,
+        sessionId,
+        manager,
+      );
+
+      // Check for existing assignment
+      const existingAssignment =
+        await this.classStudentValidationService.getExistingAssignment(
+          classId,
+          studentId,
+          sessionId,
+          manager,
+        );
+
+      if (existingAssignment) {
+        if (existingAssignment.is_active) {
+          // Already assigned - no action needed
+          return;
+        } else {
+          // Reactivate the existing assignment
+          existingAssignment.is_active = true;
+          existingAssignment.enrollment_date = new Date();
+          await manager.save(ClassStudent, existingAssignment);
+          reactivated = true;
+          return;
+        }
+      }
+
+      // Create new assignment
+      await this.classStudentModelAction.create({
+        createPayload: {
+          class: { id: classId },
+          student: { id: studentId },
+          session_id: sessionId,
+          is_active: true,
+          enrollment_date: new Date(),
+        },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+      assigned = true;
+    });
+
+    // Build response message
+    let message = '';
+    if (reactivated) {
+      message = 'Student assignment reactivated successfully.';
+    } else if (assigned) {
+      message = 'Student assigned to class successfully.';
+    } else {
+      message = 'Student is already assigned to this class.';
+    }
+
+    this.logger.info(`Student ${studentId} assignment to class ${classId}`, {
+      classId,
+      studentId,
+      sessionId,
+      assigned,
+      reactivated,
+    });
+
+    return {
+      message,
+      assigned: assigned || reactivated,
+      reactivated,
+      classId,
+      studentId,
+    };
+  }
+
+  /**
    * Assigns multiple students to a class.
    * Uses the class's academic session automatically.
    */
@@ -406,63 +515,81 @@ export class ClassService {
     skipped: number;
     classId: string;
   }> {
-    // 1. Validate class exists and get its academic session
-    const classExist = await this.classModelAction.get({
-      identifierOptions: { id: classId },
-      relations: { academicSession: true },
-    });
-    if (!classExist) {
-      throw new NotFoundException(`Class with ID ${classId} not found`);
-    }
+    // Get class and session (validates class exists and is not deleted)
+    const classEntity =
+      await this.classStudentValidationService.validateClassExists(classId);
+    const sessionId = classEntity.academicSession.id;
 
-    // 2. Use the class's academic session (classes are always tied to a session)
-    const sessionId = classExist.academicSession.id;
-
-    // 3. Validate all student IDs exist
+    // Remove duplicates
     const { studentIds } = assignStudentsDto;
-    for (const studentId of studentIds) {
-      const student = await this.studentModelAction.get({
-        identifierOptions: { id: studentId },
-      });
-      if (!student) {
-        throw new NotFoundException(`Student with ID ${studentId} not found`);
-      }
+    const uniqueStudentIds = [...new Set(studentIds)];
+    if (uniqueStudentIds.length !== studentIds.length) {
+      this.logger.warn(
+        `Duplicate student IDs detected and removed. Original: ${studentIds.length}, Unique: ${uniqueStudentIds.length}`,
+        { classId, studentIds },
+      );
     }
 
-    // 4. Check for existing assignments and assign in transaction
+    // Validate batch assignment rules (outside transaction for early failure)
+    await this.classStudentValidationService.validateBatchStudentAssignment(
+      classId,
+      uniqueStudentIds,
+      sessionId,
+    );
+
+    // Perform assignments in transaction
     let assignedCount = 0;
     let skippedCount = 0;
+
     await this.dataSource.transaction(async (manager) => {
-      for (const studentId of studentIds) {
-        // Check if assignment already exists using repository through transaction manager
-        const existingAssignment = await manager.findOne(ClassStudent, {
-          where: {
+      // Re-validate inside transaction (for race conditions)
+      await this.classStudentValidationService.validateBatchStudentAssignment(
+        classId,
+        uniqueStudentIds,
+        sessionId,
+        manager,
+      );
+
+      // Process each student
+      for (const studentId of uniqueStudentIds) {
+        const existingAssignment =
+          await this.classStudentValidationService.getExistingAssignment(
+            classId,
+            studentId,
+            sessionId,
+            manager,
+          );
+
+        if (existingAssignment) {
+          if (existingAssignment.is_active) {
+            // Already active, skip
+            skippedCount++;
+            continue;
+          } else {
+            // Reactivate the existing assignment
+            existingAssignment.is_active = true;
+            existingAssignment.enrollment_date = new Date();
+            await manager.save(ClassStudent, existingAssignment);
+            assignedCount++;
+            continue;
+          }
+        }
+
+        // Create new assignment
+        await this.classStudentModelAction.create({
+          createPayload: {
             class: { id: classId },
             student: { id: studentId },
             session_id: sessionId,
             is_active: true,
+            enrollment_date: new Date(),
+          },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
           },
         });
-
-        if (!existingAssignment) {
-          // Create new assignment
-          await this.classStudentModelAction.create({
-            createPayload: {
-              class: { id: classId },
-              student: { id: studentId },
-              session_id: sessionId,
-              is_active: true,
-              enrollment_date: new Date(),
-            },
-            transactionOptions: {
-              useTransaction: true,
-              transaction: manager,
-            },
-          });
-          assignedCount++;
-        } else {
-          skippedCount++;
-        }
+        assignedCount++;
       }
     });
 
@@ -470,7 +597,7 @@ export class ClassService {
       `Assigned ${assignedCount} students, skipped ${skippedCount} (already assigned) to class ${classId}`,
       {
         classId,
-        studentIds,
+        studentIds: uniqueStudentIds,
         sessionId,
         assignedCount,
         skippedCount,

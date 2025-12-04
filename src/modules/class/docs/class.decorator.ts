@@ -7,6 +7,7 @@ import {
   ApiOkResponse,
   ApiNotFoundResponse,
   ApiCreatedResponse,
+  ApiConflictResponse,
 } from '@nestjs/swagger';
 
 import { ClassSwagger } from './class.swagger';
@@ -96,6 +97,20 @@ export const DocsDeleteClass = () => {
   );
 };
 
+export const DocsAssignSingleStudent = () => {
+  const { operation, parameters, responses } =
+    ClassSwagger.endpoints.assignSingleStudent;
+
+  return applyDecorators(
+    ApiOperation(operation),
+    ApiParam(parameters.id),
+    ApiParam(parameters.studentId),
+    ApiOkResponse(responses.ok),
+    ApiNotFoundResponse(responses.notFound),
+    ApiConflictResponse(responses.conflict),
+  );
+};
+
 export const DocsAssignStudents = () => {
   const { operation, parameters, responses } =
     ClassSwagger.endpoints.assignStudents;
@@ -105,6 +120,7 @@ export const DocsAssignStudents = () => {
     ApiParam(parameters.id),
     ApiOkResponse(responses.ok),
     ApiNotFoundResponse(responses.notFound),
+    ApiConflictResponse(responses.conflict),
     ApiResponse(responses.badRequest),
   );
 };
