@@ -49,7 +49,7 @@ export class StudentResponseDto {
 
   @ApiProperty({
     description: 'Email address',
-    example: 'favourchinaza110@gmail.com',
+    example: 'chinaza110@gmail.com',
   })
   email: string;
 

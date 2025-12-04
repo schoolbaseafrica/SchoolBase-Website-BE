@@ -32,7 +32,7 @@ export const ACCOUNT_ALREADY_EXISTS = 'account already exists';
 export const USER_NOT_FOUND = 'user not found';
 export const ACCOUNT_DELETED = 'account deleted';
 export const USER_CREATED_SUCCESSFULLY = 'user created successfully';
-export const USER_UPDATED_SUCCESSFULLY = 'user updated sucessfully';
+export const USER_UPDATED_SUCCESSFULLY = 'user updated successfully';
 
 // Email Verification
 export const EMAIL_VERIFICATION_SENT = 'email verification sent';
@@ -320,6 +320,8 @@ export const STUDENT_DELETED = 'Student deleted successfully';
 
 // Academic Term messages
 export const TERM_RETRIEVED = 'Term(s) retrieved successfully';
+export const INVALID_TERM =
+  'Invalid term. Must be one of: FIRST, SECOND, THIRD';
 export const TERM_UPDATED = 'Term updated successfully';
 export const TERM_NOT_FOUND = 'Term not found';
 export const NO_ACTIVE_TERM = 'No active term found';
@@ -341,6 +343,7 @@ export const DASHBOARD_ANALYTICS_FETCHED =
 
 // Teacher messages
 export const INVALID_TEACHER_ID = 'Invalid teacher ID provided';
+export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_TEACHER_AGE = (minAge: number) =>
   `Teacher must be at least ${minAge} years old`;
 
@@ -356,7 +359,6 @@ export const TIMETABLE_OVERLAP_STREAM =
   'Timetable period overlaps with another period for the same stream on the same day';
 export const TIMETABLE_TEACHER_DOUBLE_BOOKED =
   'Teacher is already scheduled for another class at this time';
-export const TEACHER_NOT_FOUND = 'Teacher not found';
 export const INVALID_DATE_RANGE_TIMETABLE =
   'End date must be after effective date';
 export const TIMETABLE_ARCHIVED = 'Timetable archived successfully';
@@ -416,6 +418,7 @@ export const INVALID_SCORE_RANGE = 'Score must be within the allowed range';
 export const FEE_DEACTIVATED_SUCCESSFULLY =
   'Fee component deactivated successfully';
 export const FEE_ALREADY_INACTIVE = 'Fee component is already inactive';
+
 // Superadmin messages
 export const SUPERADMIN_ACCOUNT_CREATED = 'superadmin account created';
 export const SUPERADMIN_PASSWORDS_REQUIRED =
@@ -447,6 +450,11 @@ export const STUDENT_NOT_ENROLLED_IN_CLASS =
   'Student is not enrolled in this class';
 export const SCHEDULE_NOT_FOUND = 'Schedule not found';
 export const ATTENDANCE_CHECK_SUCCESS = 'Attendance check completed';
+export const STUDENT_MONTHLY_ATTENDANCE_RETRIEVED =
+  'Student monthly attendance retrieved successfully';
+export const STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE =
+  'Students can only view their own attendance';
+
 // Result messages
 export const RESULT_NOT_FOUND = 'Result not found';
 export const RESULT_GENERATED_SUCCESS = (count: number) =>

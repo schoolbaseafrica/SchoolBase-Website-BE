@@ -18,6 +18,6 @@ import { AcademicSessionModelAction } from './model-actions/academic-session-act
   ],
   controllers: [AcademicSessionController],
   providers: [AcademicSessionService, AcademicSessionModelAction],
-  exports: [AcademicSessionModelAction],
+  exports: [AcademicSessionService, AcademicSessionModelAction],
 })
 export class AcademicSessionModule {}
