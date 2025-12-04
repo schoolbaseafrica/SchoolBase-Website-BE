@@ -127,6 +127,8 @@ export const PAYMENT_DECLINED = 'payment declined';
 export const INSUFFICIENT_FUNDS = 'insufficient funds';
 export const SUBSCRIPTION_EXPIRED = 'subscription expired';
 export const SUBSCRIPTION_ACTIVE = 'subscription active';
+export const PAYMENTS_FETCHED_SUCCESSFULLY =
+  'Fee payments retrieved successfully.';
 
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
