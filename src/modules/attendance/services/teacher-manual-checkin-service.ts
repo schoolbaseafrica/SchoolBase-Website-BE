@@ -22,6 +22,7 @@ import {
   TeacherManualCheckinResponseDto,
   ReviewTeacherManualCheckinDto,
   ReviewTeacherManualCheckinResponseDto,
+  TeacherAttendanceTodaySummaryResponseDto,
 } from '../dto';
 import {
   CreateTeacherCheckoutDto,
@@ -363,6 +364,64 @@ export class TeacherManualCheckinService {
       data: plainToInstance(TeacherCheckoutResponseDto, updatedAttendance, {
         excludeExtraneousValues: true,
       }),
+    };
+  }
+
+  // --- GET TODAY'S ATTENDANCE SUMMARY ---
+  async getTodayAttendanceSummary(user: IRequestWithUser): Promise<{
+    message: string;
+    data: TeacherAttendanceTodaySummaryResponseDto;
+  }> {
+    // --- Validate teacher exists ---
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { user_id: user.user.userId },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+    // --- Validate teacher is active ---
+    if (!teacher.is_active) {
+      throw new BadRequestException(sysMsg.TEACHER_IS_NOT_ACTIVE);
+    }
+
+    // --- Get today's date (midnight) ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // --- Query attendance for today ---
+    const attendance = await this.teacherDailyAttendanceModelAction.get({
+      identifierOptions: {
+        teacher_id: teacher.id,
+        date: today,
+      },
+    });
+
+    // --- Check for pending manual request ---
+    const pendingRequest = await this.teacherManualCheckinModelAction.get({
+      identifierOptions: {
+        teacher_id: teacher.id,
+        check_in_date: today,
+        status: TeacherManualCheckinStatusEnum.PENDING,
+      },
+    });
+
+    // --- Return attendance summary ---
+    return {
+      message: attendance
+        ? sysMsg.ATTENDANCE_SUMMARY_FETCHED
+        : sysMsg.NO_ATTENDANCE_FOR_TODAY,
+      data: {
+        date: today,
+        status: attendance?.status ?? null,
+        check_in_time: attendance?.check_in_time ?? null,
+        check_out_time: attendance?.check_out_time ?? null,
+        total_hours: attendance?.total_hours ?? null,
+        source: attendance?.source ?? null,
+        has_attendance: !!attendance,
+        is_checked_out: !!attendance?.check_out_time,
+        has_pending_request: !!pendingRequest,
+      },
     };
   }
 }

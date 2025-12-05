@@ -22,6 +22,7 @@ import { UserRole } from 'src/modules/shared/enums';
 
 import {
   ApiCreateTeacherManualCheckinDocs,
+  ApiGetTodayAttendanceSummaryDocs,
   ApiListTeacherCheckinRequestsDocs,
   ApiReviewTeacherManualCheckinDocs,
   ApiTeacherCheckoutDocs,
@@ -93,5 +94,14 @@ export class TeacherManualCheckinController {
     @Body() dto: CreateTeacherCheckoutDto,
   ) {
     return this.teacherManualCheckinService.teacherCheckout(req, dto);
+  }
+
+  // --- GET TODAY'S ATTENDANCE SUMMARY ---
+  @Get('today')
+  @Roles(UserRole.TEACHER)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetTodayAttendanceSummaryDocs()
+  async getTodayAttendanceSummary(@Req() req: IRequestWithUser) {
+    return this.teacherManualCheckinService.getTodayAttendanceSummary(req);
   }
 }

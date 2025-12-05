@@ -12,6 +12,10 @@ import {
   IsEnum,
 } from 'class-validator';
 
+import {
+  TeacherDailyAttendanceSourceEnum,
+  TeacherDailyAttendanceStatusEnum,
+} from '../enums';
 import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 
 export class CreateTeacherManualCheckinDto {
@@ -123,16 +127,50 @@ export class TeacherCheckinRequestResponseDto extends TeacherManualCheckinRespon
   submitted_at: string;
 }
 
-// export class ListTeacherCheckinRequestsResponseDto {
-//   @ApiProperty({
-//     description: 'List of checkin requests',
-//     type: [TeacherManualCheckinResponseDto],
-//   })
-//   data: TeacherManualCheckinResponseDto[];
+// --- TODAY SUMMARY RESPONSE DTO ---
+export class TeacherAttendanceTodaySummaryResponseDto {
+  @ApiProperty({ example: '2025-12-05' })
+  @Expose()
+  date: Date;
 
-//   @ApiProperty({
-//     description: 'Pagination metadata',
-//     type: Object,
-//   })
-//   meta: Partial<IPaginationMeta>;
-// }
+  @ApiProperty({
+    example: 'PRESENT',
+    enum: TeacherDailyAttendanceStatusEnum,
+    nullable: true,
+    description: 'null if no attendance record',
+  })
+  @Expose()
+  status: TeacherDailyAttendanceStatusEnum | null;
+
+  @ApiProperty({ example: '2025-12-05T08:00:00Z', nullable: true })
+  @Expose()
+  check_in_time: Date | null;
+
+  @ApiProperty({ example: '2025-12-05T17:00:00Z', nullable: true })
+  @Expose()
+  check_out_time: Date | null;
+
+  @ApiProperty({ example: 8.5, nullable: true })
+  @Expose()
+  total_hours: number | null;
+
+  @ApiProperty({
+    example: 'MANUAL',
+    enum: TeacherDailyAttendanceSourceEnum,
+    nullable: true,
+  })
+  @Expose()
+  source: TeacherDailyAttendanceSourceEnum | null;
+
+  @ApiProperty({ example: true })
+  @Expose()
+  has_attendance: boolean;
+
+  @ApiProperty({ example: false })
+  @Expose()
+  is_checked_out: boolean;
+
+  @ApiProperty({ example: false })
+  @Expose()
+  has_pending_request: boolean;
+}

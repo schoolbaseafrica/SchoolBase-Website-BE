@@ -508,3 +508,6 @@ export const CANNOT_CHECKOUT_PENDING_CHECKIN =
 export const NO_CHECKIN_FOR_TODAY = 'No checkin found for today';
 export const ALREADY_CHECKED_OUT = 'Already checked out';
 export const TEACHER_CHECKOUT_SUCCESS = 'Teacher checkout successful';
+export const NO_ATTENDANCE_FOR_TODAY = 'No attendance record for today';
+export const ATTENDANCE_SUMMARY_FETCHED =
+  'Attendance summary fetched successfully';

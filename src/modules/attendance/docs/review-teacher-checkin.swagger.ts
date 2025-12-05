@@ -14,6 +14,7 @@ import {
 
 import {
   ReviewTeacherManualCheckinResponseDto,
+  TeacherAttendanceTodaySummaryResponseDto,
   TeacherCheckinRequestResponseDto,
 } from '../dto';
 import { TeacherCheckoutResponseDto } from '../dto/teacher-manual-checkout.dto';
@@ -114,6 +115,32 @@ export const ApiTeacherCheckoutDocs = () =>
     ApiBadRequestResponse({
       description:
         'No check-in for today / Already checked out / Pending check-in awaiting approval',
+    }),
+    ApiNotFoundResponse({
+      description: 'Teacher not found',
+    }),
+    ApiInternalServerErrorResponse({
+      description: 'Internal server error',
+    }),
+  );
+
+// --- GET TODAY'S ATTENDANCE SUMMARY ---
+export const ApiGetTodayAttendanceSummaryDocs = () =>
+  applyDecorators(
+    ApiTags('Attendance'),
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: "Get teacher's today attendance summary (Teacher only)",
+      description:
+        "Returns today's attendance status, check-in/out times, total hours, and method. Returns empty state with has_attendance=false if no attendance exists.",
+    }),
+    ApiResponse({
+      status: HttpStatus.OK,
+      description: 'Attendance summary fetched successfully',
+      type: TeacherAttendanceTodaySummaryResponseDto,
+    }),
+    ApiBadRequestResponse({
+      description: 'Teacher account is inactive',
     }),
     ApiNotFoundResponse({
       description: 'Teacher not found',
