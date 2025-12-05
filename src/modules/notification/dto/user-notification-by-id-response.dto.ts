@@ -23,8 +23,8 @@ export class UserNotificationByIdResponseDto {
 
   @ApiProperty({
     description: 'Type of notification',
-    enum: ['SYSTEM_ALERT', 'USER_ACTION', 'REMINDER', 'INFO'],
-    example: 'SYSTEM_ALERT',
+    enum: NotificationType,
+    example: NotificationType.SYSTEM_ALERT,
   })
   @Expose()
   type: NotificationType;
