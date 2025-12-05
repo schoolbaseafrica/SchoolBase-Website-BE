@@ -1,23 +1,37 @@
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
+import { FindOptionsWhere, DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { IPaginationMeta } from 'src/common/types/base-response.interface';
 import { TeacherModelAction } from 'src/modules/teacher/model-actions/teacher-actions';
 
 import { IRequestWithUser } from '../../../common/types/request-with-user.interface';
 import * as sysMsg from '../../../constants/system.messages';
 import {
   CreateTeacherManualCheckinDto,
+  ListTeacherCheckinRequestsQueryDto,
+  TeacherCheckinRequestResponseDto,
   TeacherManualCheckinResponseDto,
+  ReviewTeacherManualCheckinDto,
+  ReviewTeacherManualCheckinResponseDto,
 } from '../dto';
+import { TeacherManualCheckin } from '../entities/teacher-manual-checkin.entity';
+import {
+  TeacherDailyAttendanceDecisionEnum,
+  TeacherDailyAttendanceSourceEnum,
+  TeacherDailyAttendanceStatusEnum,
+} from '../enums';
 import { TeacherManualCheckinStatusEnum } from '../enums/teacher-manual-checkin.enum';
 import { TeacherManualCheckinModelAction } from '../model-actions';
+import { TeacherDailyAttendanceModelAction } from '../model-actions/teacher-daily-attendance.action';
 
 @Injectable()
 export class TeacherManualCheckinService {
@@ -26,7 +40,9 @@ export class TeacherManualCheckinService {
   constructor(
     @Inject(WINSTON_MODULE_PROVIDER) baseLogger: Logger,
     private readonly teacherManualCheckinModelAction: TeacherManualCheckinModelAction,
+    private readonly teacherDailyAttendanceModelAction: TeacherDailyAttendanceModelAction,
     private readonly teacherModelAction: TeacherModelAction,
+    private readonly dataSource: DataSource,
   ) {
     this.logger = baseLogger.child({
       context: TeacherManualCheckinService.name,
@@ -115,6 +131,145 @@ export class TeacherManualCheckinService {
       data: plainToInstance(
         TeacherManualCheckinResponseDto,
         teacherManualCheckin,
+        {
+          excludeExtraneousValues: true,
+        },
+      ),
+    };
+  }
+
+  // --- LIST TEACHER CHECKIN REQUESTS (ADMIN ONLY) ---
+  async listTeacherCheckinRequests(
+    query: ListTeacherCheckinRequestsQueryDto,
+  ): Promise<{
+    message: string;
+    data: TeacherCheckinRequestResponseDto[];
+    meta: Partial<IPaginationMeta>;
+  }> {
+    const { page, limit, status, check_in_date } = query;
+
+    const filterOptions: FindOptionsWhere<TeacherManualCheckin> = {};
+    if (status) filterOptions.status = status;
+    if (check_in_date) filterOptions.check_in_date = new Date(check_in_date);
+
+    const checkinRequests = await this.teacherManualCheckinModelAction.list({
+      filterRecordOptions: filterOptions,
+      paginationPayload: { page, limit },
+    });
+
+    return {
+      message: sysMsg.PENDING_CHECKIN_REQUESTS_FETCHED_SUCCESSFULLY,
+      data: checkinRequests.payload.map((request) =>
+        plainToInstance(TeacherCheckinRequestResponseDto, request, {
+          excludeExtraneousValues: true,
+        }),
+      ),
+      meta: checkinRequests.paginationMeta,
+    };
+  }
+
+  // --- REVIEW TEACHER CHECKIN REQUEST (ADMIN ONLY) ---
+  async reviewTeacherCheckinRequest(
+    admin: IRequestWithUser,
+    id: string, // checkin request id
+    dto: ReviewTeacherManualCheckinDto,
+  ): Promise<{
+    message: string;
+    data: ReviewTeacherManualCheckinResponseDto;
+  }> {
+    //--- Get the check-in request ---
+    const checkinRequest = await this.teacherManualCheckinModelAction.get({
+      identifierOptions: { id },
+    });
+
+    if (!checkinRequest) {
+      throw new NotFoundException(sysMsg.CHECKIN_REQUEST_NOT_FOUND);
+    }
+
+    //--- Validate status is PENDING ---
+    if (checkinRequest.status !== TeacherManualCheckinStatusEnum.PENDING) {
+      throw new BadRequestException(sysMsg.CHECKIN_REQUEST_ALREADY_PROCESSED);
+    }
+
+    //--- Validate teacher still exists ---
+    const teacher = await this.teacherModelAction.get({
+      identifierOptions: { id: checkinRequest.teacher_id },
+    });
+
+    if (!teacher) {
+      throw new NotFoundException(sysMsg.TEACHER_NOT_FOUND);
+    }
+
+    let updatedRequest;
+    await this.dataSource.transaction(async (manager) => {
+      // If APPROVED, create attendance
+      if (dto.decision === TeacherDailyAttendanceDecisionEnum.APPROVED) {
+        //--- Check if attendance already exists for the same date ---
+        const existingAttendance =
+          await this.teacherDailyAttendanceModelAction.get({
+            identifierOptions: {
+              teacher_id: checkinRequest.teacher_id,
+              date: checkinRequest.check_in_date,
+            },
+          });
+
+        if (existingAttendance) {
+          this.logger.error(
+            `Attendance already marked for the same date: ${checkinRequest.check_in_date}`,
+          );
+          throw new ConflictException(
+            sysMsg.ATTENDANCE_ALREADY_MARKED_FOR_DATE,
+          );
+        }
+
+        //--- Determine attendance status based on check-in time ---
+        const checkInHour = new Date(checkinRequest.check_in_time).getHours();
+        //todo: get threshold from school settings later
+        const lateThreshold = 9; // 9:00 AM
+        const attendanceStatus =
+          checkInHour >= lateThreshold
+            ? TeacherDailyAttendanceStatusEnum.LATE
+            : TeacherDailyAttendanceStatusEnum.PRESENT;
+
+        //--- Create attendance record ---
+        await this.teacherDailyAttendanceModelAction.create({
+          createPayload: {
+            teacher_id: checkinRequest.teacher_id,
+            date: checkinRequest.check_in_date,
+            check_in_time: checkinRequest.check_in_time,
+            status: attendanceStatus,
+            source: TeacherDailyAttendanceSourceEnum.MANUAL,
+            marked_by: admin.user.userId,
+            marked_at: new Date(),
+            notes: dto.review_notes,
+          },
+          transactionOptions: { useTransaction: true, transaction: manager },
+        });
+      }
+
+      // Update request (for BOTH approve and reject)
+      updatedRequest = await this.teacherManualCheckinModelAction.update({
+        identifierOptions: { id },
+        updatePayload: {
+          status:
+            dto.decision === TeacherDailyAttendanceDecisionEnum.APPROVED
+              ? TeacherManualCheckinStatusEnum.APPROVED
+              : TeacherManualCheckinStatusEnum.REJECTED,
+          reviewed_by: admin.user.userId,
+          reviewed_at: new Date(),
+          review_notes: dto.review_notes,
+        },
+        transactionOptions: { useTransaction: true, transaction: manager },
+      });
+    });
+    return {
+      message:
+        dto.decision === TeacherDailyAttendanceDecisionEnum.APPROVED
+          ? sysMsg.CHECKIN_REQUEST_APPROVED
+          : sysMsg.CHECKIN_REQUEST_REJECTED,
+      data: plainToInstance(
+        ReviewTeacherManualCheckinResponseDto,
+        updatedRequest,
         {
           excludeExtraneousValues: true,
         },

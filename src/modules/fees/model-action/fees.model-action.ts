@@ -1,7 +1,7 @@
 import { AbstractModelAction } from '@hng-sdk/orm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 
 import { QueryFeesDto } from '../dto/fees.dto';
 import { Fees } from '../entities/fees.entity';
@@ -93,6 +93,37 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
     };
   }
 
+  async getActiveFeeComponents(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{
+    fees: Fees[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.feeRepository
+      .createQueryBuilder('fee')
+      .leftJoinAndSelect('fee.term', 'term')
+      .leftJoinAndSelect('term.academicSession', 'session')
+      .where('fee.status = :status', { status: 'ACTIVE' })
+      .orderBy('fee.createdAt', 'DESC');
+
+    const total = await queryBuilder.getCount();
+    const fees = await queryBuilder.skip(skip).take(limit).getMany();
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      fees,
+      total,
+      page,
+      limit,
+      totalPages,
+    };
+  }
   async getTotalExpectedFees(termId?: string): Promise<number> {
     const query = this.feeRepository
       .createQueryBuilder('fee')
@@ -105,5 +136,27 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
 
     const result = await query.getRawOne();
     return parseFloat(result?.total || '0');
+  }
+
+  async getFeesForStudent(
+    studentId: string,
+    classId: string,
+    termId: string,
+  ): Promise<Fees[]> {
+    return this.feeRepository
+      .createQueryBuilder('fee')
+      .leftJoin('fee.classes', 'class')
+      .leftJoin('fee.direct_assignments', 'assignment')
+      .where('fee.term_id = :termId', { termId })
+      .andWhere('fee.status = :status', { status: FeeStatus.ACTIVE })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('class.id = :classId').orWhere(
+            'assignment.student_id = :studentId',
+          );
+        }),
+      )
+      .setParameters({ classId, studentId })
+      .getMany();
   }
 }

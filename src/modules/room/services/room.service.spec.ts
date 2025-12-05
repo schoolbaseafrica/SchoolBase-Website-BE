@@ -1,6 +1,6 @@
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataSource, IsNull, Not } from 'typeorm';
+import { DataSource } from 'typeorm';
 
 import * as sysMsg from '../../../constants/system.messages';
 import { Stream } from '../../stream/entities/stream.entity';
@@ -120,10 +120,6 @@ describe('RoomService', () => {
   });
 
   describe('update', () => {
-    const mockManager = {
-      save: jest.fn(),
-    };
-
     const existingRoom: Room = {
       id: 'r1',
       name: 'room 1',
@@ -140,14 +136,15 @@ describe('RoomService', () => {
 
     const sanitizedName = 'updated room';
 
-    beforeEach(() => {
-      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
-      mockManager.save.mockClear();
-    });
-
     it('updates a room successfully when name is unique', async () => {
-      modelAction.get.mockResolvedValueOnce(existingRoom);
-      modelAction.get.mockResolvedValueOnce(null);
+      const mockManager = {
+        findOne: jest.fn(),
+        save: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+
+      mockManager.findOne.mockResolvedValue(existingRoom);
+      modelAction.get.mockResolvedValue(null);
       const savedEntity = { ...existingRoom, name: sanitizedName };
       mockManager.save.mockResolvedValue(savedEntity);
 
@@ -155,12 +152,11 @@ describe('RoomService', () => {
 
       expect(dataSource.transaction).toHaveBeenCalled();
 
-      expect(modelAction.get).toHaveBeenNthCalledWith(1, {
-        identifierOptions: { id: 'r1' },
-        relations: { current_class: true },
+      expect(mockManager.findOne).toHaveBeenCalledWith(Room, {
+        where: { id: 'r1' },
       });
 
-      expect(modelAction.get).toHaveBeenNthCalledWith(2, {
+      expect(modelAction.get).toHaveBeenCalledWith({
         identifierOptions: { name: sanitizedName },
       });
 
@@ -179,21 +175,31 @@ describe('RoomService', () => {
     });
 
     it('throws NotFoundException if room does not exist', async () => {
-      modelAction.get.mockResolvedValueOnce(null);
+      const mockManager = {
+        findOne: jest.fn(),
+        save: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.findOne.mockResolvedValue(null);
 
       await expect(service.update('r1', updateDto)).rejects.toThrow(
         NotFoundException,
       );
 
-      expect(modelAction.get).toHaveBeenCalledTimes(1);
+      expect(mockManager.findOne).toHaveBeenCalledTimes(1);
       expect(mockManager.save).not.toHaveBeenCalled();
     });
 
     it('throws ConflictException if updated name belongs to a different room', async () => {
-      modelAction.get.mockResolvedValueOnce(existingRoom);
+      const mockManager = {
+        findOne: jest.fn(),
+        save: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.findOne.mockResolvedValue(existingRoom);
 
       const conflictRoom = { id: 'r2', name: sanitizedName } as Room;
-      modelAction.get.mockResolvedValueOnce(conflictRoom);
+      modelAction.get.mockResolvedValue(conflictRoom);
 
       await expect(service.update('r1', updateDto)).rejects.toThrow(
         ConflictException,
@@ -203,10 +209,15 @@ describe('RoomService', () => {
     });
 
     it('allows update if the name exists but belongs to the SAME room', async () => {
-      modelAction.get.mockResolvedValueOnce(existingRoom);
+      const mockManager = {
+        findOne: jest.fn(),
+        save: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.findOne.mockResolvedValue(existingRoom);
 
       const sameRoom = { id: 'r1', name: sanitizedName } as Room;
-      modelAction.get.mockResolvedValueOnce(sameRoom);
+      modelAction.get.mockResolvedValue(sameRoom);
 
       const savedEntity = { ...existingRoom, name: sanitizedName };
       mockManager.save.mockResolvedValue(savedEntity);
@@ -242,7 +253,7 @@ describe('RoomService', () => {
       const result = await service.findAll(filters);
 
       expect(modelAction.list).toHaveBeenCalledWith({
-        relations: { current_class: true },
+        relations: { schedules: true },
         filterRecordOptions: {},
         paginationPayload: {
           page: 1,
@@ -261,11 +272,10 @@ describe('RoomService', () => {
       });
     });
 
-    it('applies filters (type, isOccupied=true) and custom sort correctly', async () => {
+    it('applies filters (type) and custom sort correctly', async () => {
       const rooms: Room[] = [{ id: 'r1', name: 'Lab 1' } as Room];
       const filters: FilterRoomDTO = {
         type: 'Laboratory',
-        isOccupied: true,
         sortBy: 'capacity',
         sortOrder: 'DESC',
         page: 2,
@@ -282,10 +292,9 @@ describe('RoomService', () => {
       const result = await service.findAll(filters);
 
       expect(modelAction.list).toHaveBeenCalledWith({
-        relations: { current_class: true },
+        relations: { schedules: true },
         filterRecordOptions: {
           type: 'Laboratory',
-          current_class: Not(IsNull()),
         },
         paginationPayload: {
           page: 2,
@@ -302,29 +311,6 @@ describe('RoomService', () => {
         }),
       );
     });
-
-    it('filters for empty rooms (isOccupied=false) correctly', async () => {
-      const filters: FilterRoomDTO = {
-        isOccupied: false,
-        page: 1,
-        limit: 20,
-      };
-
-      modelAction.list.mockResolvedValue({
-        payload: [],
-        paginationMeta: {},
-      });
-
-      await service.findAll(filters);
-
-      expect(modelAction.list).toHaveBeenCalledWith(
-        expect.objectContaining({
-          filterRecordOptions: expect.objectContaining({
-            current_class: IsNull(),
-          }),
-        }),
-      );
-    });
   });
 
   describe('findOne', () => {
@@ -336,7 +322,7 @@ describe('RoomService', () => {
 
       expect(modelAction.get).toHaveBeenCalledWith({
         identifierOptions: { id: 'r1' },
-        relations: { current_class: true },
+        relations: { schedules: true },
       });
       expect(result).toEqual({
         message: sysMsg.ROOM_RETRIEVED_SUCCESSFULLY,
@@ -351,26 +337,30 @@ describe('RoomService', () => {
   });
 
   describe('remove', () => {
-    it('deletes a room successfully when it is empty', async () => {
-      const emptyRoom = { id: 'r1', current_class: null } as Room;
+    it('deletes a room successfully when it has no schedules', async () => {
+      const emptyRoom = { id: 'r1', schedules: [] } as Room;
 
-      modelAction.get.mockResolvedValue(emptyRoom);
+      const mockManager = {
+        findOne: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.findOne.mockResolvedValue(emptyRoom);
       modelAction.delete.mockResolvedValue({ raw: [], affected: 1 });
 
       const result = await service.remove('r1');
 
       expect(dataSource.transaction).toHaveBeenCalled();
 
-      expect(modelAction.get).toHaveBeenCalledWith({
-        identifierOptions: { id: 'r1' },
-        relations: { current_class: true },
+      expect(mockManager.findOne).toHaveBeenCalledWith(Room, {
+        where: { id: 'r1' },
+        relations: ['schedules'],
       });
 
       expect(modelAction.delete).toHaveBeenCalledWith({
         identifierOptions: { id: 'r1' },
         transactionOptions: {
           useTransaction: true,
-          transaction: 'MOCK_MANAGER',
+          transaction: mockManager,
         },
       });
 
@@ -380,20 +370,28 @@ describe('RoomService', () => {
     });
 
     it('throws NotFoundException if room does not exist', async () => {
-      modelAction.get.mockResolvedValue(null);
+      const mockManager = {
+        findOne: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.findOne.mockResolvedValue(null);
 
       await expect(service.remove('r1')).rejects.toThrow(NotFoundException);
 
       expect(modelAction.delete).not.toHaveBeenCalled();
     });
 
-    it('throws ConflictException if room is currently occupied by a class', async () => {
+    it('throws ConflictException if room has schedules assigned', async () => {
       const occupiedRoom = {
         id: 'r1',
-        current_class: { id: 'c1', title: 'Math' },
+        schedules: [{ id: 's1' }],
       } as unknown as Room;
 
-      modelAction.get.mockResolvedValue(occupiedRoom);
+      const mockManager = {
+        findOne: jest.fn(),
+      };
+      dataSource.transaction.mockImplementation(async (cb) => cb(mockManager));
+      mockManager.findOne.mockResolvedValue(occupiedRoom);
 
       await expect(service.remove('r1')).rejects.toThrow(ConflictException);
 

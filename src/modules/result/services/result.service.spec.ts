@@ -95,6 +95,8 @@ describe('ResultService', () => {
     user: mockUser,
     stream: null,
     class_assignments: [],
+    current_class_id: null,
+    current_class: null,
     is_deleted: false,
     deleted_at: null,
     parent: null,

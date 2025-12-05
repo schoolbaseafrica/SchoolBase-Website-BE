@@ -32,6 +32,7 @@ import {
   ApiGetStudentTermSummary,
   ApiMarkStudentDailyAttendance,
   ApiUpdateStudentDailyAttendance,
+  apiParentGetChildMonthlyAttendance,
 } from '../docs';
 import {
   MarkStudentDailyAttendanceDto,
@@ -59,6 +60,18 @@ export class StudentDailyAttendanceController {
       req.user.userId,
       dto,
     );
+  }
+
+  //PARENTS GET THEIR CHILD MONTHLY ATTENDANCE
+
+  @Get('parent')
+  @Roles(UserRole.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @apiParentGetChildMonthlyAttendance()
+  async getParentChildMonthlyAttendance(
+    @Query('registration_number') matricNumber: string,
+  ) {
+    return this.attendanceService.getParentChildMonthlyAttendance(matricNumber);
   }
 
   // --- GET: CLASS DAILY ATTENDANCE SUMMARY (TEACHER/ADMIN) ---
@@ -154,4 +167,6 @@ export class StudentDailyAttendanceController {
   ) {
     return this.attendanceService.updateStudentDailyAttendance(id, dto);
   }
+
+  //parent endpoints to view child attendance
 }

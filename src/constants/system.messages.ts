@@ -133,6 +133,9 @@ export const PAYMENTS_FETCHED_SUCCESSFULLY =
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+export const NOTIFICATIONS_RETRIEVED = 'Notifications retrieved successfully';
+export const UNAUTHORIZED_NOTIFICATION_ACCESS =
+  'You are not authorized to view these notifications';
 
 // Streams
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
@@ -208,6 +211,7 @@ export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
 export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+export const ROOM_UNASSIGNED_SUCCESSFULLY = 'Room unassigned successfully';
 export const CANNOT_DELETE_OCCUPIED_ROOM =
   'Cannot delete a room that has an active class.';
 
@@ -281,6 +285,10 @@ export const PARENT_PROFILE_NOT_FOUND =
   'Parent profile not found for this user';
 export const STUDENT_NOT_BELONG_TO_PARENT =
   'Student not found or does not belong to this parent';
+export const STUDENT_UNLINKED_FROM_PARENT =
+  'Student successfully unlinked from parent';
+export const PARENT_STUDENT_PROFILE_FETCHED =
+  "Student's profiles fetched successfully";
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
@@ -494,3 +502,17 @@ export const CHECK_IN_TIME_NOT_WITHIN_SCHOOL_HOURS =
   'Check in time is not within school hours';
 export const TEACHER_MANUAL_CHECKIN_CREATED_SUCCESSFULLY =
   'Teacher manual checkin created successfully';
+export const PENDING_CHECKIN_REQUESTS_FETCHED_SUCCESSFULLY =
+  'Pending checkin requests fetched successfully';
+export const CHECKIN_REQUEST_NOT_FOUND = 'Checkin request not found';
+export const CHECKIN_REQUEST_ALREADY_PROCESSED =
+  'Checkin request has already been processed';
+export const ATTENDANCE_ALREADY_MARKED_FOR_DATE =
+  'Attendance already marked for this date';
+export const CHECKIN_REQUEST_APPROVED = 'Checkin request approved';
+export const CHECKIN_REQUEST_REJECTED = 'Checkin request rejected';
+//attendance message
+export const REGISTRATION_NUMBER_REQUIRED =
+  'Child registration number is required';
+export const CHILD_REGISTRATION_NUMBER_NOT_FOUNS =
+  'Registration number does not exist';

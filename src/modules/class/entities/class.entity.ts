@@ -4,13 +4,12 @@ import {
   JoinColumn,
   ManyToOne,
   OneToMany,
-  Unique,
   OneToOne,
+  Unique,
 } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { AcademicSession } from '../../academic-session/entities/academic-session.entity';
-import { Room } from '../../room/entities/room.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 import { Timetable } from '../../timetable/entities/timetable.entity';
 
@@ -29,9 +28,6 @@ export class Class extends BaseEntity {
 
   @Column({ nullable: true })
   arm?: string;
-
-  @OneToOne(() => Room, (room) => room.current_class, { nullable: true })
-  room?: Room;
 
   @ManyToOne(() => AcademicSession, { nullable: false })
   @JoinColumn({ name: 'academic_session_id' })

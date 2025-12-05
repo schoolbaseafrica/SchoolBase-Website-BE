@@ -1,7 +1,7 @@
-import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 
 import { BaseEntity } from '../../../entities/base-entity';
-import { Class } from '../../class/entities/class.entity';
+import { Schedule } from '../../timetable/entities/schedule.entity';
 
 @Entity('rooms')
 export class Room extends BaseEntity {
@@ -23,7 +23,6 @@ export class Room extends BaseEntity {
   @Column({ type: 'varchar', name: 'location', length: 255, nullable: false })
   location: string;
 
-  @OneToOne(() => Class, (cls) => cls.room, { nullable: true })
-  @JoinColumn({ name: 'current_class' })
-  current_class?: Class;
+  @OneToMany(() => Schedule, (schedule) => schedule.room)
+  schedules: Schedule[];
 }

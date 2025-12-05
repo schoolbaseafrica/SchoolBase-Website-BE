@@ -13,6 +13,7 @@ import {
 import {
   ScheduleBasedAttendance,
   StudentDailyAttendance,
+  TeacherDailyAttendance,
   TeacherManualCheckin,
 } from './entities';
 import {
@@ -20,6 +21,7 @@ import {
   StudentDailyAttendanceModelAction,
   TeacherManualCheckinModelAction,
 } from './model-actions';
+import { TeacherDailyAttendanceModelAction } from './model-actions/teacher-daily-attendance.action';
 import { AttendanceService, TeacherManualCheckinService } from './services';
 
 @Module({
@@ -28,6 +30,7 @@ import { AttendanceService, TeacherManualCheckinService } from './services';
       ScheduleBasedAttendance,
       StudentDailyAttendance,
       TeacherManualCheckin,
+      TeacherDailyAttendance,
     ]),
     AcademicSessionModule,
     TermModule,
@@ -44,6 +47,7 @@ import { AttendanceService, TeacherManualCheckinService } from './services';
     AttendanceModelAction,
     StudentDailyAttendanceModelAction,
     TeacherManualCheckinModelAction,
+    TeacherDailyAttendanceModelAction,
   ],
   exports: [AttendanceService, TeacherManualCheckinService],
 })

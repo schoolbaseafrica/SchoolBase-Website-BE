@@ -1,5 +1,5 @@
-import { PaginationMeta } from '@hng-sdk/orm';
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -10,6 +10,7 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { IPaginationMeta } from '../../common/types/base-response.interface';
 import * as sysMsg from '../../constants/system.messages';
 import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
 import { ClassSubjectModelAction } from '../class/model-actions/class-subject.action';
@@ -32,6 +33,7 @@ import {
   StudentBasicDto,
   UpdateParentDto,
   StudentSubjectResponseDto,
+  StudentProfileDto,
 } from './dto';
 import { Parent } from './entities/parent.entity';
 import { ParentModelAction } from './model-actions/parent-actions';
@@ -149,7 +151,7 @@ export class ParentService {
 
   async findAll(listParentsDto: ListParentsDto): Promise<{
     data: ParentResponseDto[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const { page = 1, limit = 10, search } = listParentsDto;
 
@@ -441,7 +443,7 @@ export class ParentService {
     limit: number = 10,
   ): Promise<{
     payload: Parent[];
-    paginationMeta: Partial<PaginationMeta>;
+    paginationMeta: Partial<IPaginationMeta>;
   }> {
     const skip = (page - 1) * limit;
 
@@ -581,5 +583,140 @@ export class ParentService {
         { excludeExtraneousValues: true },
       );
     });
+  }
+
+  // --- UNLINK STUDENT FROM PARENT (ADMIN VERSION) ---
+  async unlinkStudentFromParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<void> {
+    // 1. Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // 2. Validate student exists
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: { parent: true },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student not found with ID: ${studentId}`);
+      throw new NotFoundException(`Student with ID ${studentId} not found`);
+    }
+
+    // 3. Verify student is linked to this parent
+    if (!student.parent || student.parent.id !== parentId) {
+      this.logger.warn(
+        `Student ${studentId} is not linked to parent ${parentId}`,
+      );
+      throw new BadRequestException(sysMsg.STUDENT_NOT_LINKED_TO_PARENT);
+    }
+
+    // 4. Unlink student (set parent to null)
+    await this.studentModelAction.update({
+      identifierOptions: { id: studentId },
+      updatePayload: {
+        parent: null,
+      },
+      transactionOptions: {
+        useTransaction: false,
+      },
+    });
+
+    this.logger.info(sysMsg.STUDENT_UNLINKED_FROM_PARENT, {
+      parentId,
+      studentId,
+    });
+  }
+
+  // -- GET LINKED STUDENTS (PARENT VERSION) --
+  async getLinkedStudentProfileForParent(
+    parentId: string,
+    studentId: string,
+  ): Promise<StudentProfileDto> {
+    // Validate parent exists
+    const parent = await this.parentModelAction.get({
+      identifierOptions: { id: parentId },
+    });
+
+    if (!parent || parent.deleted_at) {
+      this.logger.warn(`Parent not found with ID: ${parentId}`);
+      throw new NotFoundException(sysMsg.PARENT_NOT_FOUND);
+    }
+
+    // Validate student exists and it belongs to the parent
+    const student = await this.studentModelAction.get({
+      identifierOptions: {
+        id: studentId,
+        parent: { id: parentId },
+        is_deleted: false,
+      },
+      relations: {
+        user: true,
+        stream: {
+          class: {
+            academicSession: true,
+            classSubjects: { subject: true, teacher: { user: true } },
+            timetable: true,
+          },
+        },
+      },
+    });
+
+    if (!student) {
+      this.logger.warn(`Either student does not
+          belog to parent or is deleted`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const { user, stream } = student;
+
+    if (!user) {
+      throw new Error('User relation not loaded for student');
+    }
+
+    return plainToInstance(
+      StudentProfileDto,
+      {
+        id: student.id,
+        registration_number: student.registration_number,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        middle_name: user.middle_name,
+        full_name: `${user.first_name}${user.middle_name ? ' ' + user.middle_name : ''} ${user.last_name}`,
+        photo_url: student.photo_url,
+        class_subjects:
+          stream?.class?.classSubjects?.map((cs) => ({
+            id: cs.id,
+            subject_id: cs.subject.id,
+            subject_name: cs.subject.name,
+            teacher_id: cs.teacher?.id || null,
+            teacher_name: cs.teacher?.user
+              ? `${cs.teacher.user.first_name} ${cs.teacher.user.last_name}`
+              : null,
+            teacher_assignment_date: cs.teacher_assignment_date || null,
+          })) || null,
+        timetable: stream?.class?.timetable
+          ? { id: stream.class.timetable.id }
+          : null,
+        class_details: stream?.class
+          ? { id: stream.class.id, name: stream.class.name }
+          : null,
+        academic_details: stream?.class?.academicSession
+          ? {
+              id: stream.class.academicSession.id,
+              session: stream.class.academicSession.name,
+            }
+          : null,
+      },
+      { excludeExtraneousValues: true },
+    );
   }
 }
