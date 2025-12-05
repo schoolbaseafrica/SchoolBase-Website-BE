@@ -1,7 +1,13 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 
+import { ClassStudent } from '../class/entities/class-student.entity';
+import { ClassTeacher } from '../class/entities/class-teacher.entity';
+import { ClassStudentModelAction } from '../class/model-actions/class-student.action';
+import { ClassTeacherModelAction } from '../class/model-actions/class-teacher.action';
 import { ClassModelAction } from '../class/model-actions/class.actions';
+import { NotificationService } from '../notification/services/notification.service';
 
 import { AddScheduleDto } from './dto/timetable.dto';
 import { Schedule } from './entities/schedule.entity';
@@ -18,6 +24,9 @@ describe('TimetableService', () => {
   let validationService: jest.Mocked<TimetableValidationService>;
   let scheduleModelAction: jest.Mocked<ScheduleModelAction>;
   let classModelAction: jest.Mocked<ClassModelAction>;
+  let notificationService: jest.Mocked<NotificationService>;
+  let classStudentModelAction: jest.Mocked<ClassStudentModelAction>;
+  let classTeacherModelAction: jest.Mocked<ClassTeacherModelAction>;
 
   const mockClassId = 'class-123';
   const mockTimetableId = 'timetable-123';
@@ -43,6 +52,18 @@ describe('TimetableService', () => {
       get: jest.fn(),
     } as unknown as jest.Mocked<ClassModelAction>;
 
+    notificationService = {
+      createNotification: jest.fn(),
+    } as unknown as jest.Mocked<NotificationService>;
+
+    classStudentModelAction = {
+      list: jest.fn(),
+    } as unknown as jest.Mocked<ClassStudentModelAction>;
+
+    classTeacherModelAction = {
+      list: jest.fn(),
+    } as unknown as jest.Mocked<ClassTeacherModelAction>;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TimetableService,
@@ -50,6 +71,18 @@ describe('TimetableService', () => {
         { provide: TimetableValidationService, useValue: validationService },
         { provide: ScheduleModelAction, useValue: scheduleModelAction },
         { provide: ClassModelAction, useValue: classModelAction },
+        { provide: NotificationService, useValue: notificationService },
+        { provide: ClassStudentModelAction, useValue: classStudentModelAction },
+        { provide: ClassTeacherModelAction, useValue: classTeacherModelAction },
+        {
+          provide: WINSTON_MODULE_PROVIDER,
+          useValue: {
+            error: jest.fn(),
+            info: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -81,6 +114,27 @@ describe('TimetableService', () => {
         timetable: { id: mockTimetableId },
       } as unknown as Schedule);
 
+      classStudentModelAction.list.mockResolvedValue({
+        payload: [
+          {
+            student: {
+              user: { id: 'student-user-1' },
+              parent: { user: { id: 'parent-user-1' } },
+            },
+          } as unknown as ClassStudent,
+        ],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [
+          {
+            teacher: { user: { id: 'teacher-user-1' } },
+          } as unknown as ClassTeacher,
+        ],
+        paginationMeta: {},
+      });
+      notificationService.createNotification.mockResolvedValue(undefined);
+
       const result = await service.addSchedule(addScheduleDto);
 
       expect(validationService.validateNewSchedule).toHaveBeenCalledWith(
@@ -99,6 +153,13 @@ describe('TimetableService', () => {
       });
       expect(result).toBeDefined();
       expect(result.timetable).toBeUndefined(); // Should be deleted
+
+      // Wait for async notification to complete
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
+
+      expect(notificationService.createNotification).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if class does not exist', async () => {
@@ -110,6 +171,9 @@ describe('TimetableService', () => {
       await expect(service.addSchedule(addScheduleDto)).rejects.toThrow(
         NotFoundException,
       );
+
+      // Ensure no notification attempted on failure
+      expect(notificationService.createNotification).not.toHaveBeenCalled();
     });
 
     it('should create a new timetable if one does not exist', async () => {
@@ -123,6 +187,27 @@ describe('TimetableService', () => {
         timetable: { id: mockTimetableId },
       } as unknown as Schedule);
 
+      classStudentModelAction.list.mockResolvedValue({
+        payload: [
+          {
+            student: {
+              user: { id: 'student-user-1' },
+              parent: { user: { id: 'parent-user-1' } },
+            },
+          } as unknown as ClassStudent,
+        ],
+        paginationMeta: {},
+      });
+      classTeacherModelAction.list.mockResolvedValue({
+        payload: [
+          {
+            teacher: { user: { id: 'teacher-user-1' } },
+          } as unknown as ClassTeacher,
+        ],
+        paginationMeta: {},
+      });
+      notificationService.createNotification.mockResolvedValue(undefined);
+
       await service.addSchedule(addScheduleDto);
 
       expect(timetableModelAction.create).toHaveBeenCalledWith({
@@ -132,6 +217,14 @@ describe('TimetableService', () => {
         },
         transactionOptions: { useTransaction: false },
       });
+
+      // Notification should be triggered for the created schedule too
+      // Wait for async notification to complete
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 100);
+      });
+
+      expect(notificationService.createNotification).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if subject is missing for lesson', async () => {
