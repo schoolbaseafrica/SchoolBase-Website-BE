@@ -480,7 +480,7 @@ export class ResultService {
     return resultsWithPositions;
   }
 
-  /*
+  /**
    * Calculate position for a single student
    */
   private calculateStudentPosition(
