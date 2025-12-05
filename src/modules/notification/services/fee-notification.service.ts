@@ -9,6 +9,7 @@ import { FeesModelAction } from '../../fees/model-action/fees.model-action';
 import { FeeNotificationType } from '../../shared/enums';
 import { Student } from '../../student/entities';
 import { NotificationModelAction } from '../model-actions/notification.model-action';
+import { NotificationType } from '../types/notification.types';
 
 @Injectable()
 export class FeeNotificationService {
@@ -28,49 +29,60 @@ export class FeeNotificationService {
   ): Promise<void> {
     const fee = await this.feesModelAction.get({
       identifierOptions: { id: feeId },
-      relations: { direct_assignments: { student: { parent: true } } },
+      relations: {
+        direct_assignments: { student: { parent: true, user: true } },
+        classes: {
+          student_assignments: { student: { parent: true, user: true } },
+        },
+      },
     });
     if (!fee) {
       this.logger.error(sysMsg.FEE_NOT_FOUND, { feeId });
       return;
     }
-    // const students = fee.direct_assignments.map(
-    //   (assignment: FeeAssignment) => assignment.student,
-    // );
     const students = this.getFeeStudents(fee);
+
+    const studentsWithParents = students.filter(
+      (student) => student.parent && student.parent.user_id,
+    );
+
+    if (studentsWithParents.length === 0) {
+      this.logger.warn(
+        'No parents found for students, skipping notifications',
+        {
+          fee_id: fee.id,
+        },
+      );
+    }
+
     this.notificationModelAction.createMany({
-      createPayloads: students.map((student) => ({
+      createPayloads: studentsWithParents.map((student) => ({
         title: 'Fee Notification',
         message: `A fee ${fee.component_name} has been ${type} for your child ${student.user.first_name} ${student.user.last_name}.`,
+        type: NotificationType.FEE_UPDATE,
         is_read: false,
         recipient_id: student.parent.user_id,
+        metadata: {
+          fee_id: fee.id,
+          type: type,
+          student_id: student.id,
+          fee_name: fee.component_name,
+          amount: fee.amount,
+        },
       })),
       transactionOptions: { useTransaction: false },
     });
-    // students.forEach((student) => {
-    //   this.notificationModelAction.create({
-    //     createPayload: {
-    //       title: 'Fee Notification',
-    //       message: `A fee ${fee.component_name} has been ${type} for your child ${student.user.first_name} ${student.user.last_name}.`,
-    //       is_read: false,
-    //       recipient_id: student.parent.user_id,
-    //     },
-    //     transactionOptions: { useTransaction: false },
-    //   });
-    // });
   }
 
   private getFeeStudents(fee: Fees): Student[] {
     const studentSet = new Set<Student>();
 
-    // Students from classes
     fee.classes?.forEach((cls: Class) => {
       cls.student_assignments?.forEach((assignment) => {
         if (assignment?.student) studentSet.add(assignment.student);
       });
     });
 
-    // Directly assigned students
     fee.direct_assignments?.forEach((assignment) => {
       if (assignment?.student) studentSet.add(assignment.student);
     });

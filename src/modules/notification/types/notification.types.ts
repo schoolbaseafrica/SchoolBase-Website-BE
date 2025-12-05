@@ -1,3 +1,5 @@
+import { FeeNotificationType } from '../../shared/enums';
+
 export enum NotificationType {
   ACADEMIC_UPDATE = 'ACADEMIC_UPDATE',
   RESULT_ALERT = 'RESULT_ALERT',
@@ -32,9 +34,18 @@ export interface IFeeMetadata {
   status: 'paid' | 'pending' | 'overdue';
 }
 
+export interface IFeeNotificaionMetadata {
+  fee_id: string;
+  type: FeeNotificationType;
+  student_id: string;
+  fee_name: string;
+  amount: number;
+}
+
 export type NotificationMetadata =
   | IResultMetadata
   | ITimetableMetadata
   | ISubjectMetadata
   | IFeeMetadata
+  | IFeeNotificaionMetadata
   | Record<string, unknown>;

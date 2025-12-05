@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ClassModule } from '../class/class.module';
@@ -27,7 +27,7 @@ import { TimetableService } from './timetable.service';
       Room,
     ]),
     ClassModule,
-    NotificationModule,
+    forwardRef(() => NotificationModule),
   ],
   controllers: [TimetableController],
   providers: [
