@@ -22,6 +22,7 @@ import { EmailModule } from './modules/email/email.module';
 import { FeesModule } from './modules/fees/fees.module';
 import { GradeModule } from './modules/grade/grade.module';
 import { InviteModule } from './modules/invites/invites.module';
+import { NotificationModule } from './modules/notification/notification.module';
 import { ParentModule } from './modules/parent/parent.module';
 import { PaymentModule } from './modules/payment/payment.module';
 import { ResultModule } from './modules/result/result.module';
@@ -91,6 +92,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     SuperadminModule,
     PaymentModule,
     ResultModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [

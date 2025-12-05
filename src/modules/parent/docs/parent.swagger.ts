@@ -7,6 +7,9 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiOkResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
 } from '@nestjs/swagger';
 
 import {
@@ -16,6 +19,7 @@ import {
   ParentStudentLinkResponseDto,
   UpdateParentDto,
   StudentSubjectResponseDto,
+  StudentProfileDto,
 } from '../dto';
 
 const GLOBAL_STATUS_CODES = {
@@ -374,3 +378,73 @@ export const ApiGetMyStudents = () =>
       description: 'Unauthorized - Invalid or missing token',
     }),
   );
+
+/**
+ * Swagger decorators for Unlink Student endpoint
+ */
+export const ApiUnlinkStudent = () =>
+  applyDecorators(
+    ApiOperation({
+      summary: 'Unlink a student from a parent (ADMIN only)',
+      description: 'Removes the link between a student and a parent.',
+    }),
+    ApiParam({
+      name: 'parentId',
+      description: 'Parent ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174000',
+    }),
+    ApiParam({
+      name: 'studentId',
+      description: 'Student ID (UUID)',
+      type: String,
+      example: '123e4567-e89b-12d3-a456-426614174001',
+    }),
+    ApiResponse({
+      status: 200,
+      description: 'Student unlinked successfully',
+      schema: {
+        type: 'object',
+        properties: {
+          message: {
+            type: 'string',
+            example: 'Student successfully unlinked from parent',
+          },
+          status_code: {
+            type: 'number',
+            example: 200,
+          },
+        },
+      },
+    }),
+    ApiResponse({ status: 404, description: 'Parent or Student not found' }),
+    ApiResponse({
+      status: 400,
+      description: 'Student is not linked to this parent',
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+  );
+
+export const ApiGetLinkedStudentProfileForParent = () => {
+  return applyDecorators(
+    ApiOperation({
+      summary: "Get a linked student's profile (for Parents)",
+      description:
+        'Allows a logged-in parent to retrieve the detailed profile of one of their linked students.',
+    }),
+    ApiParam({ name: 'studentId', type: 'string', format: 'uuid' }),
+    ApiOkResponse({
+      description: "Successfully retrieved student's profile.",
+      type: StudentProfileDto,
+    }),
+    ApiForbiddenResponse({
+      description: 'Forbidden. You are not authorized to view this profile.',
+    }),
+    ApiNotFoundResponse({
+      description: 'Parent or Student not found.',
+    }),
+  );
+};

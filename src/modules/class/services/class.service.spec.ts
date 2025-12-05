@@ -12,12 +12,14 @@ import * as sysMsg from '../../../constants/system.messages';
 import { SessionStatus } from '../../academic-session/entities/academic-session.entity';
 import { AcademicSessionModelAction } from '../../academic-session/model-actions/academic-session-actions';
 import { StudentModelAction } from '../../student/model-actions/student-actions';
+import { ClassStudent } from '../entities/class-student.entity';
 import { ClassTeacher } from '../entities/class-teacher.entity';
 import { Class } from '../entities/class.entity';
 import { ClassStudentModelAction } from '../model-actions/class-student.action';
 import { ClassTeacherModelAction } from '../model-actions/class-teacher.action';
 import { ClassModelAction } from '../model-actions/class.actions';
 
+import { ClassStudentValidationService } from './class-student-validation.service';
 import { ClassService } from './class.service';
 
 // Mock Data Constants
@@ -33,6 +35,9 @@ const mockDataSource = {
   transaction: jest.fn().mockImplementation(async (callback) => {
     const mockManager = {
       findOne: jest.fn(),
+      save: jest
+        .fn()
+        .mockImplementation((entity, data) => Promise.resolve(data || entity)),
     };
     return callback(mockManager);
   }),
@@ -87,6 +92,14 @@ describe('ClassService', () => {
 
   const mockStudentModelAction = {
     get: jest.fn(),
+    update: jest.fn().mockResolvedValue({}),
+  };
+
+  const mockClassStudentValidationService = {
+    validateClassExists: jest.fn(),
+    validateStudentAssignment: jest.fn(),
+    validateBatchStudentAssignment: jest.fn(),
+    getExistingAssignment: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -137,6 +150,10 @@ describe('ClassService', () => {
             }),
             find: jest.fn().mockResolvedValue({ payload: [] }),
           },
+        },
+        {
+          provide: ClassStudentValidationService,
+          useValue: mockClassStudentValidationService,
         },
       ],
     }).compile();
@@ -623,6 +640,444 @@ describe('ClassService', () => {
         BadRequestException,
       );
       expect(classModelAction.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('assignStudentToClass', () => {
+    const classId = 'class-uuid-1';
+    const studentId = 'student-uuid-1';
+    const sessionId = 'session-uuid-1';
+
+    const mockClassEntity = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      is_deleted: false,
+      academicSession: {
+        id: sessionId,
+        name: '2024/2025 Academic Session',
+      },
+    } as unknown as Class;
+
+    beforeEach(() => {
+      mockDataSource.transaction = jest
+        .fn()
+        .mockImplementation(async (callback) => {
+          const mockManager = {
+            findOne: jest.fn(),
+            save: jest.fn(),
+          };
+          return callback(mockManager);
+        });
+    });
+
+    it('should successfully assign a new student to a class', async () => {
+      // Bug #1 Fix: validateClassExists checks for soft-deleted class
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      // Bug #2 Fix: validateStudentAssignment checks for soft-deleted student
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        null,
+      );
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      const result = await service.assignStudentToClass(classId, studentId);
+
+      expect(
+        mockClassStudentValidationService.validateClassExists,
+      ).toHaveBeenCalledWith(classId);
+      expect(
+        mockClassStudentValidationService.validateStudentAssignment,
+      ).toHaveBeenCalledTimes(2); // Once outside, once inside transaction
+      expect(result.assigned).toBe(true);
+      expect(result.reactivated).toBe(false);
+      expect(result.message).toContain('assigned to class successfully');
+    });
+
+    it('should throw NotFoundException if class is soft-deleted (Bug #1)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockRejectedValue(
+        new NotFoundException(sysMsg.CLASS_NOT_FOUND),
+      );
+
+      await expect(
+        service.assignStudentToClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
+      expect(
+        mockClassStudentValidationService.validateClassExists,
+      ).toHaveBeenCalledWith(classId);
+    });
+
+    it('should throw NotFoundException if student is soft-deleted (Bug #2)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockRejectedValue(
+        new NotFoundException('Student with ID student-uuid-1 not found.'),
+      );
+
+      await expect(
+        service.assignStudentToClass(classId, studentId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ConflictException if student is already in another class (Bug #4)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockRejectedValue(
+        new ConflictException(
+          'Cannot assign student: Student is already assigned to class JSS2 (B) in this academic session.',
+        ),
+      );
+
+      await expect(
+        service.assignStudentToClass(classId, studentId),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should reactivate an inactive assignment (Bug #6)', async () => {
+      const inactiveAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId },
+        session_id: sessionId,
+        is_active: false,
+        enrollment_date: new Date('2023-01-01'),
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        inactiveAssignment,
+      );
+
+      const result = await service.assignStudentToClass(classId, studentId);
+
+      expect(result.reactivated).toBe(true);
+      expect(result.assigned).toBe(true);
+      expect(result.message).toContain('reactivated');
+    });
+
+    it('should skip if student is already actively assigned', async () => {
+      const activeAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId },
+        session_id: sessionId,
+        is_active: true,
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        activeAssignment,
+      );
+
+      const result = await service.assignStudentToClass(classId, studentId);
+
+      expect(result.assigned).toBe(false);
+      expect(result.reactivated).toBe(false);
+      expect(result.message).toContain('already assigned');
+    });
+
+    it('should validate inside transaction to prevent race conditions (Bug #7)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        null,
+      );
+
+      await service.assignStudentToClass(classId, studentId);
+
+      // Should validate twice: once outside transaction, once inside
+      expect(
+        mockClassStudentValidationService.validateStudentAssignment,
+      ).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('assignStudentsToClass', () => {
+    const classId = 'class-uuid-1';
+    const studentId1 = 'student-uuid-1';
+    const studentId2 = 'student-uuid-2';
+    const studentId3 = 'student-uuid-3';
+    const sessionId = 'session-uuid-1';
+
+    const mockClassEntity = {
+      id: classId,
+      name: 'JSS1',
+      arm: 'A',
+      is_deleted: false,
+      academicSession: {
+        id: sessionId,
+        name: '2024/2025 Academic Session',
+      },
+    } as unknown as Class;
+
+    beforeEach(() => {
+      mockDataSource.transaction = jest
+        .fn()
+        .mockImplementation(async (callback) => {
+          const mockManager = {
+            findOne: jest.fn(),
+            save: jest
+              .fn()
+              .mockImplementation((entity, data) =>
+                Promise.resolve(data || entity),
+              ),
+          };
+          return callback(mockManager);
+        });
+    });
+
+    it('should successfully assign multiple students to a class', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      const result = await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId2],
+      });
+
+      expect(result.assigned).toBe(2);
+      expect(result.skipped).toBe(0);
+      expect(result.message).toContain('Successfully assigned 2 student(s)');
+    });
+
+    it('should remove duplicate student IDs (Bug #3)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId1, studentId2], // Duplicate studentId1
+      });
+
+      // Should only validate unique students
+      expect(
+        mockClassStudentValidationService.validateBatchStudentAssignment,
+      ).toHaveBeenCalledWith(classId, [studentId1, studentId2], sessionId);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Duplicate student IDs detected'),
+        expect.any(Object),
+      );
+    });
+
+    it('should throw NotFoundException if class is soft-deleted (Bug #1)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockRejectedValue(
+        new NotFoundException(sysMsg.CLASS_NOT_FOUND),
+      );
+
+      await expect(
+        service.assignStudentsToClass(classId, { studentIds: [studentId1] }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if any student is soft-deleted (Bug #2)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockRejectedValue(
+        new NotFoundException(
+          'Cannot assign students: Student with ID student-uuid-1 not found.',
+        ),
+      );
+
+      await expect(
+        service.assignStudentsToClass(classId, { studentIds: [studentId1] }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ConflictException if any student is in another class (Bug #4)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockRejectedValue(
+        new ConflictException(
+          'Cannot assign students: Student with ID student-uuid-1 is already assigned to class JSS2 (B) in this academic session.',
+        ),
+      );
+
+      await expect(
+        service.assignStudentsToClass(classId, { studentIds: [studentId1] }),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should skip already active assignments and count correctly', async () => {
+      const activeAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId1 },
+        session_id: sessionId,
+        is_active: true,
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(activeAssignment) // Already active
+        .mockResolvedValueOnce(null); // New assignment
+
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      const result = await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId2],
+      });
+
+      expect(result.assigned).toBe(1);
+      expect(result.skipped).toBe(1);
+      expect(result.message).toContain('1 student(s)');
+      expect(result.message).toContain('1 student(s) were already assigned');
+    });
+
+    it('should reactivate inactive assignments in batch (Bug #6)', async () => {
+      const inactiveAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId1 },
+        session_id: sessionId,
+        is_active: false,
+        enrollment_date: new Date('2023-01-01'),
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(inactiveAssignment)
+        .mockResolvedValueOnce(null);
+
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      const result = await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId2],
+      });
+
+      expect(result.assigned).toBe(2); // 1 reactivated + 1 new
+      expect(result.skipped).toBe(0);
+    });
+
+    it('should validate inside transaction to prevent race conditions (Bug #7)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment.mockResolvedValue(
+        null,
+      );
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1],
+      });
+
+      // Should validate twice: once outside transaction, once inside
+      expect(
+        mockClassStudentValidationService.validateBatchStudentAssignment,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle mixed scenarios (new, active, inactive assignments)', async () => {
+      const activeAssignment = {
+        id: 'assignment-uuid-1',
+        class: { id: classId },
+        student: { id: studentId1 },
+        session_id: sessionId,
+        is_active: true,
+      } as unknown as ClassStudent;
+
+      const inactiveAssignment = {
+        id: 'assignment-uuid-2',
+        class: { id: classId },
+        student: { id: studentId2 },
+        session_id: sessionId,
+        is_active: false,
+        enrollment_date: new Date('2023-01-01'),
+      } as unknown as ClassStudent;
+
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockResolvedValue(
+        undefined,
+      );
+      mockClassStudentValidationService.getExistingAssignment
+        .mockResolvedValueOnce(activeAssignment) // Skip
+        .mockResolvedValueOnce(inactiveAssignment) // Reactivate
+        .mockResolvedValueOnce(null); // New assignment
+
+      mockClassStudentModelAction.create.mockResolvedValue({} as ClassStudent);
+
+      const result = await service.assignStudentsToClass(classId, {
+        studentIds: [studentId1, studentId2, studentId3],
+      });
+
+      expect(result.assigned).toBe(2); // 1 reactivated + 1 new
+      expect(result.skipped).toBe(1); // 1 already active
+      expect(result.message).toContain('2 student(s)');
+      expect(result.message).toContain('1 student(s) were already assigned');
+    });
+
+    it('should use consistent error handling (Bug #8)', async () => {
+      mockClassStudentValidationService.validateClassExists.mockResolvedValue(
+        mockClassEntity,
+      );
+      // Test that validation service provides consistent error messages
+      mockClassStudentValidationService.validateBatchStudentAssignment.mockRejectedValue(
+        new ConflictException(
+          'Cannot assign students: Student with ID student-uuid-1 is already assigned to class JSS2 (B) in this academic session.',
+        ),
+      );
+
+      await expect(
+        service.assignStudentsToClass(classId, { studentIds: [studentId1] }),
+      ).rejects.toThrow(ConflictException);
+
+      const error = await service
+        .assignStudentsToClass(classId, { studentIds: [studentId1] })
+        .catch((e) => e);
+
+      expect(error.message).toContain('Cannot assign students:');
+      expect(error.message).toContain('already assigned');
     });
   });
 });

@@ -17,9 +17,9 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Roles } from 'src/modules/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/modules/auth/guards/roles.guard';
-import { IRequestWithUser } from 'src/modules/result/utils/grading.util';
 import { UserRole } from 'src/modules/shared/enums';
 
+import { IRequestWithUser } from '../../../common/types/request-with-user.interface';
 import {
   ApiCreateTeacherManualCheckinDocs,
   ApiListTeacherCheckinRequestsDocs,

@@ -38,6 +38,14 @@ export const ListStudentsDocs = () => {
         'Search term (searches in first name, last name, email, registration number)',
       example: 'John',
     }),
+    ApiQuery({
+      name: 'unassigned',
+      required: false,
+      type: Boolean,
+      description:
+        'Filter students by assignment status. true = only unassigned students (not in any class), false = only assigned students (in a class), undefined = all students',
+      example: true,
+    }),
     ApiResponse({
       status: 200,
       description: 'Students retrieved successfully',

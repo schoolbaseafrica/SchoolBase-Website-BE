@@ -28,6 +28,7 @@ import {
   DocsGetClassById,
   DocsGetTotalClasses,
   DocsAssignStudents,
+  DocsAssignSingleStudent,
   DocsGetClassStudents,
   DocsGetTeacherClasses,
 } from '../docs/class.decorator';
@@ -40,6 +41,7 @@ import {
   GetTotalClassesQueryDto,
   AssignStudentsToClassDto,
   StudentAssignmentResponseDto,
+  AssignSingleStudentResponseDto,
   GetStudentsQueryDto,
 } from '../dto';
 import { GetTeachersQueryDto } from '../dto/get-teachers-query.dto';
@@ -102,6 +104,17 @@ export class ClassController {
       query.name,
       query.arm,
     );
+  }
+
+  // --- POST: ASSIGN SINGLE STUDENT TO CLASS (ADMIN ONLY) ---
+  @Post(':id/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @DocsAssignSingleStudent()
+  async assignSingleStudent(
+    @Param('id', ParseUUIDPipe) classId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<AssignSingleStudentResponseDto> {
+    return this.classService.assignStudentToClass(classId, studentId);
   }
 
   // --- POST: ASSIGN STUDENTS TO CLASS (ADMIN ONLY) ---

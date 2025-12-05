@@ -1003,3 +1003,19 @@ export const ApiGetStudentMonthlyAttendance = () =>
       description: sysMsg.STUDENTS_CAN_ONLY_VIEW_OWN_ATTENDANCE,
     }),
   );
+
+export function apiParentGetChildMonthlyAttendance() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary:
+        'Get monthly attendance for a child with the child registration number (PARENT ONLY)',
+      description:
+        "Allows a parent to fetch their child's monthly attendance record.",
+    }),
+
+    ApiOkResponse({
+      description: 'Student monthly attendance fetched successfully',
+    }),
+  );
+}

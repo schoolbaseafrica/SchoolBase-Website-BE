@@ -3,6 +3,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  forwardRef,
 } from '@nestjs/common';
 import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource, In } from 'typeorm';
@@ -11,9 +12,14 @@ import { Logger } from 'winston';
 import * as sysMsg from '../../constants/system.messages';
 import { TermModelAction } from '../academic-term/model-actions';
 import { ClassModelAction } from '../class/model-actions/class.actions';
+import { PaymentService } from '../payment/services/payment.service';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 
+import { FeeComponentResponseDto } from './dto/fee-component-response.dto';
 import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
+import { GetActiveFeesDto } from './dto/get-active-fees.dto';
+import { StudentFeeDetailsResponseDto } from './dto/student-fee-details.dto';
 import { Fees } from './entities/fees.entity';
 import { FeeStatus } from './enums/fees.enums';
 import { FeesModelAction } from './model-action/fees.model-action';
@@ -27,6 +33,9 @@ export class FeesService {
     private readonly termModelAction: TermModelAction,
     private readonly classModelAction: ClassModelAction,
     private readonly dataSource: DataSource,
+    @Inject(forwardRef(() => PaymentService))
+    private readonly paymentService: PaymentService,
+    private readonly studentModelAction: StudentModelAction,
     @Inject(WINSTON_MODULE_PROVIDER) logger: Logger,
   ) {
     this.logger = logger.child({ context: FeesService.name });
@@ -347,5 +356,135 @@ export class FeesService {
     }
 
     return Array.from(studentMap.values());
+  }
+
+  async getActiveFeeComponents(query: GetActiveFeesDto): Promise<{
+    data: FeeComponentResponseDto[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    const { page, limit } = query;
+    const {
+      fees,
+      total,
+      page: currentPage,
+      limit: currentLimit,
+      totalPages,
+    } = await this.feesModelAction.getActiveFeeComponents(page, limit);
+
+    const data = fees.map((fee) => ({
+      id: fee.id,
+      name: fee.component_name,
+      amount: Number(fee.amount),
+      session:
+        fee.term?.academicSession?.academicYear ||
+        fee.term?.academicSession?.name ||
+        '',
+      term: fee.term?.name || '',
+      frequency: 'Per Term',
+    }));
+
+    return {
+      data,
+      total,
+      page: currentPage,
+      limit: currentLimit,
+      totalPages,
+    };
+  }
+  async getStudentFeeDetails(
+    studentId: string,
+    termId: string,
+    sessionId: string,
+  ): Promise<StudentFeeDetailsResponseDto> {
+    const student = await this.studentModelAction.get({
+      identifierOptions: { id: studentId },
+      relations: {
+        user: true,
+        class_assignments: { class: { academicSession: true } },
+        stream: true,
+      },
+    });
+
+    if (!student) {
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    const term = await this.termModelAction.get({
+      identifierOptions: { id: termId },
+      relations: { academicSession: true },
+    });
+
+    if (!term) {
+      throw new BadRequestException(sysMsg.TERM_ID_INVALID);
+    }
+
+    if (term.academicSession?.id !== sessionId) {
+      throw new BadRequestException(
+        'Term does not belong to the specified session',
+      );
+    }
+
+    const currentClassAssignment = student.class_assignments?.[0];
+    const currentClass = currentClassAssignment?.class;
+
+    const fees = await this.feesModelAction.getFeesForStudent(
+      studentId,
+      currentClass?.id,
+      termId,
+    );
+
+    const { payments } = await this.paymentService.fetchAllPayments({
+      student_id: studentId,
+      term_id: termId,
+      limit: 1000,
+    });
+
+    const feeBreakdown = fees.map((fee) => {
+      const paidForComponent = payments
+        .filter((p) => p.fee_component_id === fee.id)
+        .reduce((sum, p) => sum + Number(p.amount_paid), 0);
+
+      const amount = Number(fee.amount);
+      const outstanding = amount - paidForComponent;
+
+      let status: 'PAID' | 'PARTIALLY_PAID' | 'OUTSTANDING' = 'OUTSTANDING';
+      if (outstanding <= 0) {
+        status = 'PAID';
+      } else if (paidForComponent > 0) {
+        status = 'PARTIALLY_PAID';
+      }
+
+      return {
+        component_name: fee.component_name,
+        amount: amount,
+        amount_paid: paidForComponent,
+        outstanding_amount: Math.max(0, outstanding),
+        status,
+      };
+    });
+
+    return {
+      student_info: {
+        student_id: student.id,
+        first_name: student.user.first_name,
+        last_name: student.user.last_name,
+        registration_number: student.registration_number,
+        class: currentClass?.name || 'N/A',
+        term: term.name,
+        session: term.academicSession?.academicYear || '',
+      },
+      fee_breakdown: feeBreakdown,
+      payment_history: payments.map((p) => ({
+        payment_date: p.payment_date,
+        amount_paid: Number(p.amount_paid),
+        payment_method: p.payment_method,
+        transaction_reference: p.transaction_id || p.invoice_number || 'N/A',
+        fee_component: p.fee_component?.component_name || 'Unknown',
+        term_label: p.term?.name || term.name || 'Unknown Term',
+      })),
+    };
   }
 }

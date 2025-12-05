@@ -133,6 +133,9 @@ export const PAYMENTS_FETCHED_SUCCESSFULLY =
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+export const NOTIFICATIONS_RETRIEVED = 'Notifications retrieved successfully';
+export const UNAUTHORIZED_NOTIFICATION_ACCESS =
+  'You are not authorized to view these notifications';
 
 // Streams
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
@@ -208,6 +211,7 @@ export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
 export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+export const ROOM_UNASSIGNED_SUCCESSFULLY = 'Room unassigned successfully';
 export const CANNOT_DELETE_OCCUPIED_ROOM =
   'Cannot delete a room that has an active class.';
 
@@ -281,6 +285,10 @@ export const PARENT_PROFILE_NOT_FOUND =
   'Parent profile not found for this user';
 export const STUDENT_NOT_BELONG_TO_PARENT =
   'Student not found or does not belong to this parent';
+export const STUDENT_UNLINKED_FROM_PARENT =
+  'Student successfully unlinked from parent';
+export const PARENT_STUDENT_PROFILE_FETCHED =
+  "Student's profiles fetched successfully";
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
@@ -508,3 +516,8 @@ export const CANNOT_CHECKOUT_PENDING_CHECKIN =
 export const NO_CHECKIN_FOR_TODAY = 'No checkin found for today';
 export const ALREADY_CHECKED_OUT = 'Already checked out';
 export const TEACHER_CHECKOUT_SUCCESS = 'Teacher checkout successful';
+//attendance message
+export const REGISTRATION_NUMBER_REQUIRED =
+  'Child registration number is required';
+export const CHILD_REGISTRATION_NUMBER_NOT_FOUNS =
+  'Registration number does not exist';

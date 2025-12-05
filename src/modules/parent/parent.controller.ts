@@ -35,6 +35,8 @@ import {
   ApiGetLinkedStudents,
   ApiGetStudentSubjects,
   ApiGetMyStudents,
+  ApiUnlinkStudent,
+  ApiGetLinkedStudentProfileForParent,
 } from './docs/parent.swagger';
 import {
   CreateParentDto,
@@ -44,6 +46,7 @@ import {
   UpdateParentDto,
   ParentStudentLinkResponseDto,
   StudentBasicDto,
+  StudentProfileDto,
 } from './dto';
 import { ParentService, IUserPayload } from './parent.service';
 
@@ -214,6 +217,49 @@ export class ParentController {
       message: sysMsg.STUDENTS_LINKED_TO_PARENT,
       status_code: HttpStatus.CREATED,
       data,
+    };
+  }
+
+  // --- GET: GET A SINGLE LINKED STUDENT PROFILE ---
+  @Get('/:parentId/link-students/:studentId')
+  @Roles(UserRole.ADMIN, UserRole.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLinkedStudentProfileForParent()
+  async getLinkedStudentProfileForParent(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentProfileDto;
+  }> {
+    const data = await this.parentService.getLinkedStudentProfileForParent(
+      parentId,
+      studentId,
+    );
+    return {
+      message: sysMsg.PARENT_STUDENT_PROFILE_FETCHED,
+      status_code: HttpStatus.OK,
+      data,
+    };
+  }
+
+  // --- DELETE: UNLINK STUDENT FROM PARENT (ADMIN ONLY) ---
+  @Delete(':parentId/students/:studentId')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiUnlinkStudent()
+  async unlinkStudent(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+  }> {
+    await this.parentService.unlinkStudentFromParent(parentId, studentId);
+    return {
+      message: sysMsg.STUDENT_UNLINKED_FROM_PARENT,
+      status_code: HttpStatus.OK,
     };
   }
 

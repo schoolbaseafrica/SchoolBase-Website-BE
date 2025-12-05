@@ -52,3 +52,40 @@ export class StudentAssignmentResponseDto {
   @Expose()
   is_active: boolean;
 }
+
+export class AssignSingleStudentResponseDto {
+  @ApiProperty({
+    example: 'Student assigned to class successfully.',
+    description: 'Success message',
+  })
+  @Expose()
+  message: string;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether the student was assigned (new or reactivated)',
+  })
+  @Expose()
+  assigned: boolean;
+
+  @ApiProperty({
+    example: false,
+    description: 'Whether an existing inactive assignment was reactivated',
+  })
+  @Expose()
+  reactivated: boolean;
+
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'The class ID',
+  })
+  @Expose()
+  classId: string;
+
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174001',
+    description: 'The student ID',
+  })
+  @Expose()
+  studentId: string;
+}
