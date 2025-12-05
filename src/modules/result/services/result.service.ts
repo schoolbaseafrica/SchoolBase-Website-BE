@@ -22,6 +22,7 @@ import {
   PaginatedClassResultsResponseDto,
   ListResultsQueryDto,
 } from '../dto';
+import { GetResultsQueryDto } from '../dto/get-results.dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -47,6 +48,66 @@ export class ResultService {
     private readonly dataSource: DataSource,
   ) {
     this.logger = baseLogger.child({ context: ResultService.name });
+  }
+
+  /**
+   * Get all results
+   */
+  async getResults(query: GetResultsQueryDto) {
+    const { page, limit } = query;
+    const filters: Partial<GetResultsQueryDto> = {};
+
+    if (query.academic_session_id) {
+      filters.academic_session_id = query.academic_session_id;
+    }
+    if (query.term_id) {
+      filters.term_id = query.term_id;
+    }
+    if (query.class_id) {
+      filters.class_id = query.class_id;
+    }
+    if (query.student_id) {
+      filters.student_id = query.student_id;
+    }
+
+    // Fetch paginated results
+    const results = await this.resultModelAction.list({
+      filterRecordOptions: filters,
+      relations: {
+        student: { user: true },
+        class: true,
+        term: true,
+        academicSession: true,
+        subject_lines: { subject: true },
+      },
+      order: { createdAt: 'DESC', term: { name: 'ASC' } },
+      paginationPayload: { page, limit },
+    });
+
+    if (!results.payload || results.payload.length === 0) {
+      throw new NotFoundException(sysMsg.RESULT_NOT_FOUND);
+    }
+
+    // Transform to response DTOs
+    const transformedResults: ResultResponseDto[] = results.payload.map(
+      (result) => this.transformToResponseDto(result),
+    );
+
+    // Build pagination metadata
+    const paginationMeta = {
+      total: results.paginationMeta?.total ?? 0,
+      totalPages: results.paginationMeta?.total_pages ?? 0,
+      page: results.paginationMeta?.page ?? page,
+      limit: results.paginationMeta?.limit ?? limit,
+    };
+
+    return {
+      total: paginationMeta.total,
+      totalPages: paginationMeta.totalPages,
+      page: paginationMeta.page,
+      limit: paginationMeta.limit,
+      data: transformedResults,
+    };
   }
 
   /**
@@ -422,78 +483,6 @@ export class ResultService {
     }
 
     return resultsWithPositions;
-  }
-
-  /**
-   * Calculate position for a single student
-   */
-  private calculateStudentPosition(
-    averageScore: number,
-    classResults: IStudentResultData[],
-  ): number {
-    const sorted = [...classResults].sort(
-      (a, b) => b.average_score - a.average_score,
-    );
-
-    const index = sorted.findIndex((r) => r.average_score === averageScore);
-    if (index === -1) {
-      return sorted.length + 1;
-    }
-
-    // Find first occurrence of this score
-    let position = index + 1;
-    for (let i = index - 1; i >= 0; i--) {
-      if (sorted[i].average_score > averageScore) {
-        break;
-      }
-      position = i + 1;
-    }
-
-    return position;
-  }
-
-  /**
-   * Get student results for a class (for position calculation)
-   */
-  private async getStudentResultsForClass(
-    classId: string,
-    termId: string,
-    sessionId: string,
-  ): Promise<IStudentResultData[]> {
-    const studentAssignments = await this.classStudentModelAction.list({
-      filterRecordOptions: {
-        class: { id: classId },
-        session_id: sessionId,
-        is_active: true,
-      },
-      relations: {
-        student: true,
-      },
-    });
-
-    const results: IStudentResultData[] = [];
-
-    for (const assignment of studentAssignments.payload) {
-      if (!assignment.student) {
-        this.logger.warn('Student assignment missing student relation', {
-          assignmentId: assignment.id,
-        });
-        continue;
-      }
-
-      const resultData = await this.computeStudentResultData(
-        assignment.student.id,
-        classId,
-        termId,
-        sessionId,
-      );
-
-      if (resultData && resultData.subject_count > 0) {
-        results.push(resultData);
-      }
-    }
-
-    return results;
   }
 
   /**
