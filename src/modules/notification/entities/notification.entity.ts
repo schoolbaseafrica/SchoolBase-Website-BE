@@ -5,7 +5,7 @@ import {
   NotificationMetadata,
   NotificationType,
 } from '../types/notification.types';
-@Entity('notification')
+@Entity('notifications')
 export class Notification extends BaseEntity {
   @Index()
   @Column()

@@ -11,6 +11,7 @@ describe('NotificationService', () => {
 
   const mockNotificationModelAction = {
     list: jest.fn(),
+    create: jest.fn(),
   };
 
   const mockNotification = {
@@ -167,6 +168,45 @@ describe('NotificationService', () => {
         has_next: true,
         has_previous: true,
       });
+    });
+  });
+
+  describe('createNotification', () => {
+    it('should create a notification successfully', async () => {
+      const userId = 'user-123';
+      const title = 'Test Notification';
+      const message = 'This is a test message';
+      const type = NotificationType.SYSTEM_ALERT;
+      const metadata = { key: 'value' };
+
+      const expectedPayload = {
+        createPayload: {
+          recipient_id: userId,
+          title,
+          message,
+          type,
+          metadata,
+          is_read: false,
+        },
+        transactionOptions: { useTransaction: false },
+      };
+
+      mockNotificationModelAction.create.mockResolvedValue(
+        'created-notification',
+      );
+
+      const result = await service.createNotification(
+        userId,
+        title,
+        message,
+        type,
+        metadata,
+      );
+
+      expect(notificationModelAction.create).toHaveBeenCalledWith(
+        expectedPayload,
+      );
+      expect(result).toBe('created-notification');
     });
   });
 });
