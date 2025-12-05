@@ -287,6 +287,8 @@ export const STUDENT_NOT_BELONG_TO_PARENT =
   'Student not found or does not belong to this parent';
 export const STUDENT_UNLINKED_FROM_PARENT =
   'Student successfully unlinked from parent';
+export const PARENT_STUDENT_PROFILE_FETCHED =
+  "Student's profiles fetched successfully";
 
 // Contact messages
 export const CONTACT_MESSAGE_SENT = 'Contact message sent successfully';
@@ -487,3 +489,9 @@ export const NO_APPROVED_GRADES_STUDENT =
   'No approved grades found for this student in the specified term. Ensure grades are submitted and approved.';
 export const NO_VALID_GRADES_STUDENT =
   'No valid grades found for this student in the specified term';
+
+//attendance message
+export const REGISTRATION_NUMBER_REQUIRED =
+  'Child registration number is required';
+export const CHILD_REGISTRATION_NUMBER_NOT_FOUNS =
+  'Registration number does not exist';

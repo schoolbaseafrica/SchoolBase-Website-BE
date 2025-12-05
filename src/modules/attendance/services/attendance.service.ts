@@ -9,6 +9,8 @@ import { WINSTON_MODULE_PROVIDER } from 'nest-winston';
 import { DataSource } from 'typeorm';
 import { Logger } from 'winston';
 
+import { Student } from 'src/modules/student/entities';
+
 import { IPaginationMeta } from '../../../common/types/base-response.interface';
 import * as sysMsg from '../../../constants/system.messages';
 import { AcademicSessionService } from '../../academic-session/academic-session.service';
@@ -1083,6 +1085,135 @@ export class AttendanceService {
       notes: attendance.notes,
       created_at: attendance.createdAt,
       updated_at: attendance.updatedAt,
+    };
+  }
+
+  //parents endpoints to view child attendance
+
+  async getParentChildMonthlyAttendance(registrationNumber: string): Promise<{
+    message: string;
+    month: string;
+    year: number;
+    registration_number: string;
+    student_id: string;
+    total_days_in_month: number;
+    days_present: number;
+    days_absent: number;
+    days_late: number;
+    days_excused: number;
+    days_half_day: number;
+    attendance_details: Array<{
+      date: string;
+      status: string;
+      check_in_time?: string;
+      check_out_time?: string;
+      notes?: string;
+    }>;
+  }> {
+    if (!registrationNumber) {
+      throw new BadRequestException(sysMsg.REGISTRATION_NUMBER_REQUIRED);
+    }
+
+    // 🔎 Find student by registration_number
+    const student = await this.dataSource.manager.findOne(Student, {
+      where: { registration_number: registrationNumber },
+      relations: ['user', 'parent'],
+    });
+
+    if (!student) {
+      throw new NotFoundException(sysMsg.CHILD_REGISTRATION_NUMBER_NOT_FOUNS);
+    }
+
+    // Get current month start and end dates
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    const startDate = new Date(year, month, 1);
+    const startDateStr = startDate.toISOString().split('T')[0];
+
+    const endDate = new Date(year, month + 1, 0);
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    // Get all daily attendance records for this student in the current month
+    const { payload: attendanceRecords } =
+      await this.studentDailyAttendanceModelAction.list({
+        filterRecordOptions: {
+          session_id: await this.academicSessionService
+            .activeSessions()
+            .then((s) => s.data.id),
+          student_id: student.id, // 👈 use student.id after lookup
+        },
+      });
+
+    // Filter by current month date range
+    const filteredRecords = attendanceRecords.filter((record) => {
+      const recordDateStr =
+        typeof record.date === 'string'
+          ? record.date
+          : record.date.toISOString().split('T')[0];
+      return recordDateStr >= startDateStr && recordDateStr <= endDateStr;
+    });
+
+    // Calculate total days in current month
+    const totalDaysInMonth = endDate.getDate();
+
+    // Calculate attendance statistics
+    let daysPresent = 0;
+    let daysAbsent = 0;
+    let daysLate = 0;
+    let daysExcused = 0;
+    let daysHalfDay = 0;
+
+    const attendanceDetails = filteredRecords.map((record) => {
+      switch (record.status) {
+        case DailyAttendanceStatus.PRESENT:
+          daysPresent++;
+          break;
+        case DailyAttendanceStatus.ABSENT:
+          daysAbsent++;
+          break;
+        case DailyAttendanceStatus.LATE:
+          daysLate++;
+          daysPresent++; // Late still counts as present
+          break;
+        case DailyAttendanceStatus.EXCUSED:
+          daysExcused++;
+          break;
+        case DailyAttendanceStatus.HALF_DAY:
+          daysHalfDay++;
+          break;
+      }
+
+      return {
+        date:
+          typeof record.date === 'string'
+            ? record.date
+            : record.date.toISOString().split('T')[0],
+        status: record.status,
+        check_in_time: record.check_in_time
+          ? record.check_in_time.toISOString()
+          : undefined,
+        check_out_time: record.check_out_time
+          ? record.check_out_time.toISOString()
+          : undefined,
+        notes: record.notes,
+      };
+    });
+
+    return {
+      message: sysMsg.STUDENT_MONTHLY_ATTENDANCE_RETRIEVED,
+      month: this.monthNames[month],
+      year,
+      registration_number: student.registration_number,
+      student_id: student.id,
+      total_days_in_month: totalDaysInMonth,
+      days_present: daysPresent,
+      days_absent: daysAbsent,
+      days_late: daysLate,
+      days_excused: daysExcused,
+      days_half_day: daysHalfDay,
+      attendance_details: attendanceDetails,
     };
   }
 }

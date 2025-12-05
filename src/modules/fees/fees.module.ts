@@ -6,6 +6,8 @@ import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity';
 import { ClassModelAction } from '../class/model-actions/class.actions';
 import { NotificationModule } from '../notification/notification.module';
+import { PaymentModule } from '../payment/payment.module';
+import { StudentModule } from '../student/student.module';
 
 import { FeeAssignment } from './entities/fee-assignment.entity';
 import { Fees } from './entities/fees.entity';
@@ -17,6 +19,8 @@ import { FeesModelAction } from './model-action/fees.model-action';
   imports: [
     TypeOrmModule.forFeature([Fees, Class, Term, FeeAssignment]),
     forwardRef(() => NotificationModule),
+    forwardRef(() => PaymentModule),
+    StudentModule,
   ],
   controllers: [FeesController],
   providers: [FeesService, FeesModelAction, TermModelAction, ClassModelAction],
