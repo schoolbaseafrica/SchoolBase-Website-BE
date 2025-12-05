@@ -1,6 +1,7 @@
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   OneToOne,
@@ -9,6 +10,7 @@ import {
 
 import { BaseEntity } from '../../../entities/base-entity';
 import { ClassStudent } from '../../class/entities/class-student.entity';
+import { Class } from '../../class/entities/class.entity';
 import { Parent } from '../../parent/entities/parent.entity';
 import { Stream } from '../../stream/entities/stream.entity';
 import { User } from '../../user/entities/user.entity';
@@ -31,6 +33,14 @@ export class Student extends BaseEntity {
 
   @OneToMany(() => ClassStudent, (assignment) => assignment.student)
   class_assignments: ClassStudent[];
+
+  @Index()
+  @Column({ name: 'current_class_id', nullable: true, type: 'uuid' })
+  current_class_id: string | null;
+
+  @ManyToOne(() => Class, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'current_class_id' })
+  current_class: Class | null;
 
   @Column({ type: 'boolean', default: false })
   is_deleted: boolean;

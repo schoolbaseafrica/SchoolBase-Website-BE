@@ -134,19 +134,26 @@ export class StudentService {
     data: StudentResponseDto[];
     meta: Partial<PaginationMeta>;
   }> {
-    const { page = 1, limit = 10, search } = listStudentsDto;
+    const { page = 1, limit = 10, search, unassigned } = listStudentsDto;
 
-    // Use the custom search method for search, regular list for no search
-    const { payload: students, paginationMeta } = search
-      ? await this.searchStudentsWithModelAction(search, page, limit)
-      : await this.studentModelAction.list({
-          filterRecordOptions: {
-            is_deleted: false,
-          },
-          relations: { user: true, stream: true },
-          paginationPayload: { page, limit },
-          order: { createdAt: 'DESC' },
-        });
+    // Use query builder if we have search or unassigned filter (complex filtering)
+    // Otherwise use model action for simple filtering
+    const { payload: students, paginationMeta } =
+      search || unassigned !== undefined
+        ? await this.searchStudentsWithModelAction(
+            search || '',
+            page,
+            limit,
+            unassigned,
+          )
+        : await this.studentModelAction.list({
+            filterRecordOptions: {
+              is_deleted: false,
+            },
+            relations: { user: true, stream: true },
+            paginationPayload: { page, limit },
+            order: { createdAt: 'DESC' },
+          });
 
     const data = students.map(
       (student) => new StudentResponseDto(student, student.user),
@@ -154,6 +161,7 @@ export class StudentService {
 
     this.logger.info(`Fetched ${data.length} students`, {
       searchTerm: search,
+      unassigned,
       page,
       limit,
       total: paginationMeta.total,
@@ -304,10 +312,21 @@ export class StudentService {
   }
 
   // --- SEARCH STUDENTS (private method) ---
+  /**
+   * Search and filter students using query builder.
+   * Supports search by name/email/registration and filtering by assignment status.
+   *
+   * @param search - Search term (optional)
+   * @param page - Page number
+   * @param limit - Items per page
+   * @param unassigned - Filter by assignment status: true = unassigned only, false = assigned only, undefined = all
+   * @returns Paginated list of students
+   */
   private async searchStudentsWithModelAction(
     search: string,
     page: number = 1,
     limit: number = 10,
+    unassigned?: boolean,
   ): Promise<{
     payload: Student[];
     paginationMeta: Partial<PaginationMeta>;
@@ -321,11 +340,19 @@ export class StudentService {
       .orderBy('student.createdAt', 'DESC')
       .where('student.is_deleted IS NOT TRUE');
 
+    // Add search condition
     if (search && search.trim()) {
       queryBuilder.andWhere(
         '(user.first_name ILIKE :search OR user.last_name ILIKE :search OR user.email ILIKE :search OR student.registration_number ILIKE :search)',
         { search: `%${search}%` },
       );
+    }
+
+    // Add unassigned filter
+    if (unassigned === true) {
+      queryBuilder.andWhere('student.current_class_id IS NULL');
+    } else if (unassigned === false) {
+      queryBuilder.andWhere('student.current_class_id IS NOT NULL');
     }
 
     const total = await queryBuilder.getCount();

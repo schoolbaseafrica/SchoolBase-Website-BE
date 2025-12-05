@@ -92,6 +92,7 @@ describe('ClassService', () => {
 
   const mockStudentModelAction = {
     get: jest.fn(),
+    update: jest.fn().mockResolvedValue({}),
   };
 
   const mockClassStudentValidationService = {
