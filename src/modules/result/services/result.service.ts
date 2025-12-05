@@ -22,6 +22,7 @@ import {
   PaginatedClassResultsResponseDto,
   ListResultsQueryDto,
 } from '../dto';
+import { GetResultsQueryDto } from '../dto/get-results.dto';
 import { Result, ResultSubjectLine } from '../entities';
 import { IStudentGradeData, IStudentResultData } from '../interface';
 import {
@@ -47,6 +48,61 @@ export class ResultService {
     private readonly dataSource: DataSource,
   ) {
     this.logger = baseLogger.child({ context: ResultService.name });
+  }
+
+  /**
+   * Get all results
+   */
+  async getResults(query: GetResultsQueryDto) {
+    const { page, limit, include_subject_lines } = query;
+    const includeSubjectLines = include_subject_lines === 'true';
+
+    const filters: Partial<GetResultsQueryDto> = {};
+
+    if (query.academic_session_id)
+      filters.academic_session_id = query.academic_session_id;
+    if (query.term_id) filters.term_id = query.term_id;
+    if (query.class_id) filters.class_id = query.class_id;
+    if (query.student_id) filters.student_id = query.student_id;
+
+    // Fetch paginated results
+    const results = await this.resultModelAction.list({
+      filterRecordOptions: filters,
+      relations: {
+        student: { user: true },
+        class: true,
+        term: true,
+        academicSession: true,
+        ...(includeSubjectLines ? { subject_lines: { subject: true } } : {}),
+      },
+      order: { createdAt: 'DESC', term: { name: 'ASC' } },
+      paginationPayload: { page, limit },
+    });
+
+    if (!results.payload || results.payload.length === 0) {
+      throw new NotFoundException(sysMsg.RESULT_NOT_FOUND);
+    }
+
+    // Transform to response DTOs
+    const transformedResults: ResultResponseDto[] = results.payload.map(
+      (result) => this.transformToResponseDto(result),
+    );
+
+    // Build pagination metadata
+    const paginationMeta = {
+      total: results.paginationMeta?.total ?? 0,
+      totalPages: results.paginationMeta?.total_pages ?? 0,
+      page: results.paginationMeta?.page ?? page,
+      limit: results.paginationMeta?.limit ?? limit,
+    };
+
+    return {
+      total: paginationMeta.total,
+      totalPages: paginationMeta.totalPages,
+      page: paginationMeta.page,
+      limit: paginationMeta.limit,
+      data: transformedResults,
+    };
   }
 
   /**

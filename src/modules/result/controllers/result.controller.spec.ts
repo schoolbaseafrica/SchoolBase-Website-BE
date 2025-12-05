@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { StudentModelAction } from 'src/modules/student/model-actions';
@@ -41,6 +41,7 @@ describe('ResultController', () => {
             getStudentResults: jest.fn(),
             getClassResults: jest.fn(),
             listResults: jest.fn(),
+            getResults: jest.fn(),
           },
         },
         {
@@ -60,6 +61,72 @@ describe('ResultController', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  describe('getResults', () => {
+    it('should return paginated results', async () => {
+      const query = {
+        page: 1,
+        limit: 20,
+        academic_session_id: 'session-uuid-123',
+        term_id: 'term-uuid-123',
+        class_id: 'class-uuid-123',
+        include_subject_lines: 'true',
+      };
+
+      const mockResult: ResultResponseDto = {
+        id: 'result-uuid-1',
+        student: {
+          id: 'student-uuid-1',
+          registration_number: 'STU001',
+          name: 'John Doe', // just the transformed name
+        },
+        class: { id: 'class-uuid-123', name: 'SS1', arm: 'A' },
+        term: { id: 'term-uuid-123', name: 'FIRST' },
+        academicSession: {
+          id: 'session-uuid-123',
+          name: '2024/2025',
+          academicYear: '2024/2025',
+        },
+        total_score: 450,
+        average_score: 75,
+        grade_letter: 'B',
+        position: 1,
+        remark: 'Very Good',
+        subject_count: 6,
+        subject_lines: [],
+        generated_at: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+
+      const serviceReturnValue = {
+        total: 1,
+        totalPages: 1,
+        page: 1,
+        limit: 20,
+        data: [mockResult],
+      };
+
+      resultService.getResults.mockResolvedValue(serviceReturnValue);
+
+      const result = await controller.getResults(query);
+
+      expect(result).toEqual(serviceReturnValue);
+      expect(resultService.getResults).toHaveBeenCalledWith(query);
+    });
+
+    it('should throw NotFoundException when service throws', async () => {
+      const query = { page: 1, limit: 20 };
+      resultService.getResults.mockRejectedValue(
+        new NotFoundException('Result not found'),
+      );
+
+      await expect(controller.getResults(query)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(resultService.getResults).toHaveBeenCalledWith(query);
+    });
   });
 
   describe('getStudentResults', () => {

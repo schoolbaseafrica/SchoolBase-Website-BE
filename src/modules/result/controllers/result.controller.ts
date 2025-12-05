@@ -27,11 +27,14 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { UserRole } from '../../shared/enums';
 import { DocsGetClassResults } from '../docs/result.decorator';
+import { DocsGetAllResults } from '../docs/results.decorator';
 import {
   GenerateResultDto,
   ListResultsQueryDto,
   ResultResponseDto,
 } from '../dto';
+import { GetResultsQueryDto } from '../dto/get-results.dto';
+import { PaginatedResultsResponseDto } from '../dto/paginated-results.dto';
 import { ResultService } from '../services/result.service';
 
 interface IRequestWithUser extends Request {
@@ -54,6 +57,15 @@ export class ResultController {
     private readonly resultService: ResultService,
     private readonly studentModelAction: StudentModelAction,
   ) {}
+
+  @Get()
+  @DocsGetAllResults()
+  @Roles(UserRole.ADMIN)
+  async getResults(
+    @Query() resultsQuery: GetResultsQueryDto,
+  ): Promise<PaginatedResultsResponseDto> {
+    return this.resultService.getResults(resultsQuery);
+  }
 
   @Post('generate')
   @ApiOperation({ summary: 'Generate results for students' })

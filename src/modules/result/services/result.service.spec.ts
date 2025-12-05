@@ -759,4 +759,162 @@ describe('ResultService', () => {
       });
     });
   });
+
+  describe('getResults', () => {
+    const page = 1;
+    const limit = 20;
+
+    const mockResult = {
+      id: 'result-uuid-1',
+      student_id: 'student-uuid-1',
+      class_id: 'class-uuid-1',
+      term_id: 'term-uuid-1',
+      academic_session_id: 'session-uuid-1',
+      total_score: 350,
+      average_score: 87.5,
+      grade_letter: 'A',
+      position: 1,
+      remark: 'Excellent',
+      subject_count: 4,
+      generated_at: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      student: {
+        id: 'student-uuid-1',
+        registration_number: 'STU-123',
+        user: {
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+      },
+      class: {
+        id: 'class-uuid-1',
+        name: 'SS1',
+        arm: 'A',
+      },
+      term: {
+        id: 'term-uuid-1',
+        name: 'FIRST',
+      },
+      academicSession: {
+        id: 'session-uuid-1',
+        name: '2025/2026',
+        academicYear: '2025',
+      },
+      subject_lines: [],
+    };
+
+    it('should throw NotFoundException when no results found', async () => {
+      resultModelAction.list.mockResolvedValue({
+        payload: [],
+        paginationMeta: { total: 0, page, limit, total_pages: 0 },
+      });
+
+      await expect(service.getResults({ page, limit })).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should return paginated results with default subject_lines', async () => {
+      resultModelAction.list.mockResolvedValue({
+        payload: [mockResult as unknown as Result],
+        paginationMeta: {
+          total: 1,
+          page,
+          limit,
+          total_pages: 1,
+        },
+      });
+
+      const query = { page, limit, include_subject_lines: 'false' };
+      const result = await service.getResults(query);
+
+      expect(result).toBeDefined();
+      expect(result.total).toBe(1);
+      expect(result.page).toBe(page);
+      expect(result.limit).toBe(limit);
+      expect(result.data[0].id).toBe(mockResult.id);
+      expect(result.data[0].subject_lines).toHaveLength(0);
+      expect(resultModelAction.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          relations: expect.objectContaining({
+            student: { user: true },
+            class: true,
+            term: true,
+            academicSession: true,
+          }),
+        }),
+      );
+    });
+
+    it('should include subject_lines when include_subject_lines=true', async () => {
+      const mockWithSubjects = {
+        ...mockResult,
+        subject_lines: [
+          { id: 'line-uuid-1', subject: { id: 'subj-uuid-1', name: 'Math' } },
+        ],
+      };
+
+      resultModelAction.list.mockResolvedValue({
+        payload: [mockWithSubjects as unknown as Result],
+        paginationMeta: {
+          total: 1,
+          page,
+          limit,
+          total_pages: 1,
+        },
+      });
+
+      const query = { page, limit, include_subject_lines: 'true' };
+      const result = await service.getResults(query);
+
+      expect(result.data[0].subject_lines).toHaveLength(1);
+      expect(result.data[0].subject_lines[0].subject.name).toBe('Math');
+    });
+
+    it('should apply filters if provided', async () => {
+      resultModelAction.list.mockResolvedValue({
+        payload: [mockResult as unknown as Result],
+        paginationMeta: { total: 1, page, limit, total_pages: 1 },
+      });
+
+      const query = {
+        academic_session_id: 'session-uuid-1',
+        term_id: 'term-uuid-1',
+        class_id: 'class-uuid-1',
+        student_id: 'student-uuid-1',
+      };
+
+      await service.getResults(query);
+
+      expect(resultModelAction.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterRecordOptions: expect.objectContaining({
+            academic_session_id: 'session-uuid-1',
+            term_id: 'term-uuid-1',
+            class_id: 'class-uuid-1',
+            student_id: 'student-uuid-1',
+          }),
+        }),
+      );
+    });
+
+    it('should return pagination meta correctly', async () => {
+      resultModelAction.list.mockResolvedValue({
+        payload: [mockResult as unknown as Result],
+        paginationMeta: {
+          total: 5,
+          page: 2,
+          limit: 2,
+          total_pages: 3,
+        },
+      });
+
+      const result = await service.getResults({ page: 2, limit: 2 });
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(2);
+      expect(result.totalPages).toBe(3);
+      expect(result.total).toBe(5);
+    });
+  });
 });
