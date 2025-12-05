@@ -123,7 +123,7 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
       limit,
       totalPages,
     };
-}
+  }
   async getTotalExpectedFees(termId?: string): Promise<number> {
     const query = this.feeRepository
       .createQueryBuilder('fee')

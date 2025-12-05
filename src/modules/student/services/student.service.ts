@@ -24,6 +24,7 @@ import {
   StudentResponseDto,
   ListStudentsDto,
   PatchStudentDto,
+  StudentProfileResponseDto,
 } from '../dto';
 import { StudentGrowthReportResponseDto } from '../dto/student.growth.dto';
 import { Student } from '../entities';
@@ -490,5 +491,31 @@ export class StudentService {
         report: aggregatedReport,
       },
     };
+  }
+
+  /**
+   * Retrieves the profile of the currently authenticated student.
+   * @param userId - The ID of the authenticated user.
+   * @returns The student's complete profile.
+   * @throws {NotFoundException} If no student profile is linked to the user account.
+   */
+  async getMyProfile(userId: string): Promise<StudentProfileResponseDto> {
+    const student = await this.studentModelAction.get({
+      identifierOptions: { user: { id: userId } },
+      relations: { user: true, stream: true },
+    });
+
+    if (!student || student.is_deleted) {
+      this.logger.warn(`Student profile not found for user ID: ${userId}`);
+      throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
+    }
+
+    this.logger.info(`Fetched student profile for user ID: ${userId}`);
+
+    return new StudentProfileResponseDto(
+      student,
+      student.user,
+      sysMsg.PROFILE_RETRIEVED,
+    );
   }
 }

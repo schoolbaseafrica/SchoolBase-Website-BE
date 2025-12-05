@@ -27,6 +27,7 @@ import {
   DeleteStudentDocs,
   studentGrowthDecorator,
 } from '../docs';
+import { GetStudentProfileDocs } from '../docs/get-student-profile.docs';
 import {
   CreateStudentDto,
   ListStudentsDto,
@@ -68,6 +69,16 @@ export class StudentController {
   async getStudentGrowthReport(@Query('academic_year') academicYear: string) {
     return this.studentService.getStudentGrowthReport(academicYear);
   }
+
+  // --- GET: GET LOGGED-IN STUDENT'S PROFILE ---
+  @Get('/profile/:studentId')
+  @GetStudentProfileDocs()
+  @Roles(UserRole.ADMIN, UserRole.STUDENT)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  getMyProfile(@Param('studentId') studentId: string) {
+    return this.studentService.getMyProfile(studentId);
+  }
+
   // --- GET: GET SINGLE STUDENT BY ID ---
   @Get(':id')
   @GetStudentDocs()
