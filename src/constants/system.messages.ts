@@ -133,6 +133,9 @@ export const PAYMENTS_FETCHED_SUCCESSFULLY =
 // Notifications
 export const NOTIFICATION_SENT = 'notification sent';
 export const NOTIFICATION_FAILED = 'notification failed';
+export const NOTIFICATIONS_RETRIEVED = 'Notifications retrieved successfully';
+export const UNAUTHORIZED_NOTIFICATION_ACCESS =
+  'You are not authorized to view these notifications';
 
 // Streams
 export const STREAM_NOT_FOUND = 'Stream with the provided ID does not exist';
@@ -208,6 +211,7 @@ export const ROOM_NOT_FOUND = 'Room not found.';
 export const INVALID_ROOM_ID = 'Invalid room ID provided.';
 export const ROOM_ASSIGNED_TO_CLASS = 'Room successfully assigned to class.';
 export const ROOM_STATUS_UPDATED = 'Room status updated successfully.';
+export const ROOM_UNASSIGNED_SUCCESSFULLY = 'Room unassigned successfully';
 export const CANNOT_DELETE_OCCUPIED_ROOM =
   'Cannot delete a room that has an active class.';
 
