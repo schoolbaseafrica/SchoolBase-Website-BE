@@ -17,3 +17,10 @@ export enum Gender {
   FEMALE = 'Female',
   OTHER = 'Other',
 }
+
+export enum FeeNotificationType {
+  CREATED = 'created',
+  UPDATED = 'updated',
+  ACTIVATED = 'activated',
+  DEACTIVATED = 'deactivated',
+}
