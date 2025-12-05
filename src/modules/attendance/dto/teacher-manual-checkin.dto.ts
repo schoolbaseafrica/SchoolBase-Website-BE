@@ -82,7 +82,6 @@ export class ListTeacherCheckinRequestsQueryDto {
   @Type(() => Number)
   @IsNumber()
   @Min(1)
-  @Type(() => Number)
   page?: number = 1;
 
   @ApiProperty({
@@ -91,6 +90,7 @@ export class ListTeacherCheckinRequestsQueryDto {
     required: false,
   })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   limit?: number = 10;

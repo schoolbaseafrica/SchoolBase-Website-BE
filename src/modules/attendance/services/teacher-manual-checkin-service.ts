@@ -171,7 +171,7 @@ export class TeacherManualCheckinService {
   // --- REVIEW TEACHER CHECKIN REQUEST (ADMIN ONLY) ---
   async reviewTeacherCheckinRequest(
     admin: IRequestWithUser,
-    id: string,
+    id: string, // checkin request id
     dto: ReviewTeacherManualCheckinDto,
   ): Promise<{
     message: string;
