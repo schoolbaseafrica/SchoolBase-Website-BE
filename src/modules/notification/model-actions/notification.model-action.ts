@@ -9,7 +9,7 @@ import { Notification } from '../entities/notification.entity';
 export class NotificationModelAction extends AbstractModelAction<Notification> {
   constructor(
     @InjectRepository(Notification)
-    notificationRepository: Repository<Notification>,
+    private readonly notificationRepository: Repository<Notification>,
   ) {
     super(notificationRepository, Notification);
   }

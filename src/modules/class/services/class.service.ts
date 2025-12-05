@@ -453,6 +453,15 @@ export class ClassService {
           existingAssignment.is_active = true;
           existingAssignment.enrollment_date = new Date();
           await manager.save(ClassStudent, existingAssignment);
+          // Update student's current_class_id using StudentModelAction for consistency
+          await this.studentModelAction.update({
+            identifierOptions: { id: studentId },
+            updatePayload: { current_class_id: classId },
+            transactionOptions: {
+              useTransaction: true,
+              transaction: manager,
+            },
+          });
           reactivated = true;
           return;
         }
@@ -467,6 +476,15 @@ export class ClassService {
           is_active: true,
           enrollment_date: new Date(),
         },
+        transactionOptions: {
+          useTransaction: true,
+          transaction: manager,
+        },
+      });
+      // Update student's current_class_id using StudentModelAction for consistency
+      await this.studentModelAction.update({
+        identifierOptions: { id: studentId },
+        updatePayload: { current_class_id: classId },
         transactionOptions: {
           useTransaction: true,
           transaction: manager,
@@ -570,6 +588,15 @@ export class ClassService {
             existingAssignment.is_active = true;
             existingAssignment.enrollment_date = new Date();
             await manager.save(ClassStudent, existingAssignment);
+            // Update student's current_class_id using StudentModelAction for consistency
+            await this.studentModelAction.update({
+              identifierOptions: { id: studentId },
+              updatePayload: { current_class_id: classId },
+              transactionOptions: {
+                useTransaction: true,
+                transaction: manager,
+              },
+            });
             assignedCount++;
             continue;
           }
@@ -584,6 +611,15 @@ export class ClassService {
             is_active: true,
             enrollment_date: new Date(),
           },
+          transactionOptions: {
+            useTransaction: true,
+            transaction: manager,
+          },
+        });
+        // Update student's current_class_id using StudentModelAction for consistency
+        await this.studentModelAction.update({
+          identifierOptions: { id: studentId },
+          updatePayload: { current_class_id: classId },
           transactionOptions: {
             useTransaction: true,
             transaction: manager,

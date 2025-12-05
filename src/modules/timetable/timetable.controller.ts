@@ -1,16 +1,16 @@
 import {
+  Body,
   Controller,
+  Delete,
   Get,
+  Param,
+  Patch,
   Post,
   Put,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  UseGuards,
   Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiExcludeEndpoint } from '@nestjs/swagger';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 
 import { Roles } from '../auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -19,8 +19,9 @@ import { UserRole } from '../shared/enums';
 import {
   AddScheduleDocs,
   EditScheduleDocs,
-  GetTimetableDocs,
   GetAllTimetableDocs,
+  GetTimetableDocs,
+  UnassignRoomDocs,
 } from './docs';
 import {
   AddScheduleDto,
@@ -56,6 +57,14 @@ export class TimetableController {
     @Body() dto: UpdateScheduleDto,
   ) {
     return this.timetableService.editSchedule(scheduleId, dto);
+  }
+
+  @Patch('schedule/:schedule_id/unassign-room')
+  @UseGuards(JwtAuthGuard)
+  @Roles(UserRole.ADMIN)
+  @UnassignRoomDocs()
+  unassignRoom(@Param('schedule_id') scheduleId: string) {
+    return this.timetableService.unassignRoom(scheduleId);
   }
 
   @Get('view-time-table')

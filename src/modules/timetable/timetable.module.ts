@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { ClassModule } from '../class/class.module';
 import { Class } from '../class/entities/class.entity';
+import { NotificationModule } from '../notification/notification.module';
 import { Room } from '../room/entities/room.entity';
 import { Subject } from '../subject/entities/subject.entity';
 import { Teacher } from '../teacher/entities/teacher.entity';
@@ -26,6 +27,7 @@ import { TimetableService } from './timetable.service';
       Room,
     ]),
     ClassModule,
+    NotificationModule,
   ],
   controllers: [TimetableController],
   providers: [

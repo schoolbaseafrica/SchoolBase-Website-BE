@@ -84,6 +84,26 @@ export class StudentResponseDto {
   photo_url?: string;
 
   @ApiProperty({
+    description:
+      'Current class ID (UUID) - indicates which class the student is currently assigned to. null if the student is not assigned to any class. This field is automatically maintained when students are assigned to classes.',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    type: String,
+    required: false,
+    nullable: true,
+    examples: {
+      assigned: {
+        value: '123e4567-e89b-12d3-a456-426614174000',
+        description: 'Student is assigned to a class',
+      },
+      unassigned: {
+        value: null,
+        description: 'Student is not assigned to any class',
+      },
+    },
+  })
+  current_class_id: string | null;
+
+  @ApiProperty({
     description: 'Created at timestamp',
     type: Date,
   })
@@ -112,6 +132,7 @@ export class StudentResponseDto {
     this.home_address = user.homeAddress;
     this.is_active = user.is_active;
     this.photo_url = student.photo_url;
+    this.current_class_id = student.current_class_id;
     this.created_at = student.createdAt;
     this.updated_at = student.updatedAt;
   }

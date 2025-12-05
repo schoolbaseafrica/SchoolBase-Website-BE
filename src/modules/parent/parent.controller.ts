@@ -36,6 +36,7 @@ import {
   ApiGetStudentSubjects,
   ApiGetMyStudents,
   ApiUnlinkStudent,
+  ApiGetLinkedStudentProfileForParent,
 } from './docs/parent.swagger';
 import {
   CreateParentDto,
@@ -45,6 +46,7 @@ import {
   UpdateParentDto,
   ParentStudentLinkResponseDto,
   StudentBasicDto,
+  StudentProfileDto,
 } from './dto';
 import { ParentService, IUserPayload } from './parent.service';
 
@@ -214,6 +216,30 @@ export class ParentController {
     return {
       message: sysMsg.STUDENTS_LINKED_TO_PARENT,
       status_code: HttpStatus.CREATED,
+      data,
+    };
+  }
+
+  // --- GET: GET A SINGLE LINKED STUDENT PROFILE ---
+  @Get('/:parentId/link-students/:studentId')
+  @Roles(UserRole.ADMIN, UserRole.PARENT)
+  @HttpCode(HttpStatus.OK)
+  @ApiGetLinkedStudentProfileForParent()
+  async getLinkedStudentProfileForParent(
+    @Param('parentId', ParseUUIDPipe) parentId: string,
+    @Param('studentId', ParseUUIDPipe) studentId: string,
+  ): Promise<{
+    message: string;
+    status_code: number;
+    data: StudentProfileDto;
+  }> {
+    const data = await this.parentService.getLinkedStudentProfileForParent(
+      parentId,
+      studentId,
+    );
+    return {
+      message: sysMsg.PARENT_STUDENT_PROFILE_FETCHED,
+      status_code: HttpStatus.OK,
       data,
     };
   }
