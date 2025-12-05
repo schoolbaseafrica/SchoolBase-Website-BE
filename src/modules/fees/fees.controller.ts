@@ -25,11 +25,13 @@ import {
   swaggerActivateFee,
   swaggerGetFeeStudents,
   swaggerGetActiveFeeComponents,
+  swaggerGetStudentFeeDetails,
 } from './docs/fees.swagger';
 import { DeactivateFeeDto } from './dto/deactivate-fee.dto';
 import { FeeStudentResponseDto } from './dto/fee-students-response.dto';
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { GetActiveFeesDto } from './dto/get-active-fees.dto';
+import { StudentFeeDetailsQueryDto } from './dto/student-fee-details.dto';
 import { FeesService } from './fees.service';
 
 @Controller('fees')
@@ -139,6 +141,24 @@ export class FeesController {
     return {
       message: sysMsg.FEE_UPDATED_SUCCESSFULLY,
       fee,
+    };
+  }
+
+  @Get('student/:studentId')
+  @Roles(UserRole.ADMIN)
+  @swaggerGetStudentFeeDetails()
+  async getStudentFeeDetails(
+    @Param('studentId') studentId: string,
+    @Query() query: StudentFeeDetailsQueryDto,
+  ) {
+    const result = await this.feesService.getStudentFeeDetails(
+      studentId,
+      query.term_id,
+      query.session_id,
+    );
+    return {
+      message: sysMsg.FEES_RETRIEVED_SUCCESSFULLY,
+      data: result,
     };
   }
 }

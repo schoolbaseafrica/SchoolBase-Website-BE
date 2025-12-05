@@ -13,6 +13,8 @@ import {
 import { TermModelAction } from '../academic-term/model-actions';
 import { Class } from '../class/entities/class.entity'; // Added Class entity
 import { ClassModelAction } from '../class/model-actions/class.actions';
+import { PaymentService } from '../payment/services/payment.service';
+import { StudentModelAction } from '../student/model-actions/student-actions';
 
 import { CreateFeesDto, QueryFeesDto, UpdateFeesDto } from './dto/fees.dto';
 import { Fees } from './entities/fees.entity';
@@ -41,6 +43,8 @@ describe('FeesService', () => {
   let feesModelAction: jest.Mocked<FeesModelAction>;
   let termModelAction: jest.Mocked<TermModelAction>;
   let classModelAction: jest.Mocked<ClassModelAction>;
+  let paymentService: jest.Mocked<PaymentService>;
+  let studentModelAction: jest.Mocked<StudentModelAction>;
   let logger: Partial<Logger>;
 
   const mockLogger: Partial<Logger> = {
@@ -118,6 +122,15 @@ describe('FeesService', () => {
     getFeeWithStudentAssignments: jest.fn(),
     findAllFees: jest.fn(),
     getActiveFeeComponents: jest.fn(),
+    getFeesForStudent: jest.fn(),
+  };
+
+  const mockPaymentServiceValue = {
+    fetchAllPayments: jest.fn(),
+  };
+
+  const mockStudentModelActionValue = {
+    get: jest.fn(),
   };
 
   const mockTermModelActionValue = { get: jest.fn() };
@@ -141,6 +154,8 @@ describe('FeesService', () => {
         },
         { provide: TermModelAction, useValue: mockTermModelActionValue },
         { provide: ClassModelAction, useValue: mockClassModelActionValue },
+        { provide: PaymentService, useValue: mockPaymentServiceValue },
+        { provide: StudentModelAction, useValue: mockStudentModelActionValue },
         { provide: DataSource, useValue: mockDataSourceValue },
         { provide: WINSTON_MODULE_PROVIDER, useValue: mockLogger },
       ],
@@ -150,6 +165,8 @@ describe('FeesService', () => {
     feesModelAction = module.get(FeesModelAction);
     termModelAction = module.get(TermModelAction);
     classModelAction = module.get(ClassModelAction);
+    paymentService = module.get(PaymentService);
+    studentModelAction = module.get(StudentModelAction);
     logger = module.get(WINSTON_MODULE_PROVIDER);
   });
 
@@ -823,6 +840,137 @@ describe('FeesService', () => {
         term: '',
         frequency: 'Per Term',
       });
+    });
+  });
+
+  // ================= GET STUDENT FEE DETAILS =================
+  describe('getStudentFeeDetails', () => {
+    const studentId = 'student-123';
+    const termId = 'term-123';
+    const sessionId = 'session-123';
+
+    const mockStudent = {
+      id: studentId,
+      registration_number: 'REG001',
+      user: { first_name: 'John', last_name: 'Doe' },
+      class_assignments: [
+        {
+          class: {
+            id: 'class-1',
+            name: 'Grade 1',
+            academicSession: { academicYear: '2023/2024' },
+          },
+        },
+      ],
+    };
+
+    const mockTerm = {
+      id: termId,
+      name: 'First Term',
+      academicSession: { id: sessionId, academicYear: '2023/2024' },
+    };
+
+    const mockFees = [
+      {
+        id: 'fee-1',
+        component_name: 'Tuition',
+        amount: 50000,
+      },
+      {
+        id: 'fee-2',
+        component_name: 'Library',
+        amount: 5000,
+      },
+    ];
+
+    const mockPayments = [
+      {
+        fee_component_id: 'fee-1',
+        amount_paid: 30000,
+        payment_date: new Date(),
+        payment_method: 'Bank Transfer',
+        transaction_id: 'TXN123',
+        fee_component: { component_name: 'Tuition' },
+      },
+    ];
+
+    it('should return student fee details with correct breakdown', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (termModelAction.get as jest.Mock).mockResolvedValue(mockTerm);
+      (feesModelAction.getFeesForStudent as jest.Mock).mockResolvedValue(
+        mockFees,
+      );
+      (paymentService.fetchAllPayments as jest.Mock).mockResolvedValue({
+        payments: mockPayments,
+        total: 1,
+      });
+
+      const result = await service.getStudentFeeDetails(
+        studentId,
+        termId,
+        sessionId,
+      );
+
+      expect(result.student_info).toEqual({
+        student_id: studentId,
+        first_name: 'John',
+        last_name: 'Doe',
+        registration_number: 'REG001',
+        class: 'Grade 1',
+        term: 'First Term',
+        session: '2023/2024',
+      });
+
+      expect(result.fee_breakdown).toHaveLength(2);
+
+      // Tuition: 50000 - 30000 = 20000 outstanding (Partially Paid)
+      expect(result.fee_breakdown[0]).toEqual({
+        component_name: 'Tuition',
+        amount: 50000,
+        amount_paid: 30000,
+        outstanding_amount: 20000,
+        status: 'PARTIALLY_PAID',
+      });
+
+      // Library: 5000 - 0 = 5000 outstanding (Outstanding)
+      expect(result.fee_breakdown[1]).toEqual({
+        component_name: 'Library',
+        amount: 5000,
+        amount_paid: 0,
+        outstanding_amount: 5000,
+        status: 'OUTSTANDING',
+      });
+
+      expect(result.payment_history).toHaveLength(1);
+      expect(result.payment_history[0].amount_paid).toBe(30000);
+      expect(result.payment_history[0].term_label).toBe('First Term');
+    });
+
+    it('should throw BadRequestException if term does not belong to session', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (termModelAction.get as jest.Mock).mockResolvedValue({
+        ...mockTerm,
+        academicSession: { id: 'other-session' },
+      });
+
+      await expect(
+        service.getStudentFeeDetails(studentId, termId, sessionId),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw NotFoundException if student not found', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(null);
+      await expect(
+        service.getStudentFeeDetails(studentId, termId, sessionId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw BadRequestException if term not found', async () => {
+      (studentModelAction.get as jest.Mock).mockResolvedValue(mockStudent);
+      (termModelAction.get as jest.Mock).mockResolvedValue(null);
+      await expect(
+        service.getStudentFeeDetails(studentId, termId, sessionId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

@@ -19,6 +19,7 @@ import {
   ActivateFeeResponseDto,
 } from '../dto/fees-response.dto';
 import { CreateFeesDto, UpdateFeesDto } from '../dto/fees.dto';
+import { StudentFeeDetailsResponseDto } from '../dto/student-fee-details.dto';
 
 export function swaggerCreateFee() {
   return applyDecorators(
@@ -273,6 +274,42 @@ export function swaggerGetActiveFeeComponents() {
     ApiResponse({
       status: 403,
       description: 'Forbidden - User is not an admin',
+    }),
+  );
+}
+
+export function swaggerGetStudentFeeDetails() {
+  return applyDecorators(
+    ApiTags('Fees'),
+    ApiOperation({
+      summary: 'Get student fee details',
+      description:
+        'Retrieve detailed fee breakdown and payment history for a student in a specific term.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'studentId',
+      description: 'The ID of the student',
+      example: 'f1e2d3c4-b5a6-7890-1234-567890abcdef',
+    }),
+    ApiQuery({ name: 'term_id', required: true, type: String }),
+    ApiQuery({ name: 'session_id', required: true, type: String }),
+    ApiResponse({
+      status: 200,
+      description: 'Student fee details retrieved successfully',
+      type: StudentFeeDetailsResponseDto,
+    }),
+    ApiResponse({
+      status: 401,
+      description: 'Unauthorized - Invalid or missing token',
+    }),
+    ApiResponse({
+      status: 403,
+      description: 'Forbidden - User is not an admin',
+    }),
+    ApiResponse({
+      status: 404,
+      description: 'Not found - Student or Term not found',
     }),
   );
 }

@@ -1,7 +1,7 @@
 import { AbstractModelAction } from '@hng-sdk/orm';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 
 import { QueryFeesDto } from '../dto/fees.dto';
 import { Fees } from '../entities/fees.entity';
@@ -123,7 +123,7 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
       limit,
       totalPages,
     };
-}
+  }
   async getTotalExpectedFees(termId?: string): Promise<number> {
     const query = this.feeRepository
       .createQueryBuilder('fee')
@@ -136,5 +136,27 @@ export class FeesModelAction extends AbstractModelAction<Fees> {
 
     const result = await query.getRawOne();
     return parseFloat(result?.total || '0');
+  }
+
+  async getFeesForStudent(
+    studentId: string,
+    classId: string,
+    termId: string,
+  ): Promise<Fees[]> {
+    return this.feeRepository
+      .createQueryBuilder('fee')
+      .leftJoin('fee.classes', 'class')
+      .leftJoin('fee.direct_assignments', 'assignment')
+      .where('fee.term_id = :termId', { termId })
+      .andWhere('fee.status = :status', { status: FeeStatus.ACTIVE })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('class.id = :classId').orWhere(
+            'assignment.student_id = :studentId',
+          );
+        }),
+      )
+      .setParameters({ classId, studentId })
+      .getMany();
   }
 }
