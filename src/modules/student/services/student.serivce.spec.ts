@@ -103,14 +103,14 @@ describe('StudentService', () => {
   });
 
   describe('getMyProfile', () => {
-    const userId = 'a-user-uuid';
+    const studentId = 'a-student-uuid';
 
     it('should return the student profile when found', async () => {
       // Arrange
-      const mockUser = { id: userId, email: 'student@test.com' } as User;
+      const mockUser = { id: 'user-uuid', email: 'student@test.com' } as User;
       // The mockStudent needs to have the full nested structure expected by StudentProfileResponseDto
       const mockStudent = {
-        id: 'a-student-uuid',
+        id: studentId,
         is_deleted: false,
         user: mockUser,
         stream: {
@@ -138,16 +138,16 @@ describe('StudentService', () => {
       mockStudentModelAction.get.mockResolvedValue(mockStudent);
 
       // Act
-      const result = await service.getMyProfile(userId);
+      const result = await service.getMyProfile(studentId);
 
       // Assert
       expect(mockStudentModelAction.get).toHaveBeenCalledWith({
-        identifierOptions: { user: { id: userId } },
+        identifierOptions: { id: studentId },
         relations: { user: true, stream: true },
       });
       expect(result).toEqual(expectedResponse);
       expect(mockLogger.info).toHaveBeenCalledWith(
-        `Fetched student profile for user ID: ${userId}`,
+        `Fetched student profile for user ID: ${studentId}`,
       );
     });
 
@@ -156,11 +156,11 @@ describe('StudentService', () => {
       mockStudentModelAction.get.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.getMyProfile(userId)).rejects.toThrow(
+      await expect(service.getMyProfile(studentId)).rejects.toThrow(
         NotFoundException,
       );
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        `Student profile not found for user ID: ${userId}`,
+        `Student profile not found for user ID: ${studentId}`,
       );
     });
 
@@ -170,7 +170,7 @@ describe('StudentService', () => {
       mockStudentModelAction.get.mockResolvedValue(mockStudent);
 
       // Act & Assert
-      await expect(service.getMyProfile(userId)).rejects.toThrow(
+      await expect(service.getMyProfile(studentId)).rejects.toThrow(
         NotFoundException,
       );
     });

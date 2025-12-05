@@ -495,22 +495,22 @@ export class StudentService {
 
   /**
    * Retrieves the profile of the currently authenticated student.
-   * @param userId - The ID of the authenticated user.
+   * @param studentId - The ID of the student.
    * @returns The student's complete profile.
    * @throws {NotFoundException} If no student profile is linked to the user account.
    */
-  async getMyProfile(userId: string): Promise<StudentProfileResponseDto> {
+  async getMyProfile(studentId: string): Promise<StudentProfileResponseDto> {
     const student = await this.studentModelAction.get({
-      identifierOptions: { user: { id: userId } },
+      identifierOptions: { id: studentId },
       relations: { user: true, stream: true },
     });
 
     if (!student || student.is_deleted) {
-      this.logger.warn(`Student profile not found for user ID: ${userId}`);
+      this.logger.warn(`Student profile not found for user ID: ${studentId}`);
       throw new NotFoundException(sysMsg.STUDENT_NOT_FOUND);
     }
 
-    this.logger.info(`Fetched student profile for user ID: ${userId}`);
+    this.logger.info(`Fetched student profile for user ID: ${studentId}`);
 
     return new StudentProfileResponseDto(
       student,

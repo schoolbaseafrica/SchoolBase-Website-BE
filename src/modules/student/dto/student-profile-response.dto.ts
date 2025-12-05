@@ -106,23 +106,31 @@ export class StudentProfileResponseDto extends StudentResponseDto {
 
   constructor(student: Student, user: User, message?: string) {
     super(student, user, message);
-    this.academic_details = {
-      academic_year: student.stream.class.academicSession.academicYear,
-      name: student.stream.class.academicSession.name,
-      start_date: student.stream.class.academicSession.startDate,
-      end_date: student.stream.class.academicSession.endDate,
-      description: student.stream.class.academicSession.description,
-      status: student.stream.class.academicSession.status,
-    };
-    this.subject_details = {
-      teachers: student.stream.class.teacher_assignment || [],
-      subjects: student.stream.class.classSubjects || [],
-    };
-    this.timetable_details = {
-      schedules: student.stream.class.timetable?.schedules || [],
-    };
-    this.class_name = {
-      name: student.stream.class.name ?? '',
-    };
+    this.academic_details = student.stream
+      ? {
+          academic_year: student.stream.class.academicSession.academicYear,
+          name: student.stream.class.academicSession.name,
+          start_date: student.stream.class.academicSession.startDate,
+          end_date: student.stream.class.academicSession.endDate,
+          description: student.stream.class.academicSession.description,
+          status: student.stream.class.academicSession.status,
+        }
+      : null;
+    this.subject_details = student.stream
+      ? {
+          teachers: student.stream.class.teacher_assignment || [],
+          subjects: student.stream.class.classSubjects || [],
+        }
+      : null;
+    this.timetable_details = student.stream
+      ? {
+          schedules: student.stream.class.timetable?.schedules || [],
+        }
+      : null;
+    this.class_name = student.stream
+      ? {
+          name: student.stream.class.name ?? '',
+        }
+      : null;
   }
 }
