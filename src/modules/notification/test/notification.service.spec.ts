@@ -1,3 +1,4 @@
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { ListNotificationsQueryDto } from '../dto/user-notification-list-query.dto';
@@ -11,6 +12,7 @@ describe('NotificationService', () => {
 
   const mockNotificationModelAction = {
     list: jest.fn(),
+    get: jest.fn(),
   };
 
   const mockNotification = {
@@ -167,6 +169,74 @@ describe('NotificationService', () => {
         has_next: true,
         has_previous: true,
       });
+    });
+  });
+
+  describe('getNotificationById', () => {
+    const userId = 'user-123';
+    const notificationId = 'notification-1';
+
+    it('should return notification by ID when user is authorized', async () => {
+      mockNotificationModelAction.get.mockResolvedValue(mockNotification);
+
+      const result = await service.getNotificationById(notificationId, userId);
+
+      expect(notificationModelAction.get).toHaveBeenCalledWith({
+        identifierOptions: { id: notificationId },
+      });
+      expect(result).toEqual({
+        message: 'Notification retrieved successfully',
+        data: expect.objectContaining({
+          id: 'notification-1',
+          recipient_id: 'user-123',
+          title: 'Test Notification',
+          is_read: false,
+        }),
+      });
+    });
+
+    it('should throw NotFoundException when notification not found', async () => {
+      mockNotificationModelAction.get.mockResolvedValue(null);
+
+      await expect(
+        service.getNotificationById(notificationId, userId),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it("should throw ForbiddenException when user tries to access another user's notification", async () => {
+      const otherUserNotification = {
+        ...mockNotification,
+        recipient_id: 'other-user-456',
+      };
+
+      mockNotificationModelAction.get.mockResolvedValue(otherUserNotification);
+
+      await expect(
+        service.getNotificationById(notificationId, userId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should include all notification fields in response', async () => {
+      const detailedNotification = {
+        ...mockNotification,
+        metadata: { action_url: '/test', entity_type: 'class' },
+      };
+
+      mockNotificationModelAction.get.mockResolvedValue(detailedNotification);
+
+      const result = await service.getNotificationById(notificationId, userId);
+
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          id: 'notification-1',
+          recipient_id: 'user-123',
+          type: NotificationType.SYSTEM_ALERT,
+          title: 'Test Notification',
+          message: 'This is a test notification',
+          is_read: false,
+          metadata: { action_url: '/test', entity_type: 'class' },
+        }),
+      );
     });
   });
 });
