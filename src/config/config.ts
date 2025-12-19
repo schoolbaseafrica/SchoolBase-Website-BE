@@ -31,42 +31,8 @@ export default () => ({
     },
   },
 
-  jwt: {
-    secret: process.env.JWT_SECRET,
-    refreshSecret: process.env.JWT_REFRESH_SECRET,
-    accessDuration: process.env.TOKEN_ACCESS_DURATION,
-    refreshDuration: process.env.TOKEN_REFRESH_DURATION,
-  },
-
   logger: {
     legLevel: process.env.LOG_LEVEL || 'info',
-  },
-
-  paystack: {
-    url: process.env.PAYSTACK_URL,
-    key: process.env.PAYSTACK_KEY,
-  },
-
-  cloudinary: {
-    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
-    apiKey: process.env.CLOUDINARY_API_KEY,
-    apiSecret: process.env.CLOUDINARY_API_SECRET,
-  },
-
-  frontend: {
-    url: process.env.FRONTEND_URL,
-    superadmin_login_url: process.env.SUPERADMIN_LOGIN_URL,
-  },
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID,
-  },
-  school: {
-    name: process.env.SCHOOL_NAME,
-    logoUrl: process.env.SCHOOL_LOGO_URL,
-  },
-
-  invite: {
-    expiry: process.env.INVITE_EXPIRATION_DAYS || '7',
   },
 
   isTest(): boolean {
@@ -83,8 +49,5 @@ export default () => ({
   },
   isProduction(): boolean {
     return process.env.NODE_ENV === 'production';
-  },
-  hash: {
-    salt: process.env.HASH_SALT || '10',
   },
 });

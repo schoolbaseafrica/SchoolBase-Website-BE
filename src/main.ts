@@ -36,13 +36,7 @@ async function bootstrap() {
     .setDescription('API documentation for Open School Portal')
     .setVersion('1.0')
     .addTag('Waitlist')
-    .addBearerAuth({
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      description:
-        'Enter JWT token obtained from the login endpoint. Format: Bearer <token>',
-    })
+    .addTag('Contact')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
