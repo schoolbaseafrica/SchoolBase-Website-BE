@@ -1,0 +1,145 @@
+name: Backend Deploy Pipeline
+
+on:
+  push:
+    branches: 
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '*.md'
+
+concurrency:
+  group: deploy-backend-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  PM2_APP_NAME: api-portal-schoolbase
+  APP_PORT: 3010
+
+jobs:
+  # Primary Deploy - tries GitHub runners first
+  primary-deploy:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    outputs:
+      success: ${{ steps.check.outputs.success }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check for vulnerabilities
+        run: |
+          echo "Checking for high/critical vulnerabilities..."
+          if npm audit --audit-level high; then
+            echo "✅ No high or critical vulnerabilities found"
+          else
+            echo "❌ High or critical vulnerabilities detected! Deployment blocked."
+            exit 1
+          fi
+
+      - name: Build app
+        run: npm run build
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SERVER }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /home/ubuntu/open-school/prod/open-school-portal-BE-website
+            
+            # Ensure we're on main branch and get latest code
+            git checkout main
+            git pull origin main
+            
+            # Install dependencies
+            npm install
+            
+            # Build application on server
+            npm run build
+            
+            # Verify build exists
+            if [ ! -d "dist" ]; then
+              echo "Build failed - dist directory not found"
+              exit 1
+            fi
+            
+            # Reload PM2 app (zero downtime) or start if not running
+            pm2 reload ${{ env.PM2_APP_NAME }} || pm2 start dist/main.js --name ${{ env.PM2_APP_NAME }} -- --port ${{ env.APP_PORT }}
+            pm2 save
+
+      - id: check
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  # Fallback Deploy - only runs if primary fails or is unavailable
+  fallback-deploy:
+    runs-on: [self-hosted, emerj-runner]
+    needs: primary-deploy
+    if: |
+      always() && 
+      (needs.primary-deploy.result == 'failure' || needs.primary-deploy.result == 'cancelled')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check for vulnerabilities
+        run: |
+          echo "Checking for high/critical vulnerabilities..."
+          if npm audit --audit-level high; then
+            echo "✅ No high or critical vulnerabilities found"
+          else
+            echo "❌ High or critical vulnerabilities detected! Deployment blocked."
+            exit 1
+          fi
+
+      - name: Build app
+        run: npm run build
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SERVER }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd /home/ubuntu/open-school/prod/open-school-portal-BE-website
+            
+            # Ensure we're on main branch and get latest code
+            git checkout main
+            git pull origin main
+            
+            # Install dependencies
+            npm install
+            
+            # Build application on server
+            npm run build
+            
+            # Verify build exists
+            if [ ! -d "dist" ]; then
+              echo "Build failed - dist directory not found"
+              exit 1
+            fi
+            
+            # Reload PM2 app (zero downtime) or start if not running
+            pm2 reload ${{ env.PM2_APP_NAME }} || pm2 start dist/main.js --name ${{ env.PM2_APP_NAME }} -- --port ${{ env.APP_PORT }}
+            pm2 save
