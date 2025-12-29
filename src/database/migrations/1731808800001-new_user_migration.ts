@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class NewUserMigration1763494386133 implements MigrationInterface {
-  name = 'NewUserMigration1763494386133';
+export class NewUserMigration1731808800001 implements MigrationInterface {
+  name = 'NewUserMigration1731808800001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Drop the waitlist index if it exists
