@@ -24,17 +24,55 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USER'),
-        password: String(config.get<string>('DB_PASS') || 'postgres'),
-        database: config.get<string>('DB_NAME'),
-        autoLoadEntities: true,
-        migrationsRun: false,
-        synchronize: true,
-      }),
+      useFactory: (config: ConfigService) => {
+        const env = config.get<string>('env');
+        const isProduction = env === 'production';
+        const isStaging = env === 'staging';
+        const isDevelopment = !isProduction && !isStaging;
+
+        return {
+          type: 'postgres',
+          host:
+            config.get<string>('database.host') ||
+            config.get<string>('DB_HOST'),
+          port:
+            config.get<number>('database.port') ||
+            config.get<number>('DB_PORT'),
+          username:
+            config.get<string>('database.user') ||
+            config.get<string>('DB_USER'),
+          password: String(
+            config.get<string>('database.pass') ||
+              config.get<string>('DB_PASS') ||
+              'postgres',
+          ),
+          database:
+            config.get<string>('database.name') ||
+            config.get<string>('DB_NAME'),
+
+          // Auto-load entities from TypeOrmModule.forFeature() in all modules
+          autoLoadEntities: true,
+
+          // CRITICAL: Only synchronize in development
+          // In production, schema changes MUST go through migrations
+          synchronize: isDevelopment,
+
+          // Automatically run pending migrations on application start in production
+          migrationsRun: isProduction || isStaging,
+
+          // Migration configuration
+          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          migrationsTableName: 'migrations',
+
+          // SSL configuration for production databases
+          ssl: config.get<boolean>('database.ssl')
+            ? { rejectUnauthorized: false }
+            : false,
+
+          // Logging configuration
+          logging: isDevelopment ? true : ['error', 'warn', 'migration'],
+        };
+      },
     }),
     ContactModule,
     EmailModule,
