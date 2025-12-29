@@ -1,0 +1,71 @@
+name: Backend CI Pipeline
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+    branches:
+      - dev
+      - main
+      - staging
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '*.md'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Primary CI - tries GitHub runners first
+  primary-ci:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    outputs:
+      success: ${{ steps.check.outputs.success }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - run: npm install
+      - run: npm run lint
+      - run: npm run test
+      - name: Check for vulnerabilities
+        run: |
+          echo "Checking for high/critical vulnerabilities..."
+          if npm audit --audit-level high; then
+            echo "✅ No high or critical vulnerabilities found"
+          else
+            echo "❌ High or critical vulnerabilities detected! Please fix before merging."
+            exit 1
+          fi
+      - run: npm run build
+      - id: check
+        run: echo "success=true" >> $GITHUB_OUTPUT
+
+  # Fallback CI - uses self-hosted runner if GitHub runners fail
+  fallback-ci:
+    runs-on: [self-hosted, emerj-runner]
+    needs: primary-ci
+    if: |
+      github.event.pull_request.draft == false && 
+      failure()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+      - run: npm install
+      - run: npm run lint
+      - run: npm run test
+      - name: Check for vulnerabilities
+        run: |
+          echo "Checking for high/critical vulnerabilities..."
+          if npm audit --audit-level high; then
+            echo "✅ No high or critical vulnerabilities found"
+          else
+            echo "❌ High or critical vulnerabilities detected! Please fix before merging."
+            exit 1
+          fi
+      - run: npm run build
