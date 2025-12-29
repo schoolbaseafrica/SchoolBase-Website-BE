@@ -21,6 +21,7 @@ jobs:
   primary-ci:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
+    continue-on-error: true
     outputs:
       success: ${{ steps.check.outputs.success }}
     steps:
@@ -44,13 +45,14 @@ jobs:
       - id: check
         run: echo "success=true" >> $GITHUB_OUTPUT
 
-  # Fallback CI - uses self-hosted runner if GitHub runners fail
+  # Fallback CI - only runs if primary fails or is unavailable
   fallback-ci:
     runs-on: [self-hosted, emerj-runner]
     needs: primary-ci
     if: |
       github.event.pull_request.draft == false && 
-      failure()
+      always() && 
+      (needs.primary-ci.result == 'failure' || needs.primary-ci.result == 'cancelled')
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

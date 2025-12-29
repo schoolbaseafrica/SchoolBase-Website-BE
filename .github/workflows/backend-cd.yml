@@ -21,6 +21,7 @@ jobs:
   # Primary Deploy - tries GitHub runners first
   primary-deploy:
     runs-on: ubuntu-latest
+    continue-on-error: true
     outputs:
       success: ${{ steps.check.outputs.success }}
     steps:
@@ -81,11 +82,13 @@ jobs:
       - id: check
         run: echo "success=true" >> $GITHUB_OUTPUT
 
-  # Fallback Deploy - uses self-hosted runner if GitHub runners fail
+  # Fallback Deploy - only runs if primary fails or is unavailable
   fallback-deploy:
     runs-on: [self-hosted, emerj-runner]
     needs: primary-deploy
-    if: failure()
+    if: |
+      always() && 
+      (needs.primary-deploy.result == 'failure' || needs.primary-deploy.result == 'cancelled')
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
