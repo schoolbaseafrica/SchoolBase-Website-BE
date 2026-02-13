@@ -49,19 +49,33 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Prepare SSH key
+        id: ssh-key
+        run: |
+          KEY="${{ secrets.SSH_PRIVATE_KEY }}"
+          if echo "$KEY" | grep -q "BEGIN.*KEY"; then
+            echo "$KEY" > deploy_key.pem
+          else
+            echo "$KEY" | base64 -d > deploy_key.pem
+          fi
+          chmod 600 deploy_key.pem
+          echo "path=$(pwd)/deploy_key.pem" >> $GITHUB_OUTPUT
+
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_SERVER }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key_path: ${{ steps.ssh-key.outputs.path }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            set -e
             cd /home/ubuntu/open-school/prod/open-school-portal-BE-website
             
-            # Ensure we're on main branch and get latest code
+            # Force server to match origin/main (discard any local changes so pull never blocks)
+            git fetch origin main
             git checkout main
-            git pull origin main
+            git reset --hard origin/main
             
             # Install dependencies
             npm install
@@ -114,19 +128,33 @@ jobs:
       - name: Build app
         run: npm run build
 
+      - name: Prepare SSH key
+        id: ssh-key
+        run: |
+          KEY="${{ secrets.SSH_PRIVATE_KEY }}"
+          if echo "$KEY" | grep -q "BEGIN.*KEY"; then
+            echo "$KEY" > deploy_key.pem
+          else
+            echo "$KEY" | base64 -d > deploy_key.pem
+          fi
+          chmod 600 deploy_key.pem
+          echo "path=$(pwd)/deploy_key.pem" >> $GITHUB_OUTPUT
+
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_SERVER }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key_path: ${{ steps.ssh-key.outputs.path }}
           port: ${{ secrets.SSH_PORT }}
           script: |
+            set -e
             cd /home/ubuntu/open-school/prod/open-school-portal-BE-website
             
-            # Ensure we're on main branch and get latest code
+            # Force server to match origin/main (discard any local changes so pull never blocks)
+            git fetch origin main
             git checkout main
-            git pull origin main
+            git reset --hard origin/main
             
             # Install dependencies
             npm install
