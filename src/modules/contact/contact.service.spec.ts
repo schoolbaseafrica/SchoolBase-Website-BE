@@ -24,6 +24,7 @@ describe('ContactService', () => {
   const mockCreateContactDto: CreateContactDto = {
     full_name: 'John Doe',
     email: 'john@example.com',
+    contact_number: '+2348012345678',
     school_name: 'Test School',
     message: 'This is a test message',
   };
@@ -32,6 +33,7 @@ describe('ContactService', () => {
     id: 'contact-123',
     full_name: 'John Doe',
     email: 'john@example.com',
+    contact_number: '+2348012345678',
     school_name: 'Test School',
     message: 'This is a test message',
     status: ContactStatus.PENDING,
@@ -150,6 +152,7 @@ describe('ContactService', () => {
         templateData: {
           full_name: mockSavedContact.full_name,
           email: mockSavedContact.email,
+          contact_number: mockSavedContact.contact_number,
           school_name: mockSavedContact.school_name,
           message: mockSavedContact.message,
           contact_id: mockSavedContact.id,
@@ -186,6 +189,24 @@ describe('ContactService', () => {
         message: sysMsg.CONTACT_MESSAGE_SENT,
         contact_id: mockSavedContact.id,
       });
+    });
+
+    it('should handle missing contact_number gracefully', async () => {
+      const dtoWithoutNumber = { ...mockCreateContactDto };
+      delete dtoWithoutNumber.contact_number;
+
+      const contactWithoutNumber = { ...mockSavedContact, contact_number: null };
+      mockContactModelAction.create.mockResolvedValue(contactWithoutNumber);
+
+      await service.create(dtoWithoutNumber);
+
+      expect(emailService.sendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateData: expect.objectContaining({
+            contact_number: 'Not provided',
+          }),
+        }),
+      );
     });
 
     it('should handle missing school_name gracefully', async () => {

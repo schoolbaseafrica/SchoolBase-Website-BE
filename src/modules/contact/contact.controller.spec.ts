@@ -13,6 +13,7 @@ describe('ContactController', () => {
   const mockCreateContactDto: CreateContactDto = {
     full_name: 'Jane Smith',
     email: 'jane@example.com',
+    contact_number: '+2348098765432',
     school_name: 'Springfield High School',
     message: 'I would like to inquire about your services.',
   };
@@ -66,6 +67,7 @@ describe('ContactController', () => {
       expect(service.create).toHaveBeenCalledWith({
         full_name: mockCreateContactDto.full_name,
         email: mockCreateContactDto.email,
+        contact_number: mockCreateContactDto.contact_number,
         school_name: mockCreateContactDto.school_name,
         message: mockCreateContactDto.message,
       });
