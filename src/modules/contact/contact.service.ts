@@ -85,6 +85,7 @@ export class ContactService {
       templateData: {
         full_name: contact.full_name,
         email: contact.email,
+        contact_number: contact.contact_number || 'Not provided',
         school_name: contact.school_name || 'Not provided',
         message: contact.message,
         contact_id: contact.id,

@@ -7,6 +7,7 @@ import {
   MaxLength,
   MinLength,
   IsEmpty,
+  Matches,
 } from 'class-validator';
 
 export class CreateContactDto {
@@ -27,6 +28,17 @@ export class CreateContactDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
+
+  @ApiProperty({
+    description: 'Contact phone number (optional)',
+    example: '+2348012345678',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  @Matches(/^\+?[0-9\s\-()]+$/, { message: 'contact_number must be a valid phone number' })
+  contact_number?: string;
 
   @ApiProperty({
     description: 'School name (optional)',
