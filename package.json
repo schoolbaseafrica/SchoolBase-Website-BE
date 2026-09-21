@@ -1,7 +1,7 @@
 {
-  "name": "open-school-portal-be",
+  "name": "schoolbase-website-api",
   "version": "0.0.1",
-  "description": "Open School Portal Backend",
+  "description": "Public SchoolBase website API",
   "author": "",
   "private": true,
   "license": "UNLICENSED",
@@ -44,15 +44,15 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "dotenv": "^17.2.3",
+    "morgan": "^1.10.1",
     "nest-winston": "^1.10.2",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^10.0.10",
     "nunjucks": "^3.2.4",
     "pg": "^8.16.3",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.27",
-    "winston": "^3.18.3",
-    "morgan": "^1.10.1"
+    "winston": "^3.18.3"
   },
   "devDependencies": {
     "@eslint/compat": "^2.0.0",
@@ -92,7 +92,8 @@
     "typescript": "^5.7.0"
   },
   "overrides": {
-    "path-to-regexp": "^8.4.0"
+    "path-to-regexp": "^8.4.0",
+    "multer": "^2.4.0"
   },
   "jest": {
     "moduleFileExtensions": [

@@ -4,9 +4,13 @@ export default () => ({
   port: parseInt(process.env.PORT, 10) || 3008,
 
   app: {
-    name: process.env.APP_NAME || 'Open School Portal',
+    name: process.env.APP_NAME || 'SchoolBase Website',
     slug: process.env.APP_SLUG,
     logo_url: process.env.LOGO_URL,
+  },
+
+  cors: {
+    origins: process.env.CORS_ORIGINS || process.env.FRONTEND_URL || '',
   },
 
   database: {

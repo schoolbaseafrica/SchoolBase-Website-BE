@@ -43,7 +43,7 @@ const dataSource = new DataSource({
    * Migration files location
    * Works in both development (TypeScript) and production (JavaScript)
    */
-  migrations: [join(__dirname, 'migrations', '*{.ts,.js}')],
+  migrations: [join(__dirname, 'migrations', 'website', '*{.ts,.js}')],
 
   /**
    * CRITICAL: Disable synchronize in production

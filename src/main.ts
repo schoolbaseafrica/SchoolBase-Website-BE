@@ -11,7 +11,16 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
 
-  app.enableCors();
+  const allowedOrigins = configService
+    .get<string>('cors.origins', '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  app.enableCors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+    credentials: true,
+  });
 
   const apiPrefix = configService.get<string>('API_PREFIX', 'api');
   const apiVersion = configService.get<string>('API_VERSION', 'v1');
@@ -31,9 +40,10 @@ async function bootstrap() {
   );
 
   // Swagger setup
+  const appName = configService.get<string>('app.name', 'SchoolBase Website');
   const config = new DocumentBuilder()
-    .setTitle('Open School Portal API')
-    .setDescription('API documentation for Open School Portal')
+    .setTitle(`${appName} API`)
+    .setDescription(`API documentation for ${appName}`)
     .setVersion('1.0')
     .addTag('Waitlist')
     .addTag('Contact')
@@ -58,7 +68,6 @@ async function bootstrap() {
   const isDev = configService.get<boolean>('isDev');
   const port = configService.get<string>('port');
   const env = configService.get<string>('env');
-  const appName = configService.get<string>('app.name');
 
   if (isDev) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -68,14 +77,14 @@ async function bootstrap() {
   // Get the Winston logger to use after startup
   const logger = app.get(WINSTON_MODULE_NEST_PROVIDER);
 
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   logger.log(
     `
       ------------
       Internal Application Started!
       Environment: ${env}
-      API: http://localhost:${port}/
+      API: http://localhost:${port}/${globalPrefix}
       API Docs: http://localhost:${port}/docs
       ------------
   `,

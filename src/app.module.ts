@@ -61,7 +61,7 @@ import { WaitlistModule } from './modules/waitlist/waitlist.module';
           migrationsRun: isProduction || isStaging,
 
           // Migration configuration
-          migrations: [__dirname + '/database/migrations/*{.ts,.js}'],
+          migrations: [__dirname + '/database/migrations/website/*{.ts,.js}'],
           migrationsTableName: 'migrations',
 
           // SSL configuration for production databases
