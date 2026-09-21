@@ -7,7 +7,7 @@ FROM node:22-alpine AS build
 WORKDIR /app
 ENV HUSKY=0
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --include=dev --ignore-scripts
 COPY . .
 RUN npm run build
 
