@@ -149,6 +149,7 @@ describe('ContactService', () => {
         to: [{ email: 'admin@example.com' }],
         subject: 'New Contact Message Received',
         templateNameID: EmailTemplateID.CONTACT_ADMIN_NOTIFICATION,
+        inlineSchoolbaseLogo: true,
         templateData: {
           full_name: mockSavedContact.full_name,
           email: mockSavedContact.email,
@@ -170,6 +171,7 @@ describe('ContactService', () => {
         ],
         subject: 'Contact Form Submission Confirmation',
         templateNameID: EmailTemplateID.CONTACT_USER_CONFIRMATION,
+        inlineSchoolbaseLogo: true,
         templateData: {
           full_name: mockCreateContactDto.full_name,
           message: mockCreateContactDto.message,
@@ -195,7 +197,10 @@ describe('ContactService', () => {
       const dtoWithoutNumber = { ...mockCreateContactDto };
       delete dtoWithoutNumber.contact_number;
 
-      const contactWithoutNumber = { ...mockSavedContact, contact_number: null };
+      const contactWithoutNumber = {
+        ...mockSavedContact,
+        contact_number: null,
+      };
       mockContactModelAction.create.mockResolvedValue(contactWithoutNumber);
 
       await service.create(dtoWithoutNumber);

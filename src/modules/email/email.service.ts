@@ -70,7 +70,15 @@ export class EmailService {
    * @param payload The EmailPayload object
    */
   async sendMail(payload: EmailPayload): Promise<void> {
-    const { from, to, subject, templateNameID, templateData, text } = payload;
+    const {
+      from,
+      to,
+      subject,
+      templateNameID,
+      templateData,
+      text,
+      inlineSchoolbaseLogo,
+    } = payload;
 
     const html = await this.compileTemplate(templateNameID, templateData);
 
@@ -89,6 +97,21 @@ export class EmailService {
       subject: subject,
       html: html,
       text: text, // Optional plain-text version
+      attachments: inlineSchoolbaseLogo
+        ? [
+            {
+              filename: 'schoolbase-logo.png',
+              path: path.join(
+                process.cwd(),
+                'dist',
+                'templates',
+                'schoolbase-email-logo.png',
+              ),
+              cid: 'schoolbase-logo@schoolbase.africa',
+              contentDisposition: 'inline',
+            },
+          ]
+        : undefined,
     };
 
     // Send the email

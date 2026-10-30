@@ -11,4 +11,5 @@ export type EmailPayload = {
   templateNameID: EmailTemplateID;
   templateData: Record<string, unknown>;
   text?: string;
+  inlineSchoolbaseLogo?: boolean;
 };

@@ -82,6 +82,7 @@ export class ContactService {
       to: [{ email: adminEmail || 'support@openschoolportal.com' }],
       subject: 'New Contact Message Received',
       templateNameID: EmailTemplateID.CONTACT_ADMIN_NOTIFICATION,
+      inlineSchoolbaseLogo: true,
       templateData: {
         full_name: contact.full_name,
         email: contact.email,
@@ -104,6 +105,7 @@ export class ContactService {
       to: [{ email: contactDto.email, name: contactDto.full_name }],
       subject: 'Contact Form Submission Confirmation',
       templateNameID: EmailTemplateID.CONTACT_USER_CONFIRMATION,
+      inlineSchoolbaseLogo: true,
       templateData: {
         full_name: contactDto.full_name,
         message: contactDto.message,
